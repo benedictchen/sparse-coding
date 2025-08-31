@@ -13,9 +13,9 @@
 
 # Sparse Coding
 
-🌟 Biological vision principles for efficient representation learning from natural images
+💰 Biological vision principles for representation learning
 
-**Olshausen, B. A., & Field, D. J. (1996)** - "Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"
+**Olshausen, B. A., & Field, D. J. (1996) - "Emergence of simple-cell receptive field properties"**
 
 ## 📦 Installation
 
@@ -23,11 +23,32 @@
 pip install sparse-coding
 ```
 
+## 🚀 Quick Start
+
+```python
+import sparse_coding
+
+# Example usage
+print("✅ Sparse Coding loaded successfully!")
+```
+
 ## 🎓 About the Implementation
 
 Implemented by **Benedict Chen** - bringing foundational AI research to modern Python.
 
 📧 Contact: benedict@benedictchen.com
+
+## 📖 Citation
+
+If you use this implementation in your research, please cite the original paper:
+
+```bibtex
+Olshausen, B. A., & Field, D. J. (1996) - "Emergence of simple-cell receptive field properties"
+```
+
+## 📜 License
+
+Custom Non-Commercial License with Donation Requirements - See LICENSE file for details.
 
 ---
 
