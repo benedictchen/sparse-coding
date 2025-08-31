@@ -34,3 +34,6 @@ Funding = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--cov=sparse_coding", "--cov-report=term-missing"]
+[tool.hatch.build.targets.wheel]
+py-modules = ["sparse_coding"]
+only-include = ["*.py", "LICENSE", "README.md"]
