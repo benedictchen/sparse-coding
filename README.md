@@ -27,9 +27,27 @@ pip install sparse-coding
 
 ```python
 import sparse_coding
+import numpy as np
 
-# Example usage
-print("✅ Sparse Coding loaded successfully!")
+# Create sample image patches (8x8 patches)
+patches = np.random.randn(1000, 64)
+
+# Initialize sparse coder
+coder = sparse_coding.SparseCoder(
+    dictionary_size=128,
+    sparsity_lambda=0.1
+)
+
+# Learn sparse dictionary
+coder.fit(patches)
+
+# Encode new patches sparsely
+test_patch = np.random.randn(1, 64)
+sparse_code = coder.encode(test_patch)
+reconstructed = coder.decode(sparse_code)
+
+print(f"✅ Sparse coding: {np.sum(sparse_code != 0)} active out of {len(sparse_code)} atoms")
+print(f"✅ Reconstruction error: {np.mean((test_patch - reconstructed)**2):.4f}")
 ```
 
 ## 🎓 About the Implementation
