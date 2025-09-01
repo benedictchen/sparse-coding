@@ -1,0 +1,38 @@
+{
+  "name": "sparse-coding",
+  "root": "packages/sparse_coding", 
+  "projectType": "library",
+  "sourceRoot": "packages/sparse_coding/sparse_coding",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "python -m pip install build",
+          "python -m build"
+        ],
+        "cwd": "packages/sparse_coding"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands", 
+      "options": {
+        "commands": [
+          "python -m pytest tests/ -v"
+        ],
+        "cwd": "packages/sparse_coding"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "python -m ruff check .",
+          "python -m black --check ."
+        ],
+        "cwd": "packages/sparse_coding"
+      }
+    }
+  },
+  "tags": ["type:package", "scope:research", "domain:vision"]
+}
