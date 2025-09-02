@@ -59,6 +59,10 @@ from .sparse_coder import (
     get_module_info
 )
 
+# Import additional classes for full API
+from .dictionary_learning import DictionaryLearner
+from .feature_extraction import SparseFeatureExtractor
+
 # Show attribution on library import
 _print_attribution()
 
@@ -72,7 +76,9 @@ __all__ = [
     "create_overcomplete_basis",
     "lateral_inhibition",
     "demo_sparse_coding",
-    "get_module_info"
+    "get_module_info",
+    "DictionaryLearner",
+    "SparseFeatureExtractor"
 ]
 
 """
