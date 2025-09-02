@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sparse-coding"
-version = "2.1.0"
+version = "2.2.0"
 description = "Biological vision principles for efficient representation learning from natural images"
 readme = "README.md"
 license = {text = "Custom Non-Commercial License with Donation Requirements"}
