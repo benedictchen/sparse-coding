@@ -33,8 +33,9 @@ Funding = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=
 Sponsor = "https://github.com/sponsors/benedictchen"
 
 [tool.hatch.build.targets.wheel]
-packages = ["sparse_coding"]
+packages = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--cov=sparse_coding", "--cov-report=term-missing"]
+pythonpath = ["src"]
+addopts = ["--cov=src/sparse_coding", "--cov-report=term-missing"]
