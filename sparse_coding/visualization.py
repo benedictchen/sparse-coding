@@ -1,4 +1,11 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 🎨 Sparse Coding Visualization: Visual Analysis of Dictionary Learning & Sparse Representations
 =============================================================================================
 
@@ -580,3 +587,13 @@ class SparseVisualization:
         print(f"   Average atom similarity: {avg_similarity:.4f}")
         print(f"   Similarity range: [{min(similarities):.4f}, {max(similarities):.4f}]")
         print(f"   Compared {len(similarities)} atom pairs")
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""

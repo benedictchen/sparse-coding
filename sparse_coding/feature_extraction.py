@@ -1,4 +1,11 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║                          Sparse Coding Feature Extraction                      ║
 ║                   Learning Meaningful Features Through Sparsity                 ║
@@ -6,9 +13,6 @@
 
 Created by: Benedict Chen
 Contact: github.com/benedictchen • benedict@benedictchen.com
-If this code helped your research, buy me a coffee ☕
-If it got you published, maybe a fancy dinner 🍽️
-If it won you awards, definitely a Tesla 🚗 (for science!)
 
 ╔════════════════════════════════════════════════════════════════════════════════╗
 ║                                RESEARCH FOUNDATION                             ║
@@ -435,3 +439,13 @@ class SparseFeatureExtractor:
             if hasattr(self, param):
                 setattr(self, param, value)
         return self
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""

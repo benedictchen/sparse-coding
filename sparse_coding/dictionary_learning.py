@@ -1,11 +1,15 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 📚 Dictionary Learning - Teaching AI to See Like Babies Do
 ========================================================
 
 Author: Benedict Chen (benedict@benedictchen.com)
-
-💰 Support This Work: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
-☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
 
 📚 Research Paper:
 Olshausen, B. A., & Field, D. J. (1996)
@@ -435,3 +439,13 @@ class DictionaryLearner:
         reconstructed = reconstructed / overlap_count
         
         return reconstructed
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""

@@ -1,4 +1,11 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 ✨ Sparse Coding Utilities Module
 ===============================
 
@@ -14,8 +21,6 @@ Key Utilities:
 - lateral_inhibition(): Biologically-inspired competition mechanism
 - Demo and visualization functions
 - Basis function generators (Gabor, DCT, edge detectors)
-
-💝 Support This Work: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 """
 
 import numpy as np
@@ -517,6 +522,26 @@ def visualize_basis_subset(basis: np.ndarray, patch_size: Tuple[int, int],
 
 
 if __name__ == "__main__":
+    print("\n" + "="*80)
+    print("💰 SUPPORT THIS RESEARCH - PLEASE DONATE!")  
+    print("🙏 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS")
+    print("="*80 + "\n")
+    
     print("🔧 Sparse Coding Utilities Module")
     print("=" * 35)
     demo_sparse_coding()
+    
+    print("\n" + "="*80)
+    print("💝 Thank you for using this research software!")
+    print("📚 Please donate: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS") 
+    print("="*80 + "\n")
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""

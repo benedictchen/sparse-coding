@@ -1,4 +1,11 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 Sparse Coding Library - Modular Architecture
 Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"
 
@@ -67,3 +74,13 @@ __all__ = [
     "demo_sparse_coding",
     "get_module_info"
 ]
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""
