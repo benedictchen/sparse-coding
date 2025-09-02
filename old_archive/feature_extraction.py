@@ -5,7 +5,7 @@
 ╚════════════════════════════════════════════════════════════════════════════════╝
 
 Created by: Benedict Chen
-Contact: github.com/benedictpchen • benedict.p.chen@gmail.com
+Contact: github.com/benedictchen • benedict@benedictchen.com
 If this code helped your research, buy me a coffee ☕
 If it got you published, maybe a fancy dinner 🍽️
 If it won you awards, definitely a Tesla 🚗 (for science!)

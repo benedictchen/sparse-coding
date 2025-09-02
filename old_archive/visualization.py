@@ -166,7 +166,7 @@ Quality reconstructions demonstrate:
 - Graceful degradation with increased sparsity constraints
 
 ---
-💰 **Support This Research:** https://www.paypal.com/paypalme/BenedictChen
+💰 **Support This Research:** https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 
 Developing comprehensive visualization tools for classical machine learning algorithms
 requires deep understanding of both the mathematical foundations and their historical 
