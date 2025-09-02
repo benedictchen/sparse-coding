@@ -1,10 +1,15 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
 ✨ Sparse Coding - Learning the Language of Natural Images
 ========================================================
 
 Author: Benedict Chen (benedict@benedictchen.com)
-
-💝 Support This Work: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 
 This is the main entry point for the modular sparse coding implementation.
 The original 1927-line monolithic implementation has been broken down into
@@ -179,6 +184,11 @@ def _test_import():
 
 # Run import test when module is loaded (development only)
 if __name__ == '__main__':
+    print("\n" + "="*80)
+    print("💰 SUPPORT THIS RESEARCH - PLEASE DONATE!")  
+    print("🙏 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS")
+    print("="*80 + "\n")
+    
     # Only run test when directly executed
     success = _test_import()
     if success:
@@ -186,3 +196,18 @@ if __name__ == '__main__':
         print("📊 Module info:", get_module_info())
     else:
         print("❌ Module import test failed")
+        
+    print("\n" + "="*80)
+    print("💝 Thank you for using this research software!")
+    print("📚 Please donate: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS") 
+    print("="*80 + "\n")
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""

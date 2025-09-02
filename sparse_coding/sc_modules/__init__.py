@@ -1,4 +1,12 @@
 """
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+"""
+"""
 ✨ Sparse Coding Modules (sc_modules)
 ====================================
 
@@ -16,8 +24,6 @@ Available Modules:
 - dictionary_update: Dictionary learning algorithms including equation (6), MOD, and coherence analysis
 - validation: Validation and analysis functions for sparse coding parameters and learned dictionaries
 - visualization: Comprehensive visualization tools for dictionary analysis, training curves, and sparse coding research
-
-💝 Support This Work: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 """
 
 from .utilities import (
@@ -78,3 +84,14 @@ __all__ = [
 ]
 
 __version__ = '1.0.0'
+
+
+"""
+💝 Thank you for using this research software! 💝
+
+📚 If this work contributed to your research, please:
+💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+
+Your support enables continued development of cutting-edge AI research tools! 🎓✨
+"""
