@@ -26,6 +26,8 @@ edge-like features from natural images, forming the foundation of modern compute
 - Sparse feature extraction and encoding
 - Visualization of learned receptive fields
 - Research-accurate implementations
+
+This root __init__.py redirects to the real implementation in src/sparse_coding/
 """
 
 def _print_attribution():
@@ -50,107 +52,62 @@ def _print_attribution():
         print("   ☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!")
         print("   (Start small, dream big! Every donation helps! 😄)")
 
-# Import UNIFIED implementations from consolidated files
-from .core import (
-    SparseCoder,
-    OlshausenFieldOriginal,
-    DictionaryLearner,
-    SparseFeatureExtractor,
-    BatchProcessor,
-    process_large_dataset,
-    create_overcomplete_basis
-)
+# Import everything from the real implementation in src/sparse_coding/
+import sys
+import os
 
-from .config import (
-    SparseCoderConfig,
-    OlshausenFieldConfig,
-    DictionaryLearningConfig,
-    FeatureExtractionConfig,
-    BatchProcessingConfig,
-    SparsityFunction,
-    Optimizer,
-    DictionaryUpdateRule,
-    InitializationMethod,
-    create_config
-)
+# Add the src directory to Python path
+src_path = os.path.join(os.path.dirname(__file__), 'src')
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
-from .utils import (
-    extract_patches_2d,
-    extract_patches_from_images,
-    normalize_patch_batch,
-    whiten_patches,
-    soft_threshold,
-    hard_threshold,
-    validate_sparse_coding_data,
-    compute_dictionary_coherence,
-    lateral_inhibition_network,
-    create_gabor_dictionary,
-    create_dct_dictionary
-)
-
-from .viz import (
-    plot_dictionary,
-    plot_training_history,
-    plot_sparse_codes,
-    plot_reconstruction_comparison,
-    plot_sparsity_path,
-    setup_publication_style
-)
-
-# Show attribution on library import
-_print_attribution()
-
-__version__ = "2.1.0"
-__authors__ = ["Benedict Chen", "Based on Olshausen & Field (1996)"]
-
-# Define explicit public API - Unified Structure
-__all__ = [
-    # Core algorithms
-    "SparseCoder",
-    "OlshausenFieldOriginal", 
-    "DictionaryLearner",
-    "SparseFeatureExtractor",
-    "BatchProcessor",
+# Import all real implementations from src/sparse_coding/
+try:
+    from sparse_coding import (
+        SparseCoder,
+        DictionaryLearner,
+        SparseFeatureExtractor,
+        BatchProcessor,
+        process_large_dataset,
+        SparseVisualization,
+        sc_modules
+    )
     
-    # Configuration classes
-    "SparseCoderConfig",
-    "OlshausenFieldConfig", 
-    "DictionaryLearningConfig",
-    "FeatureExtractionConfig",
-    "BatchProcessingConfig",
+    # Show attribution on library import
+    _print_attribution()
     
-    # Enums
-    "SparsityFunction",
-    "Optimizer", 
-    "DictionaryUpdateRule",
-    "InitializationMethod",
+    __version__ = "2.1.0"
+    __authors__ = ["Benedict Chen", "Based on Olshausen & Field (1996)"]
     
-    # Factory functions
-    "create_config",
-    "create_overcomplete_basis",
-    "process_large_dataset",
+    # Define explicit public API
+    __all__ = [
+        # Core class (REAL implementation)
+        "SparseCoder",
+        
+        # Dictionary learning
+        "DictionaryLearner",
+        
+        # Feature processing
+        "SparseFeatureExtractor",
+        "BatchProcessor",
+        "process_large_dataset",
+        
+        # Visualization
+        "SparseVisualization",
+        
+        # Module access
+        "sc_modules",
+    ]
     
-    # Utility functions
-    "extract_patches_2d",
-    "extract_patches_from_images", 
-    "normalize_patch_batch",
-    "whiten_patches",
-    "soft_threshold",
-    "hard_threshold",
-    "validate_sparse_coding_data",
-    "compute_dictionary_coherence",
-    "lateral_inhibition_network",
-    "create_gabor_dictionary",
-    "create_dct_dictionary",
+except ImportError as e:
+    print(f"⚠️ Error importing from src/sparse_coding/: {e}")
+    print("   Please ensure the src/ directory structure is correct")
     
-    # Visualization functions
-    "plot_dictionary",
-    "plot_training_history", 
-    "plot_sparse_codes",
-    "plot_reconstruction_comparison",
-    "plot_sparsity_path",
-    "setup_publication_style",
-]
+    # Show attribution even if import fails
+    _print_attribution()
+    
+    __version__ = "2.1.0" 
+    __authors__ = ["Benedict Chen", "Based on Olshausen & Field (1996)"]
 
 """
 💝 Thank you for using this research software! 💝

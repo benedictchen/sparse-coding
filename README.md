@@ -133,25 +133,23 @@ print(f"Feature sparsity: {sparsity_level:.1%}")
 ### Modular Architecture
 
 ```python
-# Access individual algorithm components
+# Access individual algorithm components (mixin classes)
 from sparse_coding.sc_modules import (
-    CoreAlgorithm,           # Core sparse coding mathematics
-    DataProcessing,          # Image preprocessing utilities  
-    DictionaryUpdate,        # Dictionary learning algorithms
-    OlshausenField,         # Original O&F algorithm implementation
-    OptimizationMethods,    # ISTA, FISTA, coordinate descent
-    UtilityFunctions,       # Helper functions and metrics
-    ValidationTools,        # Quality assessment methods
-    VisualizationSuite     # Comprehensive plotting tools
+    DataProcessingMixin,     # Image preprocessing utilities  
+    OptimizationMixin,       # ISTA, FISTA, coordinate descent
+    DictionaryUpdateMixin,   # Dictionary learning algorithms
+    ValidationMixin,         # Quality assessment methods
+    VisualizationMixin,      # Comprehensive plotting tools
+    create_overcomplete_basis,
+    lateral_inhibition,
+    extract_patches,
+    whiten_patches
 )
 
-# Custom algorithm configuration
-custom_coder = CoreAlgorithm(
-    sparsity_method='l1_penalty',
-    solver='coordinate_descent',
-    convergence_criteria='relative_change',
-    tolerance=1e-6
-)
+# Use utility functions directly
+basis = create_overcomplete_basis(patch_size=8, n_components=256)
+patches = extract_patches(images, patch_size=(8, 8))
+whitened = whiten_patches(patches)
 ```
 
 ### Batch Processing for Large Datasets
