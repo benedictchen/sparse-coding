@@ -155,7 +155,7 @@ def run_corrected_tests():
     print(f"🎉 CORRECTED RESULTS: {passed}/{total} test suites passed")
     
     if passed == total:
-        print("✅ ALL CORE FUNCTIONALITY IS WORKING PERFECTLY!")
+        print("✅ Core functionality tests passed!")
         print("✅ SparseCoder pipeline fully functional")
         print("✅ DictionaryLearner operations working")  
         print("✅ End-to-end processing verified")

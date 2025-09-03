@@ -1,12 +1,64 @@
 """
-Sparse Coding Configuration
-===========================
+⚙️ Sparse Coding Configuration & Hyperparameter Management
+========================================================
 
-Configuration classes, enums, and hyperparameter settings
-for sparse coding algorithms.
+Author: Benedict Chen (benedict@benedictchen.com)
 
-Consolidated from scattered configuration files to provide
-a unified configuration interface.
+💰 Donations: Help support this research!
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Please consider recurring donations to support continued sparse coding research
+
+Configuration classes, enums, and hyperparameter settings for research-accurate
+sparse coding implementations based on Olshausen & Field (1996).
+
+🔬 Research Foundation:
+======================
+Configuration parameters derived from:
+- Olshausen & Field (1996): Original sparse coding hyperparameters
+- Beck & Teboulle (2009): FISTA optimization parameter recommendations
+- Mairal et al. (2009): Online dictionary learning convergence criteria
+- Aharon et al. (2006): K-SVD sparsity level guidelines
+
+ELI5 Explanation:
+================
+Think of this like a recipe book for sparse coding algorithms! 👨‍🍳
+
+🥘 **The Recipe Analogy**:
+Just like how different dishes need different cooking temperatures, timing, and ingredients,
+different sparse coding tasks need different algorithm settings:
+
+- **Sparsity level** = How much salt to add (more sparse = more selective)
+- **Learning rate** = How hot your stove is (too high = burnt, too low = never cooks)
+- **Dictionary size** = How many cooking techniques you know (more = more flexible)
+- **Algorithm choice** = Which cooking method (slow roast vs. quick fry)
+
+🧪 **Research Accuracy**:
+These aren't random numbers! Each parameter has been carefully studied in research papers
+to find the sweet spots that work best for natural images, audio signals, and other data types.
+
+ASCII Configuration Architecture:
+================================
+    USER CHOOSES          CONFIG VALIDATES       ALGORITHM USES
+    ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+    │"I want 64   │──────▶│ SparseCoder │──────▶│ FISTA with  │
+    │ dictionary  │       │ Config      │       │ validated   │
+    │ atoms with  │       │ ✓ 64 atoms  │       │ parameters  │
+    │ L1 sparsity"│       │ ✓ L1 norm   │       │             │
+    └─────────────┘       └─────────────┘       └─────────────┘
+           │                       │                       │
+           │                       ▼                       │
+           │               ┌─────────────┐                │
+           │               │ Parameter   │                │
+           └──────────────▶│ Validation  │◀───────────────┘
+                           │ & Defaults  │
+                           └─────────────┘
+
+📊 Parameter Categories:
+=======================
+🎯 **Algorithm Selection**: FISTA, Coordinate Descent, Gradient Descent
+🧮 **Sparsity Functions**: L1, Log, Gaussian, Student-t, Elastic Net
+🏗️ **Dictionary Updates**: Multiplicative, Additive, K-SVD, Projection
+📈 **Optimization**: Learning rates, convergence criteria, max iterations
 """
 
 from enum import Enum

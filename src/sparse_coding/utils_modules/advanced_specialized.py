@@ -2,8 +2,6 @@
 🏗️ Sparse Coding - Advanced and Specialized Utilities Module
 ==========================================================
 
-Split from utils.py (994 lines → modular architecture)
-Part of sparse_coding package 800-line compliance initiative.
 
 Author: Benedict Chen (benedict@benedictchen.com)
 Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Properties"

@@ -1,12 +1,65 @@
 """
-Sparse Coding Visualization
+🎨 Sparse Coding Visualization & Analysis Plots
+===============================================
+
+Author: Benedict Chen (benedict@benedictchen.com)
+
+💰 Donations: Help support this research!
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Please consider recurring donations to support continued sparse coding research
+
+Comprehensive visualization suite for sparse coding research and analysis.
+Includes dictionary visualization, training diagnostics, and feature analysis plots.
+
+🔬 Research Foundation:
+======================
+Visualization techniques based on:
+- Olshausen & Field (1996): Original dictionary visualization methods
+- Bell & Sejnowski (1995): Receptive field plotting techniques
+- Hyvarinen et al. (2001): ICA and sparse coding feature visualization
+- Mairal et al. (2009): Convergence and sparsity analysis plots
+
+ELI5 Explanation:
+================
+Think of this like a photographer's darkroom for neural algorithms! 📷
+
+🖼️ **The Photography Studio Analogy**:
+When developing photos (training algorithms), you need different tools to see your work:
+
+- **Dictionary Plots** = Contact sheets showing all your photos at once
+- **Training Curves** = Time-lapse of how your photo develops over time  
+- **Sparsity Analysis** = Close-up magnifying glass to see fine details
+- **Reconstruction Plots** = Before/after comparison of original vs. developed photo
+- **Feature Maps** = Special filters that highlight different aspects (edges, textures)
+
+🎯 **Why Visualization Matters**:
+Just like photographers need to see their work develop, researchers need to watch
+algorithms learn. These plots reveal whether the algorithm is discovering meaningful
+patterns (like edge detectors) or getting confused with random noise.
+
+ASCII Visualization Pipeline:
+============================
+    RAW ALGORITHM        VISUALIZATION         RESEARCH INSIGHTS
+    ┌─────────────┐     ┌─────────────┐      ┌─────────────┐
+    │ Dictionary  │────▶│ Grid Plot   │─────▶│ "Algorithm  │
+    │ Learning    │     │ Atoms 8x8   │      │  learned    │
+    │ Progress    │     │ ████ ░░░░   │      │  edge       │
+    │             │     │ ░░░░ ████   │      │  detectors!"│
+    └─────────────┘     └─────────────┘      └─────────────┘
+           │                   │                     │
+           ▼                   ▼                     │
+    ┌─────────────┐     ┌─────────────┐             │
+    │ Loss Curves │────▶│ Line Plots  │─────────────┘
+    │ Sparsity    │     │ Convergence │
+    │ Metrics     │     │ Analysis    │
+    └─────────────┘     └─────────────┘
+
+🎨 Visualization Categories:
 ===========================
-
-Consolidated visualization functions for sparse coding algorithms.
-Includes dictionary visualization, training analysis, and feature plots.
-
-Unified from scattered visualization modules to provide comprehensive
-plotting capabilities in a single location.
+📊 **Training Analysis**: Loss curves, convergence plots, sparsity evolution
+🖼️ **Dictionary Plots**: Learned basis functions, receptive fields, atom grids  
+📈 **Statistical Analysis**: Histogram plots, coefficient distributions
+🔍 **Quality Assessment**: Reconstruction comparisons, error visualizations
 """
 
 import numpy as np

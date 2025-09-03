@@ -52,14 +52,15 @@ def _print_attribution():
 
 # Import UNIFIED implementations from consolidated files
 from .core import (
-    SparseCoder,
-    OlshausenFieldOriginal,
-    DictionaryLearner,
-    SparseFeatureExtractor,
-    BatchProcessor,
-    process_large_dataset,
-    create_overcomplete_basis
+    SparseCoder
 )
+
+# Import additional classes from their specific modules
+from .sc_modules.olshausen_field import OlshausenFieldOriginal
+from .dictionary_learning import DictionaryLearner
+from .feature_extraction import SparseFeatureExtractor
+from .batch_processor import BatchProcessor, process_large_dataset
+from .sc_modules.utilities import create_overcomplete_basis
 
 from .config import (
     SparseCoderConfig,

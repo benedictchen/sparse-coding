@@ -58,7 +58,7 @@ class DictionaryUpdateMixin:
         #    - CODE REVIEW SUGGESTION - Implement exact Olshausen & Field (1996) Equation 6:
         #      ```python
         #      def update_dictionary_equation_6_exact(self, patches: np.ndarray, coefficients: np.ndarray):
-        #          """Pure Olshausen & Field (1996) Equation 6 implementation"""
+        #          # Pure Olshausen & Field (1996) Equation 6 implementation
         #          reconstruction_error = patches - coefficients @ self.dictionary.T
         #          for i in range(self.n_components):
         #              # Only update if coefficient is significantly active
@@ -82,7 +82,7 @@ class DictionaryUpdateMixin:
         #    - CODE REVIEW SUGGESTION - Implement K-SVD dictionary update:
         #      ```python
         #      def update_dictionary_ksvd(self, patches: np.ndarray, coefficients: np.ndarray):
-        #          """K-SVD dictionary learning algorithm"""
+        #          # K-SVD dictionary learning algorithm
         #          for k in range(self.n_components):
         #              # Find samples that use atom k
         #              using_indices = np.where(np.abs(coefficients[:, k]) > 1e-10)[0]
@@ -108,7 +108,7 @@ class DictionaryUpdateMixin:
         #    - CODE REVIEW SUGGESTION - Add topographic constraint:
         #      ```python
         #      def add_topographic_penalty(self, sigma: float = 2.0):
-        #          """Add topographic organization penalty"""
+        #          # Add topographic organization penalty
         #          # Create 2D grid positions for dictionary atoms
         #          grid_size = int(np.sqrt(self.n_components))
         #          positions = np.array([[i, j] for i in range(grid_size) 
@@ -130,7 +130,7 @@ class DictionaryUpdateMixin:
         #    - CODE REVIEW SUGGESTION - Implement coherence regularization:
         #      ```python
         #      def apply_coherence_penalty(self, max_coherence: float = 0.9):
-        #          """Apply coherence penalty to reduce atom similarity"""
+        #          # Apply coherence penalty to reduce atom similarity
         #          gram_matrix = self.dictionary.T @ self.dictionary
         #          # Zero out diagonal
         #          np.fill_diagonal(gram_matrix, 0)

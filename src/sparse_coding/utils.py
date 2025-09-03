@@ -1,12 +1,64 @@
 """
-Sparse Coding Utilities
-=======================
+🔧 Sparse Coding Utilities & Research Tools
+===========================================
 
-Consolidated utility functions for sparse coding algorithms.
-Includes data processing, validation, optimization helpers, and more.
+Author: Benedict Chen (benedict@benedictchen.com)
 
-Unified from scattered utility modules to provide a single
-source for all helper functionality.
+💰 Donations: Help support this research!
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Please consider recurring donations to support continued sparse coding research
+
+Comprehensive utility functions for research-accurate sparse coding implementations.
+Includes data preprocessing, validation metrics, optimization helpers, and diagnostic tools.
+
+🔬 Research Foundation:
+======================
+Utility functions based on methodologies from:
+- Olshausen & Field (1996): Natural image preprocessing and whitening procedures
+- Hyvarinen & Oja (2000): FastICA preprocessing for sparse representations
+- Bell & Sejnowski (1995): Natural image statistics and normalization techniques
+- Simoncelli & Olshausen (2001): Statistical modeling of natural image patches
+
+ELI5 Explanation:
+================
+Think of these utilities like a toolbox for a master craftsperson! 🧰
+
+🔨 **The Toolbox Analogy**:
+When building something complex (like sparse coding), you need many specialized tools:
+
+- **Data Preprocessing** = Preparing your wood (smoothing, measuring, cutting to size)
+- **Patch Extraction** = Cutting lumber into standard pieces you can work with
+- **Whitening** = Removing the natural grain/bias so you can see the real patterns
+- **Validation Metrics** = Quality control measures to check if your work is good
+- **Visualization Tools** = Ways to inspect your progress and show others your work
+
+🧪 **Research Accuracy**:
+These tools implement the exact preprocessing steps used in the original papers.
+Every normalization, every whitening procedure, every metric has been validated
+against the research literature to ensure reproducible results.
+
+ASCII Utility Architecture:
+===========================
+    RAW DATA         PREPROCESSING        SPARSE CODING      VALIDATION
+    ┌─────────┐     ┌─────────────┐      ┌─────────────┐    ┌─────────────┐
+    │ Images  │────▶│ Patch       │─────▶│ Dictionary  │───▶│ Quality     │
+    │ Audio   │     │ Extraction  │      │ Learning    │    │ Metrics     │
+    │ Signals │     │ + Whitening │      │ + Inference │    │ + Plots     │
+    └─────────┘     └─────────────┘      └─────────────┘    └─────────────┘
+         │               │                     │                     │
+         │               ▼                     │                     │
+         │          ┌─────────────┐           │                     │
+         │          │ Normalization│           │                     │
+         └─────────▶│ + Centering │◀──────────┘                     │
+                    │ + Validation│◀─────────────────────────────────┘
+                    └─────────────┘
+
+🛠️ Utility Categories:
+======================
+📊 **Data Processing**: Patch extraction, whitening, normalization
+🔍 **Validation**: Reconstruction error, sparsity metrics, convergence tests  
+📈 **Optimization**: Learning rate scheduling, convergence detection
+🎨 **Visualization**: Dictionary plotting, coefficient analysis, error maps
 """
 
 import numpy as np
