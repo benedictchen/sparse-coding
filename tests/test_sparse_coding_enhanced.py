@@ -134,4 +134,4 @@ def test_enhanced_sparse_coding_features():
 
 if __name__ == "__main__":
     test_results = test_enhanced_sparse_coding_features()
-    print("\n✨ Enhanced Sparse Coding implementation is research-compliant!")
+    print("\nSparse Coding implementation passes research validation!")

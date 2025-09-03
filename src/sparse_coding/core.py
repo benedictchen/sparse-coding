@@ -89,7 +89,7 @@ from typing import Dict, List, Tuple, Union, Optional, Any, Callable
 import warnings
 import numpy as np
 
-# Import all modular core components
+# Import core components
 from .core_modules.core_algorithms import CoreAlgorithmsMixin
 from .core_modules.optimization_algorithms import OptimizationAlgorithmsMixin
 from .core_modules.dictionary_updates import DictionaryUpdatesMixin
@@ -119,7 +119,7 @@ def _get_refactoring_guide():
 
 Package Structure:
 - core.py: Main SparseCoder class
-- sc_modules/: Modular algorithm components  
+- sc_modules/: Algorithm components  
 - config.py: Configuration management
 - utils.py: Utility functions
 - viz.py: Visualization tools
@@ -159,19 +159,13 @@ __all__ = [
 if __name__ == "__main__":
     print("🏗️ Sparse Coding - Core Suite")
     print("=" * 50)
-    print("📊 MODULARIZATION SUCCESS:")
-    print(f"  Original: 1544 lines (93% over 800-line limit)")
-    print(f"  Refactored: 4 modules totaling 1544 lines (75% reduction in largest file)")
-    print(f"  Largest module: 400 lines (50% under 800-line limit) ✅")
-    print("")
-    print("🎯 NEW MODULAR STRUCTURE:")
-    print(f"  • Core algorithms & class structure: 380 lines")
-    print(f"  • Optimization algorithms (FISTA/CD/GD): 400 lines")
+    print("Core sparse coding algorithms based on Olshausen & Field (1996)")
+    print("Implements natural image statistics and V1 sparse coding model")
     print(f"  • Dictionary updates & learning: 380 lines") 
     print(f"  • Utilities & validation functions: 384 lines")
     print("")
     print("✅ 100% backward compatibility maintained!")
-    print("🏗️ Enhanced modular architecture with advanced capabilities!")
+    print("🏗️ Sparse coding implementation ready!")
     print("🚀 Sparse coding implementation loaded successfully!")
     print("")
     
