@@ -114,6 +114,8 @@ def get_complete_sparse_coder_class():
         ```
     """
     from sklearn.base import BaseEstimator, TransformerMixin
+    from typing import Optional, Dict, Any
+    import numpy as np
     
     class CompleteSparseCoder(
         BaseEstimator,

@@ -36,6 +36,7 @@ import warnings
 class SparseCoder(BaseEstimator, TransformerMixin):
     """
     Unified Sparse Coding Algorithm - Olshausen & Field (1996)
+    """
     
     # FIXME: Critical Research Accuracy Issues Based on Olshausen & Field (1996)
     #
@@ -118,6 +119,7 @@ class SparseCoder(BaseEstimator, TransformerMixin):
     #          return np.sign(x) * np.maximum(np.abs(x) - threshold, 0)
     #      ```
     
+    """
     This is the main sparse coding implementation that consolidates all 
     functionality from the scattered modular structure into a clean,
     unified class.

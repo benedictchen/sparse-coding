@@ -27,7 +27,7 @@ This module contains the utility and validation components, split from the
 
 import numpy as np
 from sklearn.preprocessing import normalize, StandardScaler
-from typing import Tuple, Optional, Dict, Any, Union
+from typing import Tuple, Optional, Dict, Any, Union, List
 import warnings
 
 
