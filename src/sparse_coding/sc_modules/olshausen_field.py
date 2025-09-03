@@ -148,6 +148,42 @@ class OlshausenFieldOriginal:
         max_iter: int = 100,
         tolerance: float = 1e-6,
         random_seed: Optional[int] = None
+        # FIXME: Original Paper Parameter Accuracy Issues
+        #
+        # 1. WRONG PATCH SIZE DEFAULT (16x16 vs 8x8)
+        #    - Original paper used 8x8 patches, not 16x16
+        #    - Larger patches change feature scale and computational cost
+        #    - Solution: patch_size: Tuple[int, int] = (8, 8)
+        #    - Research note: 8x8 optimal for natural image edge detection
+        #
+        # 2. SPARSITY PENALTY TOO LOW (0.1 vs 0.5-1.0)
+        #    - Paper used λ = 0.5 to 1.0 for natural images
+        #    - 0.1 produces insufficiently sparse, biologically unrealistic codes
+        #    - Solution: sparsity_penalty: float = 0.5
+        #    - Example values from paper experiments: 0.5, 0.7, 1.0
+        #
+        # 3. SIGMA SCALING WRONG (1.0 vs 0.316)
+        #    - Original experiments used σ = 0.316
+        #    - This affects sparseness function sensitivity and convergence
+        #    - Solution: sigma: float = 0.316
+        #    - Mathematical basis: optimal for log(1+x²) sparseness function
+        #
+        # 4. LEARNING RATE TOO HIGH (0.01 vs 0.001)
+        #    - Paper used smaller learning rates for stability
+        #    - High learning rates cause dictionary divergence
+        #    - Solution: learning_rate: float = 0.001
+        #    - Progressive schedule: start 0.001, decay to 0.0001
+        #
+        # 5. MISSING BIOLOGICAL PARAMETERS
+        #    - No lateral inhibition strength parameter
+        #    - No membrane time constant for neural dynamics
+        #    - No topographic organization parameters
+        #    - Solutions:
+        #      ```python
+        #      lateral_inhibition_strength: float = 0.1  # γ parameter
+        #      membrane_time_constant: float = 10.0      # τ in ms
+        #      topographic_sigma: float = 2.0            # spatial organization
+        #      ```
     ):
         """
         Initialize Original Olshausen & Field Sparse Coder

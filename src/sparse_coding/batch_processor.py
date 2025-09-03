@@ -294,8 +294,29 @@ class BatchProcessor:
         results : List[Tuple[np.ndarray, np.ndarray]]
             List of (batch_data, sparse_features) tuples for all batches
         """
+        # FIXME: Critical memory and performance issues in parallel processing
+        # Issue 1: No memory usage estimation or protection against OOM
+        # Issue 2: Dictionary sharing between processes is inefficient (duplicated)
+        # Issue 3: Result sorting logic is incorrect and may fail
+        # Issue 4: No load balancing for uneven batch processing times
+        # Issue 5: Exception handling doesn't clean up partial results
+        
         n_samples = dataset.shape[0]
         n_batches = (n_samples + self.batch_size - 1) // self.batch_size
+        
+        # FIXME: No memory safety check for large parallel operations
+        # Issue: Could easily exceed available RAM with large datasets
+        # Solutions:
+        # 1. Estimate total memory usage and warn/error if too large
+        # 2. Implement dynamic batch size adjustment based on available memory
+        # 3. Add option to use disk-based temporary storage for results
+        #
+        # Example memory estimation:
+        # estimated_memory_mb = (n_samples * dataset.shape[1] * 8 * 2) / (1024**2)  # Input + output
+        # import psutil
+        # available_memory_mb = psutil.virtual_memory().available / (1024**2)
+        # if estimated_memory_mb > available_memory_mb * 0.8:
+        #     raise MemoryError(f"Estimated memory usage {estimated_memory_mb:.1f}MB exceeds available {available_memory_mb:.1f}MB")
         
         logger.info(f"⚡ Parallel processing: {n_samples} samples, {self.n_workers} workers")
         
@@ -304,12 +325,27 @@ class BatchProcessor:
             fit_samples = min(10000, n_samples)
             self.sparse_coder.fit(dataset[:fit_samples])
         
+        # FIXME: Inefficient dictionary sharing across processes
+        # Issue: Each worker gets full copy of dictionary, wasting memory
+        # Solutions:
+        # 1. Use shared memory for dictionary (multiprocessing.shared_memory)
+        # 2. Serialize dictionary once and pass to workers
+        # 3. Use memory mapping for large dictionaries
+        #
+        # Example shared memory approach:
+        # from multiprocessing import shared_memory
+        # dict_shm = shared_memory.SharedMemory(create=True, size=self.sparse_coder.dictionary_.nbytes)
+        # dict_array = np.ndarray(self.sparse_coder.dictionary_.shape, dtype=self.sparse_coder.dictionary_.dtype, buffer=dict_shm.buf)
+        # dict_array[:] = self.sparse_coder.dictionary_[:]
+        
         # Create batch processing tasks
         batch_tasks = []
         for batch_idx in range(n_batches):
             start_idx = batch_idx * self.batch_size
             end_idx = min(start_idx + self.batch_size, n_samples)
             batch_data = dataset[start_idx:end_idx]
+            # FIXME: Storing full batch_data in tasks list uses excessive memory
+            # Better approach: store indices and slice in worker
             batch_tasks.append((batch_idx, batch_data))
         
         # Process batches in parallel
@@ -320,6 +356,17 @@ class BatchProcessor:
                 executor.submit(self._process_batch_worker, task): task[0] 
                 for task in batch_tasks
             }
+            
+            # FIXME: No progress tracking during parallel execution
+            # Issue: Users have no visibility into parallel processing progress
+            # Solutions:
+            # 1. Add periodic progress updates using completed future count
+            # 2. Implement timeout handling for stuck workers
+            # 3. Add estimated completion time calculation
+            #
+            # Example progress tracking:
+            # completed_count = 0
+            # start_time = time.time()
             
             # Collect results as they complete
             for future in as_completed(futures):
@@ -333,7 +380,22 @@ class BatchProcessor:
                         
                 except Exception as e:
                     logger.error(f"❌ Error processing batch {batch_idx}: {e}")
+                    # FIXME: Exception doesn't clean up other running tasks
+                    # Should cancel remaining futures and clean up resources
                     raise
+        
+        # FIXME: Result sorting logic is incorrect and will fail
+        # Issue: Trying to sort by batch_data[0] when it should sort by batch_idx
+        # The current logic assumes batch_data has batch_idx attribute, which it doesn't
+        # Solutions:
+        # 1. Store batch_idx with results explicitly
+        # 2. Use dictionary instead of list to maintain order
+        # 3. Collect results in order instead of sorting at end
+        #
+        # Correct implementation:
+        # results_with_idx = [(batch_idx, batch_data, sparse_features) for batch_idx, (batch_data, sparse_features) in results]
+        # results_with_idx.sort(key=lambda x: x[0])  # Sort by batch_idx
+        # results = [(batch_data, sparse_features) for _, batch_data, sparse_features in results_with_idx]
         
         # Sort results by original batch order
         results.sort(key=lambda x: x[0] if hasattr(x[0], 'batch_idx') else 0)

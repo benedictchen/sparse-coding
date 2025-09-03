@@ -84,6 +84,135 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
         optimization_method: str = 'coordinate_descent',  # 'equation_5', 'fista', 'proximal_gradient'
         l1_solver: str = 'coordinate_descent'  # 'lbfgs_b', 'fista', 'coordinate_descent'
     ):
+        # FIXME: Critical Research Accuracy Issues Based on Actual Olshausen & Field (1996) Paper
+        # 
+        # 1. INCORRECT SPARSITY PARAMETER (λ/σ = 0.14 from paper, page 3)
+        #    - Paper explicitly states: "parameter λ was set so that λ/σ = 0.14, with σ² set to the variance of the images"
+        #    - Current sparsity_penalty=0.1 ignores this variance-scaled approach
+        #    - CODE REVIEW SUGGESTION - Implement variance-scaled sparsity parameter:
+        #      ```python
+        #      def __init__(self, ..., lambda_over_sigma: float = 0.14, ...):
+        #          self.lambda_over_sigma = lambda_over_sigma  # From paper page 3
+        #          self.sparsity_penalty = sparsity_penalty  # Will be overridden in fit()
+        #      
+        #      def fit(self, images, n_patches=10000):
+        #          patches = self.extract_patches(images, n_patches)
+        #          patch_std = np.std(patches)
+        #          effective_lambda = self.lambda_over_sigma * patch_std
+        #          self.sparsity_penalty = effective_lambda
+        #          print(f"Using research-accurate λ/σ = {self.lambda_over_sigma}, "
+        #                f"patch σ = {patch_std:.3f}, effective λ = {effective_lambda:.3f}")
+        #      ```
+        #
+        # 2. WRONG DEFAULT SPARSENESS FUNCTION ('l1' vs 'log' from paper)
+        #    - Paper explicitly uses S(x) = log(1 + x²) in Equation (4), page 2
+        #    - Current default 'l1' is not the paper's method
+        #    - CODE REVIEW SUGGESTION - Implement original log sparseness function:
+        #      ```python
+        #      def sparseness_function_log(self, x: np.ndarray) -> float:
+        #          """S(x) = log(1 + x²) from Olshausen & Field (1996) Equation 4"""
+        #          return np.sum(np.log(1 + x**2))
+        #      
+        #      def sparseness_derivative_log(self, x: np.ndarray) -> np.ndarray:
+        #          """S'(x) = 2x/(1 + x²) derivative for Equation 5"""
+        #          return 2 * x / (1 + x**2)
+        #      
+        #      # Change default
+        #      sparseness_function: str = 'log'  # Research-accurate default
+        #      ```
+        #
+        # 3. MISSING PREPROCESSING FROM PAPER (Zero-phase whitening filter)
+        #    - Paper used specific preprocessing: "zero-phase whitening/lowpass filter" 
+        #    - Formula from page 3: R(f) = fe^(-f/f₀), f₀ = 200 cycles/picture
+        #    - CODE REVIEW SUGGESTION - Implement Olshausen-Field whitening filter:
+        #      ```python
+        #      def whiten_patches_olshausen_field(self, patches: np.ndarray, 
+        #                                        f0: float = 200.0) -> np.ndarray:
+        #          """Zero-phase whitening filter R(f) = fe^(-f/f₀) from paper page 3"""
+        #          whitened_patches = []
+        #          for patch in patches:
+        #              # Reshape to 2D for FFT
+        #              patch_2d = patch.reshape(self.patch_size)
+        #              # Apply FFT
+        #              fft_patch = np.fft.fft2(patch_2d)
+        #              # Create frequency grids
+        #              h, w = self.patch_size
+        #              fy, fx = np.meshgrid(np.fft.fftfreq(w), np.fft.fftfreq(h))
+        #              f_magnitude = np.sqrt(fx**2 + fy**2) * min(h, w)  # cycles/picture
+        #              # Apply whitening filter R(f) = f * exp(-f/f₀)
+        #              filter_response = f_magnitude * np.exp(-f_magnitude / f0)
+        #              # Avoid division by zero at DC
+        #              filter_response[0, 0] = 1.0
+        #              # Whiten: divide by amplitude spectrum, multiply by filter
+        #              amplitude = np.abs(fft_patch) + 1e-8
+        #              whitened_fft = (fft_patch / amplitude) * filter_response
+        #              # Convert back to spatial domain
+        #              whitened_patch = np.real(np.fft.ifft2(whitened_fft))
+        #              whitened_patches.append(whitened_patch.flatten())
+        #          return np.array(whitened_patches)
+        #      ```
+        #
+        # 4. INCORRECT TRAINING PARAMETERS (Updates and convergence)
+        #    - Paper used ~400,000 image presentations leading to ~4,000 updates
+        #    - Convergence criterion: "halting when the change in E was less than 1%"
+        #    - Current max_iter=100 and tolerance=1e-6 don't match paper
+        #    - Solutions:
+        #      a) Change defaults: max_iter: int = 4000, tolerance: float = 0.01
+        #      b) Add image_presentations parameter to match paper's 400,000
+        #      c) Implement relative convergence: |ΔE|/E < 0.01
+        #    - Paper page 3: "halting when the change in E was less than 1%"
+        #
+        # 5. WRONG DEFAULT BASIS FUNCTIONS COUNT (256 vs 192 from paper)
+        #    - Paper used 192 basis functions for 16×16=256 pixel patches (overcomplete by 0.75)
+        #    - Current default n_components=256 creates 1:1 ratio (complete, not overcomplete)
+        #    - Paper's overcomplete ratio was specifically chosen
+        #    - Solutions:
+        #      a) Change default: n_components: int = 192  # Exact from paper
+        #      b) Add overcomplete_ratio parameter for other patch sizes
+        #      c) Maintain 0.75 overcomplete ratio: n_components = int(0.75 * patch_area)
+        #      ```
+        #
+        # 2. WRONG DEFAULT OPTIMIZATION METHOD (coordinate_descent instead of equation_5)
+        #    - Olshausen & Field (1996) used their specific Equation 5 algorithm
+        #    - coordinate_descent is a modern approximation, not research-accurate
+        #    - Solutions:
+        #      a) Change default: optimization_method: str = 'equation_5'
+        #      b) Implement exact Equation 5 from paper: da/dt = φ(u) - Da*Σ(a)
+        #      c) Add equation_5_fast variant with computational optimizations
+        #    - Example implementation:
+        #      ```python
+        #      def _equation_5_dynamics(self, patches, coefficients):
+        #          # Exact Equation 5: da/dt = φ(u) - Da*Σ(a)
+        #          residual = patches - self.dictionary @ coefficients.T
+        #          phi_u = self.dictionary.T @ residual
+        #          inhibition = self._lateral_inhibition_matrix() @ coefficients.T
+        #          return phi_u.T - inhibition.T
+        #      ```
+        #
+        # 3. MISSING ORIGINAL PAPER PARAMETERS
+        #    - No lateral inhibition matrix (critical for biological accuracy)
+        #    - No time step parameter for differential equation solving
+        #    - No convergence criteria matching original paper
+        #    - Solutions:
+        #      a) Add: lateral_inhibition: bool = True
+        #      b) Add: time_step: float = 0.1 (for equation 5 dynamics)
+        #      c) Add: convergence_method: str = 'olshausen_field'
+        #    - Example additions:
+        #      ```python
+        #      # Biological realism parameters
+        #      self.lateral_inhibition = lateral_inhibition
+        #      self.time_step = 0.1  # dt for differential equation
+        #      self.leak_rate = 0.1  # Neural leak parameter
+        #      ```
+        #
+        # 4. INCORRECT PATCH SIZE DEFAULT (16x16 instead of 8x8)
+        #    - Original paper used 8x8 patches for natural image experiments
+        #    - 16x16 changes computational complexity and learned features
+        #    - Solutions:
+        #      a) Change default: patch_size: Tuple[int, int] = (8, 8)
+        #      b) Add validation warning for non-research sizes
+        #      c) Scale other parameters based on patch size
+        #    - Research note: 8x8 patches capture local edge structure optimally
         """
         Initialize Sparse Coder
         
@@ -199,6 +328,67 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
         Returns:
             Dict containing training statistics and final metrics
         """
+        
+        # FIXME: Critical Issues in fit() Method - Research Accuracy Problems
+        #
+        # 1. INSUFFICIENT TRAINING PATCHES (n_patches=10000 too small)
+        #    - Olshausen & Field (1996) used ~40,000-100,000 patches for stable learning
+        #    - 10K patches leads to poor dictionary diversity and convergence
+        #    - Solutions:
+        #      a) Increase default: n_patches: int = 50000
+        #      b) Add adaptive patch selection based on image content
+        #      c) Implement progressive patch increase during training
+        #    - Example:
+        #      ```python
+        #      # Research-accurate patch count
+        #      if n_patches < 20000:
+        #          print(f"Warning: {n_patches} patches may be insufficient")
+        #          print("Olshausen & Field (1996) used 40,000+ patches")
+        #      ```
+        #
+        # 2. FIXED ITERATION COUNT (50 iterations hardcoded)
+        #    - Original paper trained until convergence, not fixed iterations
+        #    - Different datasets require different convergence times
+        #    - Solutions:
+        #      a) Use convergence-based stopping: while error_change > threshold
+        #      b) Add max_epochs parameter with reasonable default (200-500)
+        #      c) Implement early stopping with patience parameter
+        #    - Example:
+        #      ```python
+        #      max_epochs = 500
+        #      patience = 20
+        #      best_error = float('inf')
+        #      no_improve_count = 0
+        #      ```
+        #
+        # 3. INCORRECT DICTIONARY NORMALIZATION TIMING
+        #    - Dictionary should be normalized after each update, not just at init
+        #    - Missing renormalization can lead to divergence
+        #    - Solutions:
+        #      a) Add normalization after each dictionary update
+        #      b) Implement unit norm constraint as in original paper
+        #      c) Add optional soft normalization with decay
+        #    - Example:
+        #      ```python
+        #      # After each dictionary update
+        #      self.dictionary = normalize(self.dictionary, axis=0)
+        #      # Prevent zero-norm columns
+        #      norms = np.linalg.norm(self.dictionary, axis=0)
+        #      self.dictionary[:, norms < 1e-8] = np.random.randn(patch_dim, 1)
+        #      ```
+        #
+        # 4. MISSING LEARNING RATE SCHEDULE
+        #    - Original paper used adaptive learning rates
+        #    - Current fixed learning_rate=0.01 may be suboptimal
+        #    - Solutions:
+        #      a) Implement cosine annealing: lr = lr_max * cos(π*t/T)
+        #      b) Add step-wise decay every N epochs
+        #      c) Use AdaGrad-style adaptive rates per dictionary element
+        #    - Example:
+        #      ```python
+        #      # Cosine annealing learning rate
+        #      lr_t = self.learning_rate * 0.5 * (1 + np.cos(np.pi * iteration / max_epochs))
+        #      ```
         
         print(f"🎯 Learning sparse dictionary from {len(images)} images...")
         

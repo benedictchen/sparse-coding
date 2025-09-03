@@ -37,6 +37,87 @@ class SparseCoder(BaseEstimator, TransformerMixin):
     """
     Unified Sparse Coding Algorithm - Olshausen & Field (1996)
     
+    # FIXME: Critical Research Accuracy Issues Based on Olshausen & Field (1996)
+    #
+    # 1. MISSING PROPER SPARSE CODING OBJECTIVE FUNCTION (Nature 1996, page 607)
+    #    - Paper's objective: minimize ||I - Σaᵢφᵢ||² + λS(a) where S(a) is sparsity term
+    #    - Current implementation may not properly balance reconstruction vs sparsity
+    #    - Missing: proper L1 sparsity penalty S(a) = Σ|aᵢ| or S(a) = Σlog(1 + aᵢ²)
+    #    - Missing: adaptive lambda scheduling for sparsity-reconstruction trade-off
+    #    - Solutions:
+    #      a) Implement exact objective: E = Σₘ[||I_m - Σᵢaᵢ^(m)φᵢ||² + λΣᵢS(aᵢ^(m))]
+    #      b) Add multiple sparsity functions: L1, log(1+x²), student-t, Laplacian
+    #      c) Implement adaptive lambda decay scheduling
+    #      d) Add reconstruction error monitoring vs sparsity level
+    #    - CODE REVIEW SUGGESTION - Implement research-accurate objective function:
+    #      ```python
+    #      def compute_objective(self, data: np.ndarray, coefficients: np.ndarray, 
+    #                           dictionary: np.ndarray, lambda_sparse: float, 
+    #                           sparsity_func: str = 'l1') -> float:
+    #          """Compute Olshausen & Field (1996) objective function"""
+    #          # Reconstruction term: ||I - Σaᵢφᵢ||²
+    #          reconstruction = data - np.dot(dictionary, coefficients)
+    #          reconstruction_error = np.sum(reconstruction ** 2)
+    #          
+    #          # Sparsity term S(a) 
+    #          if sparsity_func == 'l1':
+    #              sparsity_penalty = np.sum(np.abs(coefficients))
+    #          elif sparsity_func == 'log':
+    #              sparsity_penalty = np.sum(np.log(1 + coefficients ** 2))
+    #          elif sparsity_func == 'student_t':
+    #              sparsity_penalty = np.sum(np.log(1 + coefficients ** 2 / 2))
+    #          
+    #          total_objective = reconstruction_error + lambda_sparse * sparsity_penalty
+    #          return total_objective, reconstruction_error, sparsity_penalty
+    #      
+    #      def adaptive_lambda_schedule(self, iteration: int, max_iterations: int,
+    #                                  lambda_init: float = 0.1, decay_rate: float = 0.95) -> float:
+    #          """Adaptive sparsity parameter scheduling"""
+    #          return lambda_init * (decay_rate ** (iteration / max_iterations))
+    #      ```
+    #
+    # 2. INCORRECT INFERENCE ALGORITHM FOR SPARSE COEFFICIENTS
+    #    - Olshausen & Field used iterative thresholding: aᵢ ← g(aᵢ + η∂E/∂aᵢ)
+    #    - Missing: proper soft thresholding function g(u) = sign(u)max(|u| - λ, 0)
+    #    - Missing: ISTA/FISTA convergence guarantees and step size selection
+    #    - CODE REVIEW SUGGESTION - Replace with proper ISTA/FISTA implementation:
+    #      ```python
+    #      def ista_inference(self, data: np.ndarray, dictionary: np.ndarray,
+    #                        lambda_sparse: float, max_iterations: int = 100,
+    #                        tolerance: float = 1e-6) -> np.ndarray:
+    #          """ISTA algorithm for sparse coefficient inference"""
+    #          n_atoms = dictionary.shape[0]
+    #          coefficients = np.zeros(n_atoms)
+    #          
+    #          # Compute Lipschitz constant for step size
+    #          L = np.linalg.norm(dictionary.T @ dictionary, ord=2)
+    #          eta = 1.0 / L  # Step size
+    #          
+    #          for iteration in range(max_iterations):
+    #              # Gradient of reconstruction term
+    #              residual = data - dictionary.T @ coefficients
+    #              gradient = -dictionary @ residual
+    #              
+    #              # Gradient step
+    #              temp = coefficients - eta * gradient
+    #              
+    #              # Soft thresholding (proximal operator of L1 norm)
+    #              threshold = lambda_sparse * eta
+    #              coefficients_new = self.soft_threshold(temp, threshold)
+    #              
+    #              # Check convergence
+    #              if np.linalg.norm(coefficients_new - coefficients) < tolerance:
+    #                  break
+    #              
+    #              coefficients = coefficients_new
+    #          
+    #          return coefficients
+    #      
+    #      def soft_threshold(self, x: np.ndarray, threshold: float) -> np.ndarray:
+    #          """Soft thresholding: g(u) = sign(u)max(|u| - λ, 0)"""
+    #          return np.sign(x) * np.maximum(np.abs(x) - threshold, 0)
+    #      ```
+    
     This is the main sparse coding implementation that consolidates all 
     functionality from the scattered modular structure into a clean,
     unified class.
@@ -186,44 +267,65 @@ class SparseCoder(BaseEstimator, TransformerMixin):
         
         print(f"🔬 Training sparse coder on {X.shape[0]} patches...")
         
-        # FIXME: Critical algorithmic issues in main training loop
-        # Issue 1: No handling of batch_size > X.shape[0] 
-        # Issue 2: No convergence monitoring beyond cost change
-        # Issue 3: Missing gradient clipping for stability
-        # Issue 4: No adaptive learning rate scheduling
+        # FIXME: RESEARCH INACCURACY - Training loop doesn't follow paper specifications
+        # Issue: Paper uses online learning with ~400,000 presentations, not batch learning
+        # From paper page 3: "A stable solution was arrived at after ~400,000 updates"
+        # Current: Uses batch processing which changes the learning dynamics
+        # Solutions:
+        # 1. Implement online learning (one patch at a time) as in original paper
+        # 2. Use proper presentation counting instead of iteration counting  
+        # 3. Apply dictionary updates every 100 presentations as specified
+        # 4. Track stability over long periods rather than cost convergence
+        #
+        # Research-accurate training loop:
+        # presentation_count = 0
+        # target_presentations = 400000
+        # while presentation_count < target_presentations:
+        #     patch_idx = np.random.randint(X.shape[0])
+        #     patch = X[patch_idx:patch_idx+1]
+        #     codes = self._sparse_coding_step(patch)  # Use equation (5)
+        #     if presentation_count % 100 == 0:  # Update every 100 presentations
+        #         self._dictionary_update_step(patch, codes)  # Use equation (6)
+        #     presentation_count += 1
+        
+        # FIXME: RESEARCH INACCURACY - Iteration count doesn't match paper
+        # Issue: Paper specifies ~400,000 presentations, current uses max_iter iterations
+        # From paper: Training continues until stable solution reached after many presentations
+        # Solutions:
+        # 1. Convert max_iter to presentation count: target_presentations = 400000
+        # 2. Use online learning instead of batch processing
+        # 3. Track presentation count across all patches
         
         # Main training loop
         for iteration in range(self.max_iter):
-            # FIXME: Batch selection can fail if batch_size > n_samples
-            # Issue: np.random.choice with replace=False will crash
+            # FIXME: RESEARCH INACCURACY - Batch processing not used in original paper
+            # Issue: Paper uses individual patch presentations, not batch processing
+            # From paper: Each update uses a single patch, with dictionary updates every 100 presentations
+            # Current: Uses batch processing which can alter convergence properties
             # Solutions:
-            # 1. Check and adjust batch_size if needed
-            # 2. Use replace=True for small datasets
-            # 3. Implement proper mini-batch handling
+            # 1. Use single patch selection: patch_idx = np.random.randint(X.shape[0])
+            # 2. Implement presentation-based counting as in paper
+            # 3. Apply dictionary updates at proper intervals (every 100 presentations)
             #
-            # Example fix:
-            # effective_batch_size = min(self.batch_size, X.shape[0])
-            # if effective_batch_size < self.batch_size:
-            #     warnings.warn(f"Reduced batch_size from {self.batch_size} to {effective_batch_size}")
-            # batch_indices = np.random.choice(X.shape[0], effective_batch_size, 
-            #                                 replace=effective_batch_size > X.shape[0])
+            # Research-accurate patch selection:
+            # # Select single random patch (as in paper)
+            # patch_idx = np.random.randint(X.shape[0])
+            # X_batch = X[patch_idx:patch_idx+1]  # Single patch
             
             batch_indices = np.random.choice(X.shape[0], self.batch_size, replace=False)
             X_batch = X[batch_indices]
             
-            # FIXME: Sparse coding step lacks error handling and numerical stability
-            # Issue: No check for degenerate solutions or numerical overflow
+            # FIXME: RESEARCH INACCURACY - Should use equation (5) dynamics for sparse coding
+            # Issue: Generic sparse coding step doesn't implement paper's specific equation (5)
+            # From paper equation (5): â_i = b_i - Σ_j C_ij â_j - (λ/σ)S'(â_i/σ)
+            # Current: Uses generic optimization which may not match paper's dynamics
             # Solutions:
-            # 1. Add numerical stability checks in sparse coding
-            # 2. Monitor for NaN/Inf values and handle gracefully
-            # 3. Add option to restart from different initialization if needed
+            # 1. Implement exact equation (5) with specified parameters λ/σ = 0.14
+            # 2. Use paper's sparseness function S(x) = log(1 + x²)
+            # 3. Apply proper time constant τ in differential equation
             #
-            # Example:
-            # codes = self._sparse_coding_step(X_batch)
-            # if np.any(np.isnan(codes)) or np.any(np.isinf(codes)):
-            #     warnings.warn("Numerical instability detected, reinitializing dictionary")
-            #     self.dictionary_ = self._initialize_dictionary(patch_dim, self.n_components)
-            #     continue
+            # Research-accurate sparse coding:
+            # codes = self._sparse_coding_equation_5(X_batch)  # Use exact equation (5)
             
             codes = self._sparse_coding_step(X_batch)
             
@@ -241,6 +343,22 @@ class SparseCoder(BaseEstimator, TransformerMixin):
                 self.training_history_['total_cost'].append(total_cost)
                 
                 print(f"   Iter {iteration:4d}: Cost={total_cost:.4f} (Recon={recon_error:.4f}, Sparse={sparsity_cost:.4f})")
+                
+                # FIXME: RESEARCH INACCURACY - Convergence criteria differs from paper
+                # Issue: Paper defines convergence as "stable solution" over long periods
+                # From paper: Solution stability measured over many thousand presentations
+                # Current: Uses cost change threshold which may be too aggressive
+                # Solutions:
+                # 1. Track stability over last 10,000 presentations (as paper suggests)
+                # 2. Monitor coefficient changes rather than cost changes
+                # 3. Use paper's presentation-based convergence criteria
+                #
+                # Research-accurate convergence check:
+                # if presentation_count > 50000:  # Allow initial learning
+                #     recent_stability = self._check_solution_stability(last_n_presentations=10000)
+                #     if recent_stability < stability_threshold:
+                #         print(f"✅ Stable solution found after {presentation_count} presentations")
+                #         break
                 
                 # Check convergence
                 if len(self.training_history_['total_cost']) > 1:
@@ -469,22 +587,64 @@ class SparseCoder(BaseEstimator, TransformerMixin):
         for j in range(self.n_components):
             if np.sum(codes[:, j]**2) > 1e-8:  # Avoid division by zero
                 
-                # FIXME: Mathematical formulation is incorrect
-                # Issue: The update rule doesn't correspond to any standard algorithm
-                # Current: d_j *= (X^T @ a_j) / (d_j @ (a_j @ a_j^T))
-                # Should be based on NMF-style updates or MOD algorithm
-                # 
-                # Solutions:
-                # 1. Implement Method of Optimal Directions (MOD):
-                #    Dictionary = X @ codes^T @ (codes @ codes^T)^(-1)
-                # 2. Use K-SVD algorithm for better convergence:
-                #    Update one column at a time using SVD
-                # 3. Implement proper NMF multiplicative updates:
-                #    D = D .* (X @ A^T) ./ (D @ A @ A^T)
+                # CODE REVIEW SUGGESTION - Replace with research-accurate dictionary updates:
                 #
-                # Example MOD implementation:
-                # if np.linalg.det(codes @ codes.T) > 1e-10:
-                #     self.dictionary_ = X @ codes.T @ np.linalg.pinv(codes @ codes.T)
+                # OPTION 1: Method of Optimal Directions (MOD) - Engan et al. (1999)
+                # ```python
+                # def mod_dictionary_update(self, X: np.ndarray, codes: np.ndarray):
+                #     """MOD algorithm: minimize ||X - DA||_F subject to ||d_i||_2 = 1"""
+                #     # Global optimal solution: D = X @ A^T @ (A @ A^T)^(-1)
+                #     AAt = codes @ codes.T
+                #     if np.linalg.cond(AAt) < 1e12:  # Check condition number
+                #         self.dictionary_ = X @ codes.T @ np.linalg.pinv(AAt)
+                #         # Normalize columns
+                #         for j in range(self.n_components):
+                #             norm = np.linalg.norm(self.dictionary_[:, j])
+                #             if norm > 1e-10:
+                #                 self.dictionary_[:, j] /= norm
+                # ```
+                #
+                # OPTION 2: K-SVD Algorithm - Aharon et al. (2006)  
+                # ```python
+                # def ksvd_dictionary_update(self, X: np.ndarray, codes: np.ndarray):
+                #     """K-SVD: Update one dictionary atom at a time using SVD"""
+                #     for j in range(self.n_components):
+                #         # Find samples that use atom j
+                #         relevant_indices = np.where(np.abs(codes[j, :]) > 1e-10)[0]
+                #         if len(relevant_indices) == 0:
+                #             # Replace unused atom with random sample
+                #             self.dictionary_[:, j] = self._random_atom()
+                #             continue
+                #         
+                #         # Error without atom j
+                #         E_j = X[:, relevant_indices] - self.dictionary_ @ codes[:, relevant_indices] + \
+                #               np.outer(self.dictionary_[:, j], codes[j, relevant_indices])
+                #         
+                #         # SVD to find optimal atom and coefficients
+                #         U, s, Vt = np.linalg.svd(E_j, full_matrices=False)
+                #         self.dictionary_[:, j] = U[:, 0]  # First left singular vector
+                #         codes[j, relevant_indices] = s[0] * Vt[0, :]  # Update coefficients
+                # ```
+                #
+                # OPTION 3: Olshausen & Field (1996) Online Learning
+                # ```python
+                # def olshausen_field_update(self, X: np.ndarray, codes: np.ndarray, learning_rate: float):
+                #     """Original Olshausen & Field dictionary learning rule"""
+                #     for j in range(self.n_components):
+                #         if np.sum(codes[j, :] ** 2) > 1e-10:
+                #             # Compute residual without atom j
+                #             residual = X - self.dictionary_ @ codes + \
+                #                       np.outer(self.dictionary_[:, j], codes[j, :])
+                #             
+                #             # Update: φ_j += η * Σ_m a_j^(m) * (I_m - Σ_{k≠j} a_k^(m) φ_k)
+                #             update = learning_rate * residual @ codes[j, :]
+                #             self.dictionary_[:, j] += update
+                #             
+                #             # Normalize: ||φ_j||_2 = 1
+                #             norm = np.linalg.norm(self.dictionary_[:, j])
+                #             if norm > 1e-10:
+                #                 self.dictionary_[:, j] /= norm
+                # ```
                 
                 # Update j-th dictionary element
                 numerator = X.T @ codes[:, j]

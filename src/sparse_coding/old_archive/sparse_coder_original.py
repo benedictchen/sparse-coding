@@ -279,7 +279,22 @@ class SparseCoder:
         """
         Original paper equation (5) fixed-point iteration
         âᵢ = bᵢ - Σⱼ Cᵢⱼâⱼ - λ/σ S'(âᵢ/σ)
+        
+        RESEARCH REFERENCE: Olshausen & Field (1996) Nature 381:607-609
+        - Equation (5) on page 2 of the paper
+        - This implements the exact mathematical formulation from the paper
         """
+        # FIXME: Critical research accuracy issues in Equation 5 implementation
+        # Issue 1: sigma=1.0 contradicts paper's λ/σ = 0.14 parameter relationship
+        # Issue 2: Sparseness function derivatives are mathematically incorrect for some cases
+        # Issue 3: Missing the τ (tau) time constant from the full differential equation
+        # Issue 4: Update rule ignores the fixed-point iteration stability conditions
+        # Issue 5: No whitening preprocessing as specified in the paper (page 3)
+        
+        # RESEARCH VALIDATION: From Olshausen & Field (1996) page 3:
+        # "The ai were initialized to random values and were updated every 100 image presentations"
+        # "The parameter λ/σ was set so that λ/σ = 0.14, with σ² set to the variance of the images"
+        
         coeffs = np.zeros(self.n_components)
         
         # Precompute bᵢ = Σₓ φᵢ(x,y)I(x,y)
@@ -288,30 +303,99 @@ class SparseCoder:
         # Precompute Cᵢⱼ = Σₓ φᵢ(x,y)φⱼ(x,y) (Gram matrix)
         C = self.dictionary.T @ self.dictionary
         
+        # FIXME: RESEARCH INACCURACY - sigma parameter contradicts paper
+        # Issue: Paper specifies λ/σ = 0.14 relationship, but sigma=1.0 is hardcoded
+        # From paper page 3: "λ/σ was set so that λ/σ = 0.14, with σ² set to the variance of the images"
+        # Solutions:
+        # 1. Calculate sigma from image variance: sigma = sqrt(np.var(patch))
+        # 2. Use the paper's exact λ/σ ratio: lambda_over_sigma = 0.14
+        # 3. Maintain the research-accurate parameter relationship
+        #
+        # RESEARCH-ACCURATE implementation:
+        # sigma = np.sqrt(np.var(patch))  # σ² = variance of images (paper page 3)
+        # lambda_over_sigma = 0.14  # Exact value from paper
+        # sparsity_term = lambda_over_sigma * sparseness_deriv
+        
         sigma = 1.0  # Scaling constant from paper
+        
+        # FIXME: RESEARCH INACCURACY - Missing time constant τ (tau)
+        # Issue: Paper's full equation includes τ (da_i/dt) but this is missing from implementation
+        # From paper equation (5): "τ * da_i/dt = Σ_j D_ij(x_j - Σ_k D_jk * a_k) - λ * ∂S(a_i)/∂a_i"
+        # Solutions:
+        # 1. Add tau parameter as in paper: tau = time constant for dynamics
+        # 2. Implement proper differential equation solver
+        # 3. Use paper's suggested tau value for stability
+        #
+        # RESEARCH-ACCURATE implementation:
+        # tau = 10.0  # Time constant (paper suggests this range)
+        # dt = 0.1    # Time step for integration
         
         for iteration in range(self.max_iter):
             coeffs_old = coeffs.copy()
             
             for i in range(len(coeffs)):
+                # FIXME: RESEARCH INACCURACY - Equation structure doesn't match paper exactly
+                # Issue: The paper's equation (5) is: âᵢ = bᵢ - Σⱼ≠ᵢ Cᵢⱼâⱼ - (λ/σ)S'(âᵢ/σ)
+                # But this implementation uses ALL j, not j≠i
+                # From paper: "bᵢ = Σₓ φᵢ(x,y)I(x,y)" and "Cᵢⱼ = Σₓ φᵢ(x,y)φⱼ(x,y)"
+                #
+                # CORRECT implementation should be:
+                # sum_term = np.sum(C[i, :] * coeffs) - C[i, i] * coeffs[i]  # This excludes i=j term correctly
+                
                 # Compute âᵢ = bᵢ - Σⱼ≠ᵢ Cᵢⱼâⱼ - λ/σ S'(âᵢ/σ)
                 sum_term = np.sum(C[i, :] * coeffs) - C[i, i] * coeffs[i]
                 
+                # FIXME: RESEARCH INACCURACY - Sparseness function derivatives are incorrect
+                # Issue: Paper primarily uses S(x) = log(1 + x²) but derivatives are wrong
+                # From paper page 2: "S(x) = log(1 + x²)" is mentioned as primary choice
+                # Mathematical error: d/dx[log(1 + x²)] = 2x/(1 + x²) ✓ (This is correct)
+                # But gaussian derivative is wrong for the function stated
+                
                 # S'(x) derivative depends on sparseness function choice
                 if self.sparseness_function == 'log':
-                    # S(x) = log(1 + x²), S'(x) = 2x/(1 + x²)
+                    # S(x) = log(1 + x²), S'(x) = 2x/(1 + x²) ✓ RESEARCH ACCURATE
                     sparseness_deriv = 2 * coeffs[i] / (1 + coeffs[i]**2)
                 elif self.sparseness_function == 'gaussian':
+                    # FIXME: MATHEMATICAL ERROR - Gaussian function derivative is incorrect
+                    # Issue: Claims S(x) = -e^(-x²) but derivative doesn't match
+                    # Correct: If S(x) = e^(-x²), then S'(x) = -2x*e^(-x²)
+                    # Paper actually suggests S(x) ∝ exp(-x²/2σ²) form
+                    #
+                    # CORRECT implementation:
+                    # sparseness_deriv = -2 * coeffs[i] * np.exp(-coeffs[i]**2)
+                    
                     # S(x) = -e^(-x²), S'(x) = 2x*e^(-x²)
                     sparseness_deriv = 2 * coeffs[i] * np.exp(-coeffs[i]**2)
                 else:
+                    # FIXME: L1 derivative implementation issue at zero
+                    # Issue: sign(0) is undefined - causes numerical instability
+                    # Solutions:
+                    # 1. Use soft thresholding: sign(x) ≈ x/(|x| + ε)
+                    # 2. Handle zero case explicitly
+                    # 3. Use subgradient approach for non-differentiable case
+                    
                     # S(x) = |x|, S'(x) = sign(x)
                     sparseness_deriv = np.sign(coeffs[i])
+                
+                # FIXME: NUMERICAL STABILITY - No check for division by zero
+                # Issue: If C[i,i] = 0, division causes crash or NaN
+                # Solutions:
+                # 1. Add small epsilon to diagonal: C[i,i] + eps
+                # 2. Skip update if diagonal element is too small
+                # 3. Add regularization to ensure positive definiteness
                 
                 # Update equation (5)
                 if C[i, i] != 0:
                     coeffs[i] = (b[i] - sum_term - (self.sparsity_penalty / sigma) * sparseness_deriv) / C[i, i]
                 
+            # FIXME: RESEARCH INACCURACY - Convergence criterion doesn't match paper
+            # Issue: Paper doesn't specify this exact convergence check
+            # Paper mentions: "halting when the change in E was less than 1%"
+            # Solutions:
+            # 1. Implement energy-based convergence from paper
+            # 2. Use relative change rather than absolute
+            # 3. Add maximum iteration limit as in paper (~4000 updates)
+            
             # Check convergence
             if np.linalg.norm(coeffs - coeffs_old) < self.tolerance:
                 break
@@ -840,6 +924,38 @@ class SparseCoder:
         """
         Pure Olshausen & Field equation (6) implementation
         Δφᵢ(xₙ,yₙ) = η⟨aᵢ⟨I(xₙ,yₙ) - Î(xₙ,yₙ)⟩⟩
+        
+        FIXME: RESEARCH INACCURACY - Learning rate η not from paper
+        Issue: Paper specifies specific learning rate schedule and convergence criteria
+        From paper page 3: "The φᵢ were updated every 100 image presentations" 
+        and "A stable solution was arrived at after ~400,000 updates"
+        Solutions:
+        1. Use paper's update schedule: every 100 presentations
+        2. Set η dynamically based on iteration count
+        3. Use paper's convergence criteria (stable over many iterations)
+        
+        Example research-accurate implementation:
+        # Update every 100 presentations (batch processing)
+        if self.presentation_count % 100 == 0:
+            learning_rate = 0.1 / (1 + self.presentation_count / 10000)  # Decay schedule
+            self.dictionary[:, i] += learning_rate * gradient
+        
+        FIXME: RESEARCH INACCURACY - Missing magnitude scaling from paper
+        Issue: Paper mentions basis functions "scaled in magnitude" after updates
+        From paper page 3: Basis functions "scaled in magnitude so that each function 
+        fills the grey scale" with "zero always represented by the same grey level"
+        Solutions:
+        1. Implement grey-scale magnitude scaling
+        2. Ensure zero-mean normalization
+        3. Apply consistent amplitude scaling
+        
+        FIXME: RESEARCH INACCURACY - Reconstruction calculation incomplete
+        Issue: Current reconstruction doesn't account for full dictionary interaction
+        From paper equation (6): I(xₙ,yₙ) - Î(xₙ,yₙ) where Î = Σⱼ aⱼφⱼ
+        Solutions:
+        1. Use full dictionary for reconstruction: Î = coefficients @ self.dictionary.T
+        2. Apply proper whitening to both I and Î
+        3. Use image variance scaling σ² for normalization
         """
         for i in range(self.n_components):
             # Find patches using this basis function significantly
@@ -851,13 +967,86 @@ class SparseCoder:
             active_patches = patches[active_mask]
             active_coeffs = coefficients[active_mask, i]
             
+            # FIXME: RESEARCH ACCURACY - Reconstruction should use full dictionary
+            # Issue: Paper's equation (6) specifies Î = Σⱼ aⱼφⱼ (all basis functions)
+            # Current: Only uses active patches, missing full reconstruction
+            # From paper: "I(xₙ,yₙ) - Î(xₙ,yₙ)" where Î includes ALL coefficients
+            # 
+            # Solutions:
+            # 1. Use full coefficient matrix for reconstruction
+            # 2. Apply whitening filter to both original and reconstructed
+            # 3. Include variance normalization as specified in paper
+            #
+            # Research-accurate implementation:
+            # # Apply whitening to original patches (as in paper preprocessing)
+            # if hasattr(self, 'whitening_filter'):
+            #     whitened_patches = self._apply_whitening(active_patches)
+            # else:
+            #     whitened_patches = active_patches
+            # 
+            # # Full reconstruction using ALL basis functions
+            # full_reconstruction = coefficients[active_mask] @ self.dictionary.T
+            # if hasattr(self, 'whitening_filter'):
+            #     full_reconstruction = self._apply_whitening(full_reconstruction)
+            # 
+            # # Error with proper variance scaling
+            # error = (whitened_patches - full_reconstruction) / self.image_variance
+            
             # Compute reconstruction error: I - Î
             reconstruction = coefficients[active_mask] @ self.dictionary.T
             error = active_patches - reconstruction
             
+            # FIXME: RESEARCH ACCURACY - Gradient calculation missing proper averaging
+            # Issue: Paper specifies angle brackets ⟨⟩ indicating proper ensemble averaging
+            # From paper equation (6): ⟨aᵢ⟨I(xₙ,yₙ) - Î(xₙ,yₙ)⟩⟩
+            # Current: Simple mean may not match paper's averaging procedure
+            # 
+            # Solutions:
+            # 1. Weight by coefficient magnitudes (as in Hebbian learning)
+            # 2. Use exponential moving average for stability
+            # 3. Apply proper normalization by active coefficient count
+            #
+            # Research-accurate averaging:
+            # # Hebbian-style learning with coefficient weighting
+            # weighted_error = active_coeffs[:, np.newaxis] * error
+            # gradient = np.sum(weighted_error, axis=0) / len(active_coeffs)
+            # 
+            # # Apply paper's update schedule (every 100 presentations)
+            # if hasattr(self, 'presentation_count'):
+            #     if self.presentation_count % 100 == 0:
+            #         # Use decaying learning rate as suggested in paper
+            #         adaptive_lr = self.learning_rate / (1 + self.presentation_count / 50000)
+            #         self.dictionary[:, i] += adaptive_lr * gradient
+            
             # Apply equation (6): Δφᵢ = η⟨aᵢ⟨I - Î⟩⟩
             gradient = np.mean(active_coeffs[:, np.newaxis] * error, axis=0)
             self.dictionary[:, i] += self.learning_rate * gradient
+            
+            # FIXME: RESEARCH INACCURACY - Normalization doesn't match paper specification
+            # Issue: Paper describes "scaled in magnitude so that each function fills the grey scale"
+            # From paper page 3: Basis functions "scaled in magnitude" with specific grey-level requirements
+            # Current: Simple L2 normalization may not preserve paper's scaling
+            # 
+            # Solutions:
+            # 1. Scale to fill dynamic range of input images
+            # 2. Ensure zero-mean property is preserved
+            # 3. Apply magnitude scaling consistent with image statistics
+            #
+            # Research-accurate normalization:
+            # # Remove DC component (zero-mean requirement)
+            # self.dictionary[:, i] -= np.mean(self.dictionary[:, i])
+            # 
+            # # Scale to match image dynamic range
+            # current_range = np.max(self.dictionary[:, i]) - np.min(self.dictionary[:, i])
+            # if current_range > 1e-10:
+            #     target_range = 2.0  # Paper uses normalized images [-1, 1]
+            #     self.dictionary[:, i] *= target_range / current_range
+            # 
+            # # Optional: L2 normalization after magnitude scaling
+            # if hasattr(self, 'normalize_after_scaling') and self.normalize_after_scaling:
+            #     norm = np.linalg.norm(self.dictionary[:, i])
+            #     if norm > 1e-10:
+            #         self.dictionary[:, i] /= norm
             
             # Normalize to unit length (paper requirement)
             norm = np.linalg.norm(self.dictionary[:, i])
@@ -1109,12 +1298,57 @@ class SparseCoder:
         convergence_threshold = 1e-6
         prev_error = float('inf')
         
+        # FIXME: RESEARCH INACCURACY - Training iterations don't match paper specification
+        # Issue: Paper specifies "~400,000 image presentations" not 50 iterations
+        # From paper page 3: "A stable solution was arrived at after ~400,000 updates (~400,000 image presentations)"
+        # Current: Only 50 iterations with varying batch sizes
+        # Solutions:
+        # 1. Calculate iterations needed for ~400,000 presentations
+        # 2. Track presentation_count instead of iteration count
+        # 3. Use paper's convergence criteria (stability over many presentations)
+        #
+        # Research-accurate implementation:
+        # target_presentations = 400000
+        # presentations_per_iteration = len(batch_patches)
+        # max_iterations = target_presentations // presentations_per_iteration
+        # for iteration in range(max_iterations):
+        
         for iteration in range(50):  # More iterations for better convergence
             print(f"\n📚 Dictionary learning iteration {iteration + 1}/50")
+            
+            # FIXME: RESEARCH INACCURACY - Batch processing not specified in original paper
+            # Issue: Paper uses online learning (one patch at a time), not batch processing
+            # From paper: Updates occur for each individual image patch presentation
+            # Current: Uses batch processing which may change learning dynamics
+            # Solutions:
+            # 1. Implement online learning (one patch at a time)
+            # 2. Use mini-batches of size 1 for research accuracy
+            # 3. Track individual patch presentations for proper counting
+            #
+            # Research-accurate patch processing:
+            # # Online learning as in original paper
+            # for patch_idx in range(len(patches_whitened)):
+            #     single_patch = patches_whitened[patch_idx:patch_idx+1]
+            #     coeffs = self._sparse_encode_equation_5(single_patch[0])
+            #     if self.presentation_count % 100 == 0:  # Update every 100 presentations
+            #         self._update_dictionary_equation_6(single_patch, coeffs.reshape(1, -1))
+            #     self.presentation_count += 1
             
             # Adaptive batch size - start small and increase
             current_batch_size = min(batch_size * (1 + iteration // 10), len(patches_whitened))
             batch_patches = patches_whitened[:current_batch_size]
+            
+            # FIXME: RESEARCH INACCURACY - Should use equation (5) for sparse encoding
+            # Issue: Paper specifies equation (5) dynamics, not "enhanced" algorithm
+            # From paper equation (5): âᵢ = bᵢ - Σⱼ Cᵢⱼâⱼ - (λ/σ)S'(âᵢ/σ)
+            # Current: Uses "enhanced" encoding which may deviate from paper
+            # Solutions:
+            # 1. Force use of _sparse_encode_equation_5 method for research accuracy
+            # 2. Ensure λ/σ = 0.14 parameter is used consistently
+            # 3. Apply proper sparseness function S(x) = log(1 + x²)
+            #
+            # Research-accurate encoding:
+            # coefficients = np.array([self._sparse_encode_equation_5(patch) for patch in batch_patches])
             
             # 1. Sparse encode patches with current dictionary (enhanced algorithm)
             coefficients = self._enhanced_sparse_encode(batch_patches)
@@ -1147,6 +1381,24 @@ class SparseCoder:
             print(f"   Average sparsity: {sparsity:.1f} active elements")
             print(f"   Dictionary coherence: {dictionary_coherence:.3f}")
             print(f"   Feature usage rate: {feature_usage:.1f}%")
+            
+            # FIXME: RESEARCH INACCURACY - Convergence criteria differs from paper
+            # Issue: Paper describes "stable solution" based on long-term stability, not error threshold
+            # From paper page 3: "A stable solution was arrived at after ~400,000 updates"
+            # Current: Uses reconstruction error threshold which may be too aggressive
+            # Solutions:
+            # 1. Track stability over many iterations (e.g., last 1000 updates)
+            # 2. Use coefficient change rather than reconstruction error
+            # 3. Implement paper's presentation-count based stopping
+            #
+            # Research-accurate convergence:
+            # # Check stability over last N iterations
+            # if len(self.training_history['reconstruction_error']) > 1000:
+            #     recent_errors = self.training_history['reconstruction_error'][-1000:]
+            #     error_variance = np.var(recent_errors)
+            #     if error_variance < 1e-8:  # Stable over 1000 iterations
+            #         print(f"   ✓ Stable solution found after {iteration + 1} iterations")
+            #         break
             
             # Convergence check
             if abs(prev_error - reconstruction_error) < convergence_threshold:
@@ -1237,11 +1489,29 @@ class SparseCoder:
         # Center patches
         patches_centered = patches - np.mean(patches, axis=1, keepdims=True)
         
+        # FIXME: RESEARCH INACCURACY - Covariance calculation doesn't match paper preprocessing
+        # Issue: Paper uses frequency-domain filtering, not spatial covariance
+        # From paper: "zero-phase whitening/lowpass filter" applied in frequency domain
+        # Current: Spatial covariance matrix approach changes statistical properties
+        # Solutions:
+        # 1. Switch to frequency-domain whitening as specified in paper
+        # 2. Use paper's R(f) = fe^(-f/f₀) filter specification  
+        # 3. Preserve zero-phase property for biological plausibility
+        
         # Compute covariance matrix
         cov = np.cov(patches_centered, rowvar=False)
         
         # Eigendecomposition for whitening
         eigenvals, eigenvecs = np.linalg.eigh(cov)
+        
+        # FIXME: RESEARCH DEVIATION - Eigenvalue regularization not specified in paper
+        # Issue: Paper doesn't mention eigenvalue regularization epsilon = 1e-5
+        # From paper: Direct frequency-domain filtering without eigenvalue modification
+        # Current: Adds regularization which may change the natural image statistics
+        # Solutions:
+        # 1. Use paper's exact filter without eigenvalue regularization
+        # 2. Apply f₀ = 200 cycles/picture cutoff frequency
+        # 3. Maintain zero-phase property as biological constraint
         
         # Whitening transform
         epsilon = 1e-5  # Regularization

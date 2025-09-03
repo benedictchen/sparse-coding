@@ -249,9 +249,42 @@ class SparseVisualization:
             max_atoms: Maximum number of atoms to display
             title: Plot title
         """
+        # FIXME: Missing input validation and error handling
+        # Issue 1: No validation of dictionary shape compatibility with patch_size
+        # Issue 2: No handling of degenerate cases (empty dictionary, invalid patch_size)
+        # Issue 3: Potential memory issues with large max_atoms values
+        # Issue 4: No detection of NaN/Inf values that would break visualization
+        
+        # FIXME: No input validation
+        # Issue: Could crash with incompatible dictionary and patch_size
+        # Solutions:
+        # 1. Validate dictionary.shape[0] == patch_size[0] * patch_size[1]
+        # 2. Check for empty or invalid inputs
+        # 3. Add warnings for unusual dictionary properties
+        #
+        # Example validation:
+        # expected_patch_dim = patch_size[0] * patch_size[1]
+        # if dictionary.shape[0] != expected_patch_dim:
+        #     raise ValueError(f"Dictionary patch dimension {dictionary.shape[0]} != expected {expected_patch_dim}")
+        # if dictionary.size == 0:
+        #     raise ValueError("Dictionary is empty")
+        # if np.any(np.isnan(dictionary)) or np.any(np.isinf(dictionary)):
+        #     warnings.warn("Dictionary contains NaN/Inf values")
         
         n_atoms = min(dictionary.shape[1], max_atoms)
         grid_size = int(np.ceil(np.sqrt(n_atoms)))
+        
+        # FIXME: No memory usage consideration for large visualizations
+        # Issue: Large grid_size can create enormous memory usage and crash
+        # Solutions:
+        # 1. Add memory estimation and warnings for large visualizations
+        # 2. Implement pagination for very large dictionaries
+        # 3. Add option for sparse visualization (only interesting atoms)
+        #
+        # Example:
+        # estimated_memory = grid_size**2 * figsize[0] * figsize[1] * 4 / (1024**2)  # MB
+        # if estimated_memory > 100:  # More than 100MB
+        #     warnings.warn(f"Large visualization may use ~{estimated_memory:.1f}MB memory")
         
         fig, axes = plt.subplots(grid_size, grid_size, figsize=figsize)
         fig.suptitle(title, fontsize=16)
@@ -265,6 +298,24 @@ class SparseVisualization:
             # Reshape atom to image
             atom = dictionary[:, i].reshape(patch_size)
             
+            # FIXME: Normalization can fail or produce misleading results
+            # Issue 1: If atom.max() == atom.min(), normalization creates NaN
+            # Issue 2: Current normalization may hide important absolute scale information
+            # Issue 3: No option for different normalization schemes
+            # Solutions:
+            # 1. Handle constant atoms gracefully
+            # 2. Provide multiple normalization options (centered, standardized, etc.)
+            # 3. Add option to preserve absolute scale
+            #
+            # Example robust normalization:
+            # atom_range = atom.max() - atom.min()
+            # if atom_range < 1e-12:  # Constant atom
+            #     atom_norm = np.zeros_like(atom)
+            #     warnings.warn(f"Atom {i+1} is constant (dead neuron?)")
+            # else:
+            #     atom_norm = (atom - atom.min()) / atom_range
+            # Alternative: standardized normalization: (atom - atom.mean()) / (atom.std() + 1e-8)
+            
             # Normalize for visualization
             atom_norm = (atom - atom.min()) / (atom.max() - atom.min() + 1e-8)
             
@@ -273,6 +324,32 @@ class SparseVisualization:
             ax.set_title(f'Atom {i+1}', fontsize=8)
             ax.axis('off')
             
+            # FIXME: No colorbar or scale information
+            # Issue: Users can't interpret absolute values or compare atoms quantitatively
+            # Solutions:
+            # 1. Add optional colorbar showing value ranges
+            # 2. Display min/max values for each atom
+            # 3. Add option for unified color scale across atoms
+            #
+            # Example:
+            # if i < 5:  # Show colorbar for first few atoms
+            #     plt.colorbar(im, ax=ax, shrink=0.8)
+            # ax.set_title(f'Atom {i+1}\n[{atom.min():.3f}, {atom.max():.3f}]', fontsize=8)
+            
+        # FIXME: No quality assessment of displayed dictionary
+        # Issue: No indication of dictionary quality or potential problems
+        # Solutions:
+        # 1. Analyze and display dictionary statistics
+        # 2. Highlight potentially problematic atoms (dead neurons, highly correlated)
+        # 3. Add visual indicators for atom quality
+        #
+        # Example statistics to add:
+        # dead_atoms = np.sum(np.var(dictionary, axis=0) < 1e-8)
+        # if dead_atoms > 0:
+        #     print(f"⚠️  Warning: {dead_atoms} atoms have very low variance (dead neurons)")
+        # coherence = compute_dictionary_coherence(dictionary.T)  # From utils
+        # print(f"   Dictionary coherence: {coherence:.4f}")
+        
         # Hide unused subplots
         for i in range(n_atoms, len(axes)):
             axes[i].axis('off')

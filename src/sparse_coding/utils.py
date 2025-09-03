@@ -362,12 +362,61 @@ def compute_lipschitz_constant(A: np.ndarray) -> float:
     L : float
         Lipschitz constant (largest eigenvalue of A^T A)
     """
+    # FIXME: Critical efficiency and numerical stability issues
+    # Issue 1: Using full eigendecomposition for large matrices is very expensive O(n³)
+    # Issue 2: No numerical stability checking for ill-conditioned matrices
+    # Issue 3: Complex eigenvalues not handled properly in edge cases
+    # Issue 4: No input validation for matrix dimensions or properties
+    
+    # FIXME: No input validation
+    # Issue: Could crash with invalid input matrices
+    # Solutions:
+    # 1. Validate input is 2D array with valid dimensions
+    # 2. Check for degenerate cases (zero matrix, single element)
+    # 3. Add warnings for ill-conditioned matrices
+    #
+    # Example validation:
+    # if A.ndim != 2:
+    #     raise ValueError("Input matrix must be 2-dimensional")
+    # if A.size == 0:
+    #     return 0.0
+    # if np.allclose(A, 0):
+    #     return 0.0
+    
     if A.shape[0] <= A.shape[1]:
         # More columns than rows: compute eigenvalues of A A^T
+        # FIXME: For large matrices, this is computationally expensive O(m³)
+        # Solutions:
+        # 1. Use power iteration for large matrices: faster O(mn) per iteration
+        # 2. Use scipy.sparse.linalg.norm for matrix norm approximation
+        # 3. Use randomized SVD for approximation: sklearn.utils.extmath.randomized_svd
+        #
+        # Example power iteration implementation:
+        # if A.shape[0] > 1000:  # For large matrices
+        #     return power_iteration_largest_eigenvalue(A @ A.T, max_iter=20)
+        
         eigenvals = np.linalg.eigvals(A @ A.T)
     else:
-        # More rows than columns: compute eigenvalues of A^T A
+        # More rows than columns: compute eigenvalues of A^T A  
+        # FIXME: Same computational complexity issue O(n³)
+        # Better approach for large matrices:
+        # if A.shape[1] > 1000:
+        #     return scipy.sparse.linalg.norm(A, ord=2)**2  # More efficient
+        
         eigenvals = np.linalg.eigvals(A.T @ A)
+    
+    # FIXME: No handling of numerical precision issues
+    # Issue: Complex eigenvalues due to numerical errors aren't handled
+    # Solutions:
+    # 1. Take real part and warn if imaginary part is significant
+    # 2. Use more robust eigenvalue computation
+    # 3. Add tolerance checking for near-zero eigenvalues
+    #
+    # Example:
+    # max_eigenval = np.max(np.real(eigenvals))
+    # if np.max(np.imag(eigenvals)) > 1e-10:
+    #     warnings.warn("Complex eigenvalues detected, taking real part")
+    # return max(max_eigenval, 1e-12)  # Avoid zero Lipschitz constant
     
     return np.max(np.real(eigenvals))
 
@@ -438,11 +487,61 @@ def validate_sparse_coding_data(X: np.ndarray, dictionary: np.ndarray,
     metrics : dict
         Dictionary of validation metrics
     """
+    # FIXME: Missing input validation and error handling
+    # Issue 1: No shape compatibility checking between X, dictionary, and codes
+    # Issue 2: No handling of edge cases (empty arrays, NaN/Inf values)
+    # Issue 3: Missing validation of mathematical constraints (dictionary norms)
+    # Issue 4: No detection of degenerate solutions
+    
+    # FIXME: No input shape validation
+    # Issue: Matrix multiplication could fail with incompatible shapes
+    # Solutions:
+    # 1. Validate shapes are compatible: codes.shape = (n_samples, n_components), dict.shape = (n_components, n_features)
+    # 2. Check X.shape = (n_samples, n_features)
+    # 3. Provide clear error messages for shape mismatches
+    #
+    # Example validation:
+    # if X.shape[0] != codes.shape[0]:
+    #     raise ValueError(f"X and codes must have same number of samples: {X.shape[0]} vs {codes.shape[0]}")
+    # if dictionary.shape[0] != codes.shape[1]:
+    #     raise ValueError(f"Dictionary components {dictionary.shape[0]} != codes components {codes.shape[1]}")
+    # if dictionary.shape[1] != X.shape[1]:
+    #     raise ValueError(f"Dictionary features {dictionary.shape[1]} != X features {X.shape[1]}")
+    
+    # FIXME: No NaN/Inf detection
+    # Issue: NaN or Inf values in inputs will propagate through all calculations
+    # Solutions:
+    # 1. Check for NaN/Inf in all inputs and raise informative errors
+    # 2. Add option to handle or remove invalid samples
+    # 3. Warn about numerical issues that might cause problems
+    #
+    # Example:
+    # for name, arr in [("X", X), ("dictionary", dictionary), ("codes", codes)]:
+    #     if np.any(np.isnan(arr)):
+    #         raise ValueError(f"NaN values detected in {name}")
+    #     if np.any(np.isinf(arr)):
+    #         raise ValueError(f"Inf values detected in {name}")
+    
     # Reconstruction
     X_reconstructed = codes @ dictionary
     
     # Basic metrics
     reconstruction_error = mean_squared_error(X, X_reconstructed)
+    
+    # FIXME: Division by zero risk in relative error calculation
+    # Issue: np.var(X) could be zero for constant data
+    # Solutions:
+    # 1. Add small epsilon to denominator
+    # 2. Handle zero variance case explicitly
+    # 3. Use alternative relative error metrics
+    #
+    # Example:
+    # var_X = np.var(X)
+    # if var_X < 1e-12:
+    #     relative_error = np.inf if reconstruction_error > 0 else 0.0
+    # else:
+    #     relative_error = reconstruction_error / var_X
+    
     relative_error = reconstruction_error / np.var(X)
     
     # Sparsity metrics
@@ -453,9 +552,40 @@ def validate_sparse_coding_data(X: np.ndarray, dictionary: np.ndarray,
     dict_norms = np.linalg.norm(dictionary, axis=1)
     dict_coherence = compute_dictionary_coherence(dictionary)
     
+    # FIXME: Potential division by zero in code statistics
+    # Issue: If all codes are zero, codes[codes != 0] is empty
+    # Solutions:
+    # 1. Check for empty arrays before computing statistics
+    # 2. Return NaN or special values for degenerate cases
+    # 3. Add warnings for unusual sparsity patterns
+    #
+    # Example:
+    # nonzero_codes = codes[codes != 0]
+    # if len(nonzero_codes) == 0:
+    #     code_mean = 0.0
+    #     code_std = 0.0
+    #     warnings.warn("All sparse codes are zero - possible convergence failure")
+    # else:
+    #     code_mean = np.mean(np.abs(nonzero_codes))
+    #     code_std = np.std(nonzero_codes)
+    
     # Code statistics
     code_mean = np.mean(np.abs(codes[codes != 0]))
     code_std = np.std(codes[codes != 0]) if np.sum(codes != 0) > 1 else 0
+    
+    # FIXME: Missing additional validation metrics
+    # Issue: Could add more comprehensive validation measures
+    # Solutions:
+    # 1. Add condition number of dictionary (numerical stability)
+    # 2. Compute residual statistics (should be white noise)
+    # 3. Check for dead dictionary atoms (never used)
+    # 4. Validate sparsity level is reasonable (not too sparse/dense)
+    #
+    # Additional metrics to consider:
+    # 'dictionary_condition_number': np.linalg.cond(dictionary),
+    # 'dead_atoms': np.sum(np.all(codes == 0, axis=0)),  # Unused dictionary atoms
+    # 'residual_whiteness': test_residual_whiteness(X - X_reconstructed),
+    # 'effective_sparsity': compute_effective_sparsity(codes),
     
     return {
         'reconstruction_error': reconstruction_error,

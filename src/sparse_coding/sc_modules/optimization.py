@@ -80,6 +80,107 @@ class OptimizationMixin:
         Returns:
             np.ndarray: Sparse coefficients
         """
+        
+        # FIXME: Critical Implementation Errors in Equation 5 Algorithm
+        #
+        # 1. MISSING ISTA/FISTA ALGORITHMS FOR L1 SPARSE CODING
+        #    - Modern sparse coding uses ISTA (Iterative Shrinkage-Thresholding Algorithm)
+        #    - FISTA is the accelerated version providing faster convergence
+        #    - These are the standard algorithms for solving ||Ax - b||² + λ||x||₁
+        #    - CODE REVIEW SUGGESTION - Implement ISTA algorithm:
+        #      ```python
+        #      def _sparse_encode_ista(self, patch: np.ndarray, max_iter: int = 100, 
+        #                             tolerance: float = 1e-6) -> np.ndarray:
+        #          """ISTA algorithm for L1-regularized sparse coding"""
+        #          # Compute Lipschitz constant for step size
+        #          L = np.linalg.norm(self.dictionary.T @ self.dictionary, ord=2)
+        #          eta = 1.0 / L  # Step size
+        #          
+        #          coefficients = np.zeros(self.n_components)
+        #          for iteration in range(max_iter):
+        #              # Gradient step
+        #              residual = patch - self.dictionary @ coefficients
+        #              gradient = -self.dictionary.T @ residual
+        #              temp = coefficients - eta * gradient
+        #              
+        #              # Soft thresholding (proximal operator for L1)
+        #              threshold = self.sparsity_penalty * eta
+        #              coefficients = np.sign(temp) * np.maximum(np.abs(temp) - threshold, 0)
+        #              
+        #              # Convergence check
+        #              if np.linalg.norm(gradient) < tolerance:
+        #                  break
+        #          return coefficients
+        #      ```
+        #
+        # 2. MISSING FISTA ACCELERATION
+        #    - FISTA provides O(1/k²) convergence vs ISTA's O(1/k)
+        #    - Uses Nesterov acceleration with extrapolation steps
+        #    - CODE REVIEW SUGGESTION - Implement FISTA algorithm:
+        #      ```python
+        #      def _sparse_encode_fista(self, patch: np.ndarray, max_iter: int = 100) -> np.ndarray:
+        #          """FISTA algorithm - accelerated ISTA with O(1/k²) convergence"""
+        #          L = np.linalg.norm(self.dictionary.T @ self.dictionary, ord=2)
+        #          eta = 1.0 / L
+        #          
+        #          x_k = np.zeros(self.n_components)  # Current iterate
+        #          y_k = np.zeros(self.n_components)  # Extrapolated point
+        #          t_k = 1.0  # Acceleration parameter
+        #          
+        #          for iteration in range(max_iter):
+        #              # Gradient step on extrapolated point
+        #              residual = patch - self.dictionary @ y_k
+        #              gradient = -self.dictionary.T @ residual
+        #              temp = y_k - eta * gradient
+        #              
+        #              # Proximal operator (soft thresholding)
+        #              threshold = self.sparsity_penalty * eta
+        #              x_k_new = np.sign(temp) * np.maximum(np.abs(temp) - threshold, 0)
+        #              
+        #              # Nesterov acceleration
+        #              t_k_new = (1 + np.sqrt(1 + 4 * t_k**2)) / 2
+        #              beta_k = (t_k - 1) / t_k_new
+        #              y_k = x_k_new + beta_k * (x_k_new - x_k)
+        #              
+        #              x_k, t_k = x_k_new, t_k_new
+        #          return x_k
+        #      ```
+        #    - Code defaults to L1, but Olshausen & Field (1996) used log(1+x²)
+        #    - The log sparseness function gives different selectivity properties
+        #    - Solutions:
+        #      a) Change default sparseness_function to 'log'
+        #      b) Implement exact log function: S(x) = log(1 + (x/σ)²)
+        #      c) Use σ = 0.316 as in original experiments
+        #    - Example:
+        #      ```python
+        #      if self.sparseness_function == 'log':
+        #          # Original paper: S(x) = log(1 + (x/σ)²)
+        #          sigma = 0.316  # From paper
+        #          s_prime = 2 * (coeffs[i] / sigma) / (sigma * (1 + (coeffs[i] / sigma)**2))
+        #      ```
+        #
+        # 3. MISSING LATERAL INHIBITION
+        #    - Original algorithm includes lateral inhibition matrix
+        #    - Current C matrix is just Gram matrix, missing inhibition structure  
+        #    - Solutions:
+        #      a) Add inhibition matrix I = diag(1) - γ*ones() where γ controls inhibition
+        #      b) Modify update: coeffs[i] -= γ * sum(coeffs[j] for j≠i)
+        #      c) Implement topographic organization as in paper
+        #    - Example:
+        #      ```python
+        #      # Lateral inhibition (biological realism)
+        #      gamma = 0.1  # inhibition strength
+        #      lateral_input = gamma * (np.sum(coeffs) - coeffs[i])
+        #      coeffs[i] = b[i] - sum_term - s_prime - lateral_input
+        #      ```
+        #
+        # 4. CONVERGENCE CRITERIA TOO SIMPLE
+        #    - Should check energy function convergence, not just coefficient change
+        #    - Missing proper stopping criteria from paper
+        #    - Solutions:
+        #      a) Track total energy: E = ||x - Da||² + λ*Σ S(aᵢ)
+        #      b) Stop when dE/dt < threshold
+        #      c) Add oscillation detection for unstable cases
         coeffs = np.zeros(self.n_components)
         
         # Precompute bᵢ = Σₓ φᵢ(x,y)I(x,y) - correlation with patch

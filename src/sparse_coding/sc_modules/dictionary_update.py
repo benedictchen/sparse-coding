@@ -48,6 +48,108 @@ class DictionaryUpdateMixin:
         
         This is Olshausen & Field's key algorithm for learning the dictionary.
         The Method of Optimal Directions (MOD) updates each dictionary element
+        
+        # FIXME: Dictionary Update Critical Research Accuracy Issues
+        #
+        # 1. MISSING ORIGINAL EQUATION 6 IMPLEMENTATION
+        #    - Current MOD is modern approximation, not original Olshausen & Field equation
+        #    - Original: Δφᵢ(x,y) = η⟨aᵢ⟨I(x,y) - Î(x,y)⟩⟩  
+        #    - Should implement exact gradient descent on dictionary elements
+        #    - CODE REVIEW SUGGESTION - Implement exact Olshausen & Field (1996) Equation 6:
+        #      ```python
+        #      def update_dictionary_equation_6_exact(self, patches: np.ndarray, coefficients: np.ndarray):
+        #          """Pure Olshausen & Field (1996) Equation 6 implementation"""
+        #          reconstruction_error = patches - coefficients @ self.dictionary.T
+        #          for i in range(self.n_components):
+        #              # Only update if coefficient is significantly active
+        #              active_mask = np.abs(coefficients[:, i]) > 1e-6
+        #              if not np.any(active_mask):
+        #                  continue
+        #              # Gradient: η⟨aᵢ⟨I - Î⟩⟩ 
+        #              gradient = np.mean(coefficients[active_mask, i:i+1] * 
+        #                               reconstruction_error[active_mask], axis=0)
+        #              self.dictionary[:, i] += self.learning_rate * gradient
+        #              # Unit norm constraint: ||φᵢ|| = 1
+        #              norm = np.linalg.norm(self.dictionary[:, i])
+        #              if norm > 1e-12:
+        #                  self.dictionary[:, i] /= norm
+        #      ```
+        #
+        # 2. MISSING K-SVD ALGORITHM IMPLEMENTATION  
+        #    - Paper mentions K-SVD as superior dictionary learning method
+        #    - K-SVD updates dictionary atoms optimally using SVD decomposition
+        #    - More robust than gradient descent for overcomplete dictionaries
+        #    - CODE REVIEW SUGGESTION - Implement K-SVD dictionary update:
+        #      ```python
+        #      def update_dictionary_ksvd(self, patches: np.ndarray, coefficients: np.ndarray):
+        #          """K-SVD dictionary learning algorithm"""
+        #          for k in range(self.n_components):
+        #              # Find samples that use atom k
+        #              using_indices = np.where(np.abs(coefficients[:, k]) > 1e-10)[0]
+        #              if len(using_indices) == 0:
+        #                  # Replace unused atom with random patch
+        #                  self.dictionary[:, k] = patches[np.random.randint(0, len(patches))]
+        #                  self.dictionary[:, k] /= np.linalg.norm(self.dictionary[:, k])
+        #                  continue
+        #              # Compute error matrix without atom k
+        #              coefficients_k = coefficients[using_indices, k].copy()
+        #              coefficients[using_indices, k] = 0
+        #              error_matrix = patches[using_indices] - coefficients[using_indices] @ self.dictionary.T
+        #              coefficients[using_indices, k] = coefficients_k
+        #              # SVD to find optimal atom and coefficients
+        #              U, s, Vt = np.linalg.svd(error_matrix, full_matrices=False)
+        #              self.dictionary[:, k] = Vt[0, :]
+        #              coefficients[using_indices, k] = s[0] * U[:, 0]
+        #      ```
+        #
+        # 3. MISSING TOPOGRAPHIC ORGANIZATION
+        #    - Original experiments included topographic dictionary organization
+        #    - Neighboring dictionary elements should have similar orientations
+        #    - CODE REVIEW SUGGESTION - Add topographic constraint:
+        #      ```python
+        #      def add_topographic_penalty(self, sigma: float = 2.0):
+        #          """Add topographic organization penalty"""
+        #          # Create 2D grid positions for dictionary atoms
+        #          grid_size = int(np.sqrt(self.n_components))
+        #          positions = np.array([[i, j] for i in range(grid_size) 
+        #                              for j in range(grid_size)])[:self.n_components]
+        #          # Compute topographic penalty
+        #          penalty = 0
+        #          for i in range(self.n_components):
+        #              for j in range(i+1, self.n_components):
+        #                  distance = np.linalg.norm(positions[i] - positions[j])
+        #                  weight = np.exp(-distance**2 / (2 * sigma**2))
+        #                  penalty += weight * np.linalg.norm(self.dictionary[:, i] - 
+        #                                                   self.dictionary[:, j])**2
+        #          return penalty
+        #      ```
+        #
+        # 4. MISSING COHERENCE CONTROL FOR OVERCOMPLETE BASES
+        #    - Overcomplete dictionaries prone to high coherence (similar atoms)
+        #    - Need coherence penalty to maintain atom diversity
+        #    - CODE REVIEW SUGGESTION - Implement coherence regularization:
+        #      ```python
+        #      def apply_coherence_penalty(self, max_coherence: float = 0.9):
+        #          """Apply coherence penalty to reduce atom similarity"""
+        #          gram_matrix = self.dictionary.T @ self.dictionary
+        #          # Zero out diagonal
+        #          np.fill_diagonal(gram_matrix, 0)
+        #          # Find high-coherence pairs
+        #          high_coherence = np.abs(gram_matrix) > max_coherence
+        #          if np.any(high_coherence):
+        #              # Penalize high-coherence atoms
+        #              i_indices, j_indices = np.where(high_coherence)
+        #              for i, j in zip(i_indices, j_indices):
+        #                  if i < j:  # Avoid double processing
+        #                      # Make atoms more orthogonal
+        #                      projection = np.dot(self.dictionary[:, i], 
+        #                                        self.dictionary[:, j])
+        #                      self.dictionary[:, i] -= 0.1 * projection * self.dictionary[:, j]
+        #                      self.dictionary[:, j] -= 0.1 * projection * self.dictionary[:, i]
+        #                      # Renormalize
+        #                      self.dictionary[:, i] /= np.linalg.norm(self.dictionary[:, i])
+        #                      self.dictionary[:, j] /= np.linalg.norm(self.dictionary[:, j])
+        #      ```
         by finding the optimal direction that minimizes reconstruction error.
         
         Algorithm:

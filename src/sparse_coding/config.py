@@ -124,23 +124,129 @@ class SparseCoderConfig:
     
     def __post_init__(self):
         """Validate configuration parameters"""
+        # FIXME: Incomplete parameter validation - missing many critical checks
+        # Issue 1: No upper bounds on parameters that could cause memory/performance issues
+        # Issue 2: No validation of patch_size dimensions or compatibility
+        # Issue 3: Missing validation for tolerance ranges and numerical stability
+        # Issue 4: No checks for parameter combinations that could cause algorithm failures
+        # Issue 5: Missing validation for advanced parameters like elastic_net_ratio
+        
+        # Basic positive parameter validation
         if self.n_components <= 0:
             raise ValueError("n_components must be positive")
+        
+        # FIXME: No upper bound check for n_components
+        # Issue: Very large n_components (>10000) can cause memory issues
+        # Solutions:
+        # 1. Add reasonable upper bound based on system memory
+        # 2. Add warning for excessively large values
+        # 3. Provide memory estimation for large dictionaries
+        #
+        # Example implementation:
+        # if self.n_components > 5000:
+        #     import psutil
+        #     memory_needed = self.n_components * np.prod(self.patch_size) * 4 / (1024**3)  # GB
+        #     available_memory = psutil.virtual_memory().available / (1024**3)
+        #     if memory_needed > available_memory * 0.8:
+        #         raise ValueError(f"n_components={self.n_components} may exceed available memory")
         
         if self.lambda_sparsity < 0:
             raise ValueError("lambda_sparsity must be non-negative")
             
+        # FIXME: No upper bound or optimal range guidance for lambda_sparsity
+        # Issue: lambda_sparsity > 1.0 often causes over-sparsification
+        # Solutions:
+        # 1. Add warning for unusually high values
+        # 2. Provide guidance based on sparsity_func type
+        # 3. Add automatic scaling based on data statistics
+        #
+        # Example:
+        # if self.lambda_sparsity > 1.0:
+        #     warnings.warn(f"lambda_sparsity={self.lambda_sparsity} is large, may cause over-sparsification")
+        # if self.sparsity_func == SparsityFunction.L1 and self.lambda_sparsity > 0.5:
+        #     warnings.warn("Consider smaller lambda_sparsity for L1 regularization")
+            
         if self.max_iter <= 0:
             raise ValueError("max_iter must be positive")
             
+        # FIXME: Missing patch_size validation
+        # Issue: Invalid patch dimensions can cause reshape errors later
+        # Solutions:
+        # 1. Validate patch_size is tuple of positive integers
+        # 2. Check for reasonable patch dimensions
+        # 3. Warn about non-square patches if algorithms require square
+        #
+        # Example implementation:
+        # if not (isinstance(self.patch_size, tuple) and len(self.patch_size) == 2):
+        #     raise ValueError("patch_size must be tuple of length 2")
+        # if not all(isinstance(p, int) and p > 0 for p in self.patch_size):
+        #     raise ValueError("patch_size must contain positive integers")
+        # if max(self.patch_size) > 64:
+        #     warnings.warn("Large patch_size may cause computational issues")
+        # if self.patch_size[0] != self.patch_size[1]:
+        #     warnings.warn("Non-square patches may not work with all visualization methods")
+            
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be positive")
+            
+        # FIXME: No upper bound check for learning_rate
+        # Issue: learning_rate > 0.1 often causes instability
+        # Solutions:
+        # 1. Add warnings for potentially unstable learning rates
+        # 2. Provide optimizer-specific recommendations
+        # 3. Add adaptive learning rate validation
+        #
+        # Example:
+        # if self.learning_rate > 0.1:
+        #     warnings.warn(f"learning_rate={self.learning_rate} may cause training instability")
+        # if self.optimizer == Optimizer.FISTA and self.learning_rate > 0.01:
+        #     warnings.warn("FISTA typically works better with learning_rate <= 0.01")
             
         if not 0 <= self.momentum < 1:
             raise ValueError("momentum must be in [0, 1)")
             
         if self.batch_size <= 0:
             raise ValueError("batch_size must be positive")
+            
+        # FIXME: Missing tolerance validation for numerical stability
+        # Issue: tolerance values outside [1e-12, 1e-2] can cause problems
+        # Solutions:
+        # 1. Validate tolerance is in reasonable numerical range
+        # 2. Add warnings for potentially problematic values
+        # 3. Provide algorithm-specific tolerance recommendations
+        #
+        # Example:
+        # if not 1e-12 <= self.tolerance <= 1e-2:
+        #     warnings.warn(f"tolerance={self.tolerance} may cause numerical issues")
+        # if self.tolerance > 1e-3:
+        #     warnings.warn("Large tolerance may reduce solution quality")
+        
+        # FIXME: Missing validation for elastic_net_ratio when using elastic net
+        # Issue: elastic_net_ratio used without validation when sparsity_func is ELASTIC_NET
+        # Solutions:
+        # 1. Validate elastic_net_ratio is in [0, 1] when using elastic net
+        # 2. Add warnings about extreme values
+        # 3. Provide guidance on choosing appropriate ratio
+        #
+        # Example:
+        # if self.sparsity_func == SparsityFunction.ELASTIC_NET:
+        #     if not 0 <= self.elastic_net_ratio <= 1:
+        #         raise ValueError("elastic_net_ratio must be in [0, 1] for elastic net regularization")
+        
+        # FIXME: No validation for parameter compatibility issues
+        # Issue: Some parameter combinations are mathematically invalid or suboptimal
+        # Solutions:
+        # 1. Check for incompatible optimizer + sparsity_func combinations
+        # 2. Validate dictionary update rule compatibility
+        # 3. Add warnings for suboptimal parameter combinations
+        #
+        # Example parameter compatibility checks:
+        # if self.optimizer == Optimizer.COORDINATE_DESCENT and self.sparsity_func != SparsityFunction.L1:
+        #     warnings.warn("Coordinate descent works best with L1 regularization")
+        # if self.positive_codes and self.sparsity_func == SparsityFunction.GAUSSIAN:
+        #     warnings.warn("Positive codes constraint may conflict with Gaussian sparsity")
+        # if self.dict_update_rule == DictionaryUpdateRule.K_SVD and self.batch_size == 1:
+        #     warnings.warn("K-SVD typically requires batch_size > 1 for effectiveness")
     
     def to_dict(self) -> dict:
         """Convert configuration to dictionary"""
