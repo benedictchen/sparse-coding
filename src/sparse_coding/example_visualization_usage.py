@@ -18,7 +18,13 @@ Author: Benedict Chen (benedict@benedictchen.com)
 """
 
 import numpy as np
-try:\n    from .sparse_coder import SparseCoder\nexcept ImportError:\n    try:\n        from sparse_coder import SparseCoder\n    except ImportError:\n        from ..sparse_coder import SparseCoder
+try:
+    from .sparse_coder import SparseCoder
+except ImportError:
+    try:
+        from sparse_coder import SparseCoder
+    except ImportError:
+        from ..sparse_coder import SparseCoder
 
 def demo_enhanced_visualizations():
     """Demonstrate the enhanced visualization capabilities"""
