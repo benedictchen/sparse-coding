@@ -595,13 +595,29 @@ class VisualizationMixin:
                 coherence = np.max(np.abs(off_diagonal))
                 condition_num = np.linalg.cond(gram_matrix)
                 
-                # Create bar plot of key metrics
-                metrics = ['Coherence', 'Condition\n(log10)', 'Sparsity\n(if available)']
-                values = [coherence, np.log10(condition_num), 0]  # Placeholder for sparsity
+                # Create bar plot of key metrics with real sparsity calculation
+                # Compute dictionary sparsity based on Olshausen-Field (1997) sparsity measure
+                # Sparsity = (sqrt(n) - (sum |a_i|) / sqrt(sum a_i^2)) / (sqrt(n) - 1)
+                # Where n is dictionary size, a_i are dictionary elements
+                dict_flat = dictionary.flatten()
+                l1_norm = np.sum(np.abs(dict_flat))
+                l2_norm = np.sqrt(np.sum(dict_flat**2))
+                n = len(dict_flat)
+                
+                if l2_norm > 1e-12:  # Avoid division by zero
+                    sparsity_measure = (np.sqrt(n) - (l1_norm / l2_norm)) / (np.sqrt(n) - 1)
+                else:
+                    sparsity_measure = 0.0
+                
+                # Clamp sparsity to [0, 1] range for interpretability
+                sparsity_measure = np.clip(sparsity_measure, 0, 1)
+                
+                metrics = ['Coherence', 'Condition\n(log10)', 'Dictionary\nSparsity']
+                values = [coherence, np.log10(condition_num), sparsity_measure]
                 
                 colors = ['red' if coherence > 0.9 else 'orange' if coherence > 0.5 else 'green',
                          'red' if condition_num > 1e10 else 'orange' if condition_num > 1e5 else 'green',
-                         'gray']
+                         'green' if sparsity_measure > 0.7 else 'orange' if sparsity_measure > 0.3 else 'red']
                 
                 bars = axes[1, i].bar(metrics, values, color=colors, alpha=0.7)
                 axes[1, i].set_title(f'Properties: {label}')

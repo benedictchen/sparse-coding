@@ -11,7 +11,7 @@ Sparse Coding Library
 
 Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"
 
-This library implements the revolutionary sparse coding algorithm that discovers
+This library implements the sparse coding algorithm that discovers
 edge-like features from natural images, forming the foundation of modern computer vision.
 
 🔬 Research Foundation:
@@ -160,5 +160,5 @@ __all__ = [
 💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
 
-Your support enables continued development of cutting-edge AI research tools! 🎓✨
+Your support enables continued development of AI research tools! 🎓✨
 """

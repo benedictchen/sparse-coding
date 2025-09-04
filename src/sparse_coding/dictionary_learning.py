@@ -4,7 +4,7 @@
 🙏 If this library helps your research or project, please consider donating:
 💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 
-Your support makes advanced AI research accessible to everyone! 🚀
+Your support makes AI research accessible to everyone! 🚀
 
 📚 Dictionary Learning - Teaching AI to See Like Babies Do
 ========================================================
@@ -30,7 +30,7 @@ and the baby learns to describe any image using just a few words from this dicti
 This is exactly how your visual cortex learned to see when you were a baby!
 
 🧪 Research Background:
-Olshausen & Field's revolutionary discovery: if you show an algorithm natural images
+Olshausen & Field's discovery: if you show an algorithm natural images
 and ask it to find the most efficient way to represent them, it automatically discovers
 edge detectors that look exactly like neurons in the primary visual cortex (V1)!
 
@@ -447,5 +447,5 @@ class DictionaryLearner:
 💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
 
-Your support enables continued development of cutting-edge AI research tools! 🎓✨
+Your support enables continued development of AI research tools! 🎓✨
 """

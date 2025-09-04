@@ -20,7 +20,7 @@
 
 🌟 **Discover edge-like features from natural images using biologically-inspired learning algorithms**
 
-Sparse coding learns efficient representations where natural images can be reconstructed using only a few active features from an overcomplete dictionary. This implementation faithfully reproduces the groundbreaking research that revealed how our visual cortex processes images.
+Sparse coding learns efficient representations where natural images can be reconstructed using only a few active features from an overcomplete dictionary. This implementation faithfully reproduces the research that revealed how our visual cortex processes images.
 
 **Research Foundation**: Olshausen, B. A., & Field, D. J. (1996) - *"Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"*
 
