@@ -3,6 +3,12 @@
 Critical Functionality Test - Core Sparse Coding Pipeline
 =========================================================
 
+👨‍💻 Author: Benedict Chen
+💰 Donations: Help support this work! Buy me a coffee ☕, beer 🍺, or lamborghini 🏎️
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Sponsor: https://github.com/sponsors/benedictchen
+   💖 Please consider recurring donations to fully support continued research
+
 Tests the most essential functionality that must work reliably:
 1. Core sparse coding pipeline (image → dictionary → codes → reconstruction)  
 2. Dictionary learning from natural-like images

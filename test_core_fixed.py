@@ -5,7 +5,11 @@ Core Functionality Test - Fixed Parameter Names
 
 Quick test with correct parameter names for the most critical functionality.
 
-Author: Benedict Chen (benedict@benedictchen.com)
+👨‍💻 Author: Benedict Chen
+💰 Donations: Help support this work! Buy me a coffee ☕, beer 🍺, or lamborghini 🏎️
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Sponsor: https://github.com/sponsors/benedictchen
+   💖 Please consider recurring donations to fully support continued research
 """
 
 import numpy as np

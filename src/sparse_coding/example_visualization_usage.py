@@ -171,7 +171,7 @@ def demo_enhanced_visualizations():
     # labels = ["Method A", "Method B", "Method C"]
     # sc.compare_dictionaries(other_dicts, labels, save_path="./comparison.png")
     
-    print("\n🎉 Demo completed!")
+    print("\n🎉 Demo finished!")
     print("   All visualization methods handle matplotlib gracefully")
     print("   Methods print informative warnings if matplotlib unavailable")
     print("   Enhanced functionality maintains backward compatibility")

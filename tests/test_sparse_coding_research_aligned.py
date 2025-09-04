@@ -3,6 +3,12 @@
 🔬 Comprehensive Research-Aligned Tests for sparse_coding
 ========================================================
 
+👨‍💻 Author: Benedict Chen
+💰 Donations: Help support this work! Buy me a coffee ☕, beer 🍺, or lamborghini 🏎️
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Sponsor: https://github.com/sponsors/benedictchen
+   💖 Please consider recurring donations to fully support continued research
+
 Tests based on:
 • Olshausen & Field (1996) - Emergence of simple-cell receptive field properties
 

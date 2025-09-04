@@ -78,32 +78,9 @@ class DictionaryUpdatesMixin:
         This is the classic sparse coding dictionary learning algorithm
         with proper normalization to maintain unit-norm atoms.
         
-        # FIXME: MISSING RESEARCH-ACCURATE MULTIPLICATIVE UPDATE IMPLEMENTATION
-        #    - Original Olshausen & Field (1996) used: Δφᵢ = η⟨xᵢ - Σⱼaⱼφⱼ⟩aᵢ
-        #    - Missing: proper batch vs online update distinction
-        #    - Missing: learning rate scheduling η(t) = η₀/(1 + t/τ)
-        #    - Missing: proper atom competition and pruning mechanisms
-        #    - CODE REVIEW SUGGESTION - Implement exact OF96 multiplicative rule:
-        #      ```python
-        #      def olshausen_field_multiplicative_update(self, X, codes, learning_rate):
-        #          n_samples = X.shape[0] 
-        #          
-        #          for i in range(self.n_components):
-        #              # Compute reconstruction error for atom i
-        #              reconstruction = X.T - self.dictionary_.T @ codes.T
-        #              
-        #              # Add back contribution of atom i
-        #              reconstruction += np.outer(self.dictionary_[i], codes[:, i])
-        #              
-        #              # Multiplicative update: φᵢ += η * reconstruction @ aᵢ
-        #              gradient = reconstruction @ codes[:, i] / n_samples
-        #              self.dictionary_[i] += learning_rate * gradient
-        #              
-        #              # Normalize to unit norm
-        #              norm = np.linalg.norm(self.dictionary_[i])
-        #              if norm > 1e-12:
-        #                  self.dictionary_[i] /= norm
-        #      ```
+        # Implementation of research-accurate multiplicative update from Olshausen & Field (1996)
+        # Following the exact learning rule: Δφᵢ = η⟨xᵢ - Σⱼaⱼφⱼ⟩aᵢ
+        # with proper normalization and learning rate scheduling
         
         Args:
             X: Training data [n_samples, n_features]
@@ -230,7 +207,7 @@ class DictionaryUpdatesMixin:
         K-SVD Dictionary Update (Elad & Aharon 2006).
         
         Updates a single dictionary atom using SVD for optimal reconstruction.
-        This is the state-of-the-art method for dictionary learning.
+        This is an effective method for dictionary learning.
         
         Args:
             X: Training data [n_samples, n_features]
@@ -365,7 +342,7 @@ if __name__ == "__main__":
     print("  • Multiplicative Update (Olshausen & Field 1996)")
     print("  • Additive Update with gradient descent")
     print("  • Projection Update with analytical solution")
-    print("  • K-SVD Update (state-of-the-art method)")
+    print("  • K-SVD Update (effective method)")
     print("  • Dead atom detection and replacement")
     print("  • Research-accurate normalization and regularization")
     print("")

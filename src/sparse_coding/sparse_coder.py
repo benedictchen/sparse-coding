@@ -20,7 +20,7 @@ Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Pro
 🎯 ELI5 Summary:
 Imagine you're an artist trying to recreate any picture using the fewest brush strokes possible.
 Sparse coding finds the perfect set of "brush strokes" (basis functions) where any natural image
-can be recreated using just a few active strokes. Amazingly, these learned strokes look exactly
+can be recreated using just a few active strokes. These learned strokes look exactly
 like what neurons in your visual cortex respond to - edge detectors, line segments, etc!
 
 🏗️ Modular Architecture:
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     # Only run test when directly executed
     success = _test_import()
     if success:
-        print("✅ Sparse coding modular architecture loaded successfully!")
+        print("✅ Sparse coding modular architecture loaded")
         print("📊 Module info:", get_module_info())
     else:
         print("❌ Module import test failed")

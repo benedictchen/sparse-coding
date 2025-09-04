@@ -208,5 +208,5 @@ if __name__ == "__main__":
 💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
 📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
 
-Your support enables continued development of cutting-edge AI research tools! 🎓✨
+Your support enables continued development of AI research tools! 🎓✨
 """

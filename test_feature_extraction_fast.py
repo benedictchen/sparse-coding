@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 Fast test for feature extraction functionality to improve coverage
+
+👨‍💻 Author: Benedict Chen
+💰 Donations: Help support this work! Buy me a coffee ☕, beer 🍺, or lamborghini 🏎️
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Sponsor: https://github.com/sponsors/benedictchen
+   💖 Please consider recurring donations to fully support continued research
 """
 
 import numpy as np
