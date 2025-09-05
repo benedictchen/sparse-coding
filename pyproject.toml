@@ -1,58 +1,36 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sparse-coding"
-version = "2.4.0"
-description = "Research-faithful sparse coding with Olshausen-Field paper-exact mode and modern L1/FISTA."
+version = "2.0.0"
+description = "Sparse coding that is paper-faithful and production-friendly (CLI + sklearn estimator + streaming encode)."
 readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Your Team" }]
 requires-python = ">=3.9"
-license = {text = "MIT"}
-authors = [{name = "Research Implementation"}]
 dependencies = [
-    "numpy>=1.23",
-    "pillow>=9.0",
-    "pyyaml>=6.0"
+    "numpy>=1.22",
+    "pillow>=9.0.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0"
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "coverage>=7.0", 
-    "ruff>=0.6.0",
-    "mypy>=1.8"
-]
-docs = [
-    "mkdocs>=1.5",
-    "mkdocs-material>=9.0"
-]
+urls = { "Homepage" = "https://example.com/sparse-coding" }
 
 [project.scripts]
 sparse-coding = "sparse_coding.cli:main"
 
+[project.optional-dependencies]
+gpu = ["cupy-cuda11x"]
+dev = ["pytest", "pytest-cov", "ruff", "mypy"]
+
 [tool.setuptools]
-packages = {find = {where = ["."]}}
-
-[tool.ruff]
-line-length = 100
-target-version = "py39"
-
-[tool.mypy]
-python_version = "3.9"
-strict = true
-warn_return_any = false  # Allow some flexibility for research code
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = ["--strict-markers", "-v"]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-]
-
-[tool.coverage.run]
-source = ["sparse_coding"]
-omit = [
-    "tests/*",
-    "examples/*"
-]
+packages = { find = { where = ["."] } }
+include-package-data = false

@@ -1,0 +1,8 @@
+exclude mkdocs.yml
+recursive-exclude docs *
+recursive-exclude .github *
+recursive-exclude tests *
+recursive-exclude examples *
+recursive-exclude bench *
+exclude Dockerfile
+exclude environment.yml
