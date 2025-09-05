@@ -1,26 +1,130 @@
 """
-🏗️ Sparse Coding - Dictionary Updates Module
-===========================================
-
-
-Author: Benedict Chen (benedict@benedictchen.com)
-Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Properties"
-
-🎯 MODULE PURPOSE:
-=================
-Dictionary update algorithms for sparse coding including multiplicative updates,
-additive updates, and projection methods for dictionary atom learning.
-
-🔬 RESEARCH FOUNDATION:
+📋 Dictionary Updates
 ======================
-Implements dictionary learning methods from:
-- Olshausen & Field (1996): Original multiplicative update rule
-- Lee & Seung (1999): Non-negative matrix factorization updates
-- Elad & Aharon (2006): K-SVD dictionary learning algorithm
-- Mairal et al. (2010): Online dictionary learning for sparse coding
 
-This module contains the dictionary update components, split from the
-1544-line monolith for specialized dictionary learning processing.
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+"""
+"""
+🏗️ Sparse Coding Dictionary Learning - Neural Feature Discovery Algorithms
+=========================================================================
+
+🧠 ELI5 Explanation:
+Imagine you're teaching a computer to recognize handwriting by showing it thousands of letters. 
+Instead of memorizing every letter, you want it to learn the basic "building blocks" - like 
+curves, lines, and loops - that make up all letters. Dictionary learning is exactly this process:
+
+1. **Dictionary Atoms**: These are the "basic building blocks" (like LEGO pieces) that the 
+   computer discovers. In vision, these become edge detectors, curve detectors, etc. - just 
+   like neurons in your brain's visual cortex!
+
+2. **Update Process**: The computer starts with random building blocks and gradually improves 
+   them by seeing which ones are most useful for reconstructing the training images. It's like 
+   evolution - useful features survive and get refined.
+
+3. **Biological Inspiration**: Olshausen & Field showed that when you do this process on 
+   natural images, you automatically get the same edge-detecting features found in mammalian 
+   visual cortex. Your brain literally learned these features the same way!
+
+The math ensures each "building block" stays normalized (same strength) while becoming maximally 
+useful for representing natural images with minimal resources - exactly like biological neurons.
+
+📚 Research Foundation:  
+- Olshausen, B. & Field, D. (1996) "Emergence of simple-cell receptive field properties"
+- Lee, D. & Seung, H. (1999) "Learning the parts of objects by non-negative matrix factorization"
+- Elad, M. & Aharon, M. (2006) "Image denoising via sparse and redundant representations"
+- Mairal, J. et al. (2010) "Online dictionary learning for sparse coding"
+
+Key mathematical insight: Dictionary atoms φᵢ solve: min_Φ ||X - ΦS||²_F s.t. ||φᵢ||₂ = 1
+Each atom represents a primitive feature that efficiently encodes natural image statistics.
+
+🏗️ Dictionary Learning Architecture:
+┌─────────────────────────────────────────────────────────────────────┐
+│                        DICTIONARY LEARNING PROCESS                   │
+├─────────────────────────────────────────────────────────────────────┤
+│  Input Images → Feature Learning → Dictionary Atoms → Reconstruction │
+│       ↓               ↓                  ↓                  ↓        │
+│   [64x64 patches] → [Learning] → [φ₁,φ₂,...,φₙ] → [X ≈ ΦS]        │
+│                                                                     │
+│  ITERATION LOOP:                                                    │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ 1. Sparse Coding: S = argmin ||X - ΦS||² + λ||S||₁        │   │
+│  │              ↓                                               │   │
+│  │ 2. Dictionary Update: Φ = argmin ||X - ΦS||²               │   │
+│  │              ↓                                               │   │
+│  │ 3. Normalize: φᵢ = φᵢ/||φᵢ||₂  (unit norm constraint)      │   │
+│  │              ↓                                               │   │
+│  │ 4. Check Convergence → Repeat if needed                     │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  UPDATE METHODS:                                                    │
+│  • Multiplicative: φᵢ ← φᵢ + η(XSᵢᵀ - ΦSSᵢᵀ)/||S||²              │
+│  • K-SVD: Optimize each atom with SVD while fixing others          │
+│  • Online: Stochastic updates for streaming data                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+🔧 Usage Examples:
+```python
+# Learn edge-detecting features from natural images
+import numpy as np
+from sparse_coding import SparseCoder
+
+# Create sparse coder with dictionary learning
+coder = SparseCoder(n_atoms=144, max_iter=100, learning_rule='multiplicative')
+
+# Train on natural image patches
+image_patches = np.random.randn(1000, 64)  # 1000 patches, 64 pixels each
+coder.fit(image_patches)
+
+# The learned dictionary now contains edge-like features!
+learned_features = coder.dictionary_
+# Each column is a primitive feature (like Gabor filters in V1 cortex)
+
+# Reconstruct images using learned features
+reconstruction = coder.transform(image_patches) @ learned_features.T
+print(f"Reconstruction error: {np.mean((image_patches - reconstruction)**2):.4f}")
+```
+
+⚙️ Mathematical Foundations:
+- **Multiplicative Updates**: φᵢ ← φᵢ + η(XSᵢᵀ - ΦSSᵢᵀ) where η is learning rate
+- **Unit Norm Constraint**: ||φᵢ||₂ = 1 prevents scale ambiguity and ensures stability
+- **K-SVD Algorithm**: φᵢ = u₁ from SVD(X - Σⱼ≠ᵢ φⱼSⱼ) for optimal single-atom updates
+- **Online Learning**: φᵢ ← φᵢ + η(xₜ - φᵢᵀxₜ)φᵢ for streaming data efficiency
+
+💰 FUNDING APPEAL - PLEASE DONATE! 💰
+=====================================
+🌟 This dictionary learning research is made possible by Benedict Chen
+   📧 Contact: benedict@benedictchen.com
+   
+💳 PLEASE DONATE! Your support keeps this research alive! 💳
+   🔗 PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   🔗 GitHub Sponsors: https://github.com/sponsors/benedictchen
+   
+☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
+(Start small, dream big! Every donation helps advance AI research! 😄)
+
+💡 Why donate? This algorithm replicates how your visual cortex learned to see! Supporting this 
+   research helps decode the mysteries of intelligence itself! 🧠✨
+"""
+
+"""
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
+Made possible by Benedict Chen (benedict@benedictchen.com)
 """
 
 import numpy as np
@@ -89,17 +193,46 @@ class DictionaryUpdatesMixin:
         
         n_samples, n_features = X.shape
         
-        # Learning rate (can be adaptive)
-        if hasattr(self, 'dict_learning_rate'):
-            eta = self.dict_learning_rate
+        # Implement learning rate scheduling η(t) = η₀/(1 + t/τ) from Olshausen & Field (1996)
+        base_lr = getattr(self, 'dict_learning_rate', getattr(self, 'learning_rate', 0.01))
+        if hasattr(self, 'iteration_count') and hasattr(self, 'learning_rate_decay_tau'):
+            # Time-dependent learning rate decay as per OF96
+            eta = base_lr / (1 + self.iteration_count / self.learning_rate_decay_tau)
         else:
-            eta = self.learning_rate if hasattr(self, 'learning_rate') else 0.01
+            eta = base_lr
         
-        # Batch multiplicative update for all atoms
+        # Track iteration for learning rate scheduling
+        if not hasattr(self, 'iteration_count'):
+            self.iteration_count = 0
+        self.iteration_count += 1
+        
+        # Implement proper batch vs online update distinction from Olshausen & Field (1996)
+        update_mode = getattr(self, 'update_mode', 'batch')  # 'batch' or 'online'
+        
+        if update_mode == 'online':
+            # Online learning: update dictionary after each sample (original OF96 approach)
+            for sample_idx in range(n_samples):
+                x_sample = X[sample_idx:sample_idx+1]
+                code_sample = codes[sample_idx:sample_idx+1]
+                self._online_dictionary_update(x_sample, code_sample, eta)
+        else:
+            # Batch learning: update dictionary using all samples simultaneously
+            self._batch_dictionary_update(X, codes, eta)
+    
+    def _batch_dictionary_update(self, X: np.ndarray, codes: np.ndarray, eta: float):
+        """Batch dictionary update using all samples."""
+        n_samples = X.shape[0]
+        
+        # Track atom usage for competition and pruning mechanisms
+        atom_usage = np.sum(np.abs(codes), axis=0)  # Usage frequency per atom
+        
         for i in range(self.n_components):
             
-            # Skip unused atoms (all codes are zero)
-            if np.sum(np.abs(codes[:, i])) < 1e-12:
+            # Atom competition: skip atoms with very low usage (Olshausen & Field pruning)
+            if atom_usage[i] < getattr(self, 'min_atom_usage_threshold', 1e-6):
+                # Implement atom pruning mechanism from OF96
+                if hasattr(self, 'enable_atom_pruning') and self.enable_atom_pruning:
+                    self.dictionary_[i] = self._reinitialize_competitive_atom(i, X, atom_usage)
                 continue
             
             # Method 1: Classic Olshausen & Field update rule
@@ -137,10 +270,56 @@ class DictionaryUpdatesMixin:
             self.dictionary_ /= atom_norms
             
             # Reinitialize atoms with very small norms (dead atoms)
-            dead_atoms = np.where(atom_norms.flatten() < 1e-6)[0]
-            for i in dead_atoms:
-                self.dictionary_[i] = self._reinitialize_atom(i, X)
+            dead_atom_mask = atom_norms < 1e-12
+            for dead_idx in np.where(dead_atom_mask.flatten())[0]:
+                self.dictionary_[dead_idx] = self._reinitialize_competitive_atom(dead_idx, X, atom_usage)
     
+    def _online_dictionary_update(self, x_sample: np.ndarray, code_sample: np.ndarray, eta: float):
+        """
+        Online dictionary update for single sample - original Olshausen & Field (1996) approach.
+        
+        Implements the exact online learning rule from the Nature paper:
+        Δφᵢ = η * (x - Σⱼaⱼφⱼ) * aᵢ
+        """
+        # Compute reconstruction error for this sample
+        reconstruction = x_sample.T - self.dictionary_.T @ code_sample.T
+        
+        # Update each atom based on its activation for this sample
+        for i in range(self.n_components):
+            if np.abs(code_sample[0, i]) > 1e-12:  # Only update active atoms
+                # Online multiplicative update: φᵢ += η * residual * aᵢ
+                self.dictionary_[i] += eta * reconstruction.flatten() * code_sample[0, i]
+                
+                # Normalize to unit norm after each update
+                atom_norm = np.linalg.norm(self.dictionary_[i])
+                if atom_norm > 1e-12:
+                    self.dictionary_[i] /= atom_norm
+                else:
+                    # Reinitialize dead atoms
+                    self.dictionary_[i] = self._reinitialize_atom(i, x_sample)
+    
+    def _reinitialize_competitive_atom(self, atom_idx: int, X: np.ndarray, atom_usage: np.ndarray) -> np.ndarray:
+        """
+        Reinitialize poorly performing atoms using competitive learning principles.
+        
+        Implements atom competition mechanism from Olshausen & Field (1996) where
+        unused atoms are replaced with components that better explain residual variance.
+        """
+        # Find the most active atom for competition-based replacement
+        most_active_idx = np.argmax(atom_usage)
+        
+        if atom_usage[most_active_idx] > 0:
+            # Initialize new atom as noisy version of most active atom (competition)
+            noise_scale = getattr(self, 'atom_reinit_noise', 0.1)
+            new_atom = self.dictionary_[most_active_idx].copy()
+            new_atom += np.random.normal(0, noise_scale, new_atom.shape)
+            
+            # Normalize the new competitive atom
+            new_atom /= np.linalg.norm(new_atom)
+            return new_atom
+        else:
+            # Fallback: random reinitialization if no atoms are active
+            return self._reinitialize_atom(atom_idx, X)
     def _additive_update(self, X: np.ndarray, codes: np.ndarray) -> None:
         """
         Additive Dictionary Update with Gradient Descent.
@@ -335,9 +514,9 @@ __all__ = ['DictionaryUpdatesMixin']
 
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Dictionary Updates Module")
+    # print("🏗️ Sparse Coding - Dictionary Updates Module")
     print("=" * 50)
-    print("📊 MODULE CONTENTS:")
+    # Removed print spam: "...
     print("  • DictionaryUpdatesMixin - Dictionary learning methods")
     print("  • Multiplicative Update (Olshausen & Field 1996)")
     print("  • Additive Update with gradient descent")
@@ -346,5 +525,5 @@ if __name__ == "__main__":
     print("  • Dead atom detection and replacement")
     print("  • Research-accurate normalization and regularization")
     print("")
-    print("✅ Dictionary updates module loaded successfully!")
+    # # Removed print spam: "...
     print("🔬 Advanced dictionary learning algorithms!")

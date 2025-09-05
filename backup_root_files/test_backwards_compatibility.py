@@ -26,7 +26,6 @@ def test_sparse_coder_backwards_compatibility():
     # Test 1: Original initialization should work
     try:
         coder = SparseCoder(n_components=16, patch_size=(4, 4))
-        print("✅ Original SparseCoder initialization works")
     except Exception as e:
         print(f"❌ Original initialization failed: {e}")
         return False
@@ -34,7 +33,6 @@ def test_sparse_coder_backwards_compatibility():
     # Test 2: Original fit method should work
     try:
         coder.fit(test_images, max_iterations=2, verbose=False)
-        print("✅ Original fit() method works")
     except Exception as e:
         print(f"❌ Original fit() failed: {e}")
         return False
@@ -58,7 +56,6 @@ def test_sparse_coder_backwards_compatibility():
             max_iter=5,
             tolerance=1e-6
         )
-        print("✅ All original parameters still accepted")
     except Exception as e:
         print(f"❌ Original parameters failed: {e}")
         return False
@@ -68,7 +65,6 @@ def test_sparse_coder_backwards_compatibility():
         # These should work without requiring new parameters
         coder_old_style = SparseCoder(n_components=4)
         coder_new_style = SparseCoder(alpha=0.05, algorithm='fista')
-        print("✅ Both old and new parameter styles work")
     except Exception as e:
         print(f"❌ Parameter compatibility issue: {e}")
         return False
@@ -93,7 +89,6 @@ def test_dictionary_learner_backwards_compatibility():
             max_iterations=2,
             tolerance=1e-6
         )
-        print("✅ Original DictionaryLearner initialization works")
     except Exception as e:
         print(f"❌ Original initialization failed: {e}")
         return False
@@ -101,7 +96,6 @@ def test_dictionary_learner_backwards_compatibility():
     # Test 2: Original methods should work
     try:
         learner.fit(test_patches, verbose=False)
-        print("✅ Original fit() method works")
         
         dictionary = learner.get_dictionary()
         print(f"✅ Original get_dictionary() works: {dictionary.shape}")
@@ -135,7 +129,6 @@ def test_feature_extractor_backwards_compatibility():
             overlap_factor=0.5,
             whitening=True
         )
-        print("✅ Original SparseFeatureExtractor initialization works")
     except Exception as e:
         print(f"❌ Original initialization failed: {e}")
         return False
@@ -143,7 +136,6 @@ def test_feature_extractor_backwards_compatibility():
     # Test 2: Original methods should work
     try:
         extractor.fit(test_images, max_iterations=1, verbose=False)
-        print("✅ Original fit() method works")
         
         features = extractor.transform(test_images[:1])
         print(f"✅ Original transform() works: {features.shape}")
@@ -164,7 +156,6 @@ def test_visualization_backwards_compatibility():
     # Test 1: Original initialization should work
     try:
         viz = SparseVisualization(colormap='gray', figsize=(10, 8))
-        print("✅ Original SparseVisualization initialization works")
     except Exception as e:
         print(f"❌ Original initialization failed: {e}")
         return False
@@ -176,7 +167,6 @@ def test_visualization_backwards_compatibility():
         dictionary = dictionary / np.linalg.norm(dictionary, axis=0)
         
         viz.visualize_dictionary(dictionary, (4, 4), max_atoms=8)
-        print("✅ Original visualize_dictionary() works")
         
     except Exception as e:
         print(f"❌ Original visualization failed: {e}")
@@ -208,12 +198,11 @@ def test_all_original_configurations():
             print(f"❌ Optimization method '{method}' failed: {e}")
             return False
     
-    print("✅ All original configurations work properly")
     return True
 
 def main():
     """Run all backwards compatibility tests"""
-    print("🚀 BACKWARDS COMPATIBILITY TEST SUITE")
+    # print("🚀 BACKWARDS COMPATIBILITY TEST SUITE")
     print("=" * 50)
     
     tests = [
@@ -234,8 +223,6 @@ def main():
     print(f"\n🎉 BACKWARDS COMPATIBILITY RESULTS: {passed}/{total} tests passed")
     
     if passed == total:
-        print("✅ ALL ORIGINAL FUNCTIONALITY PRESERVED - NO BREAKING CHANGES!")
-        print("✅ All changes were purely additive with proper configuration options")
         return True
     else:
         print("❌ Some backwards compatibility issues found!")

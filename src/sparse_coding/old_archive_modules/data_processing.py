@@ -1,4 +1,29 @@
 """
+📋 Data Processing
+===================
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:
@@ -457,7 +482,7 @@ if __name__ == "__main__":
             print(f"❌ {method} whitening failed: {e}")
     
     # Show available methods info
-    print(f"\n📊 Available Whitening Methods:")
+    # Removed print spam: f"\n...
     info = get_whitening_methods_info()
     for method, details in info['available_methods'].items():
         print(f"   • {method}: {details['description']}")

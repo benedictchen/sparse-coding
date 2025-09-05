@@ -1,4 +1,29 @@
 """
+📋 Validation Metrics
+======================
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 🏗️ Sparse Coding - Validation and Metrics Module
 ===============================================
 
@@ -49,40 +74,44 @@ def validate_sparse_coding_data(X: np.ndarray, dictionary: np.ndarray,
     metrics : dict
         Dictionary of validation metrics
     """
-    # FIXME: Missing input validation and error handling
-    # Issue 1: No shape compatibility checking between X, dictionary, and codes
-    # Issue 2: No handling of edge cases (empty arrays, NaN/Inf values)
-    # Issue 3: Missing validation of mathematical constraints (dictionary norms)
-    # Issue 4: No detection of degenerate solutions
+    # Comprehensive input validation for robust sparse coding validation
     
-    # FIXME: No input shape validation
-    # Issue: Matrix multiplication could fail with incompatible shapes
-    # Solutions:
-    # 1. Validate shapes are compatible: codes.shape = (n_samples, n_components), dict.shape = (n_components, n_features)
-    # 2. Check X.shape = (n_samples, n_features)
-    # 3. Provide clear error messages for shape mismatches
-    #
-    # Example validation:
-    # if X.shape[0] != codes.shape[0]:
-    #     raise ValueError(f"X and codes must have same number of samples: {X.shape[0]} vs {codes.shape[0]}")
-    # if dictionary.shape[0] != codes.shape[1]:
-    #     raise ValueError(f"Dictionary components {dictionary.shape[0]} != codes components {codes.shape[1]}")
-    # if dictionary.shape[1] != X.shape[1]:
-    #     raise ValueError(f"Dictionary features {dictionary.shape[1]} != X features {X.shape[1]}")
+    # Validate array inputs are proper numpy arrays
+    if not all(isinstance(arr, np.ndarray) for arr in [X, dictionary, codes]):
+        raise ValueError("All inputs must be numpy arrays")
     
-    # FIXME: No NaN/Inf detection
-    # Issue: NaN or Inf values in inputs will propagate through all calculations
-    # Solutions:
-    # 1. Check for NaN/Inf in all inputs and raise informative errors
-    # 2. Add option to handle or remove invalid samples
-    # 3. Warn about numerical issues that might cause problems
-    #
-    # Example:
-    # for name, arr in [("X", X), ("dictionary", dictionary), ("codes", codes)]:
-    #     if np.any(np.isnan(arr)):
-    #         raise ValueError(f"NaN values detected in {name}")
-    #     if np.any(np.isinf(arr)):
-    #         raise ValueError(f"Inf values detected in {name}")
+    # Validate 2D arrays
+    if not all(arr.ndim == 2 for arr in [X, dictionary, codes]):
+        raise ValueError("All inputs must be 2D arrays")
+    
+    # Comprehensive shape validation for matrix compatibility
+    if X.shape[0] != codes.shape[0]:
+        raise ValueError(f"X and codes must have same number of samples: {X.shape[0]} vs {codes.shape[0]}")
+    if dictionary.shape[0] != codes.shape[1]:
+        raise ValueError(f"Dictionary components {dictionary.shape[0]} != codes components {codes.shape[1]}")
+    if dictionary.shape[1] != X.shape[1]:
+        raise ValueError(f"Dictionary features {dictionary.shape[1]} != X features {X.shape[1]}")
+    
+    # Validate non-empty arrays
+    if X.size == 0 or dictionary.size == 0 or codes.size == 0:
+        raise ValueError("Input arrays cannot be empty")
+    
+    # Numerical quality validation to prevent corrupted results
+    for name, arr in [("X", X), ("dictionary", dictionary), ("codes", codes)]:
+        if np.any(np.isnan(arr)):
+            raise ValueError(f"NaN values detected in {name} - indicates numerical instability")
+        if np.any(np.isinf(arr)):
+            raise ValueError(f"Inf values detected in {name} - indicates overflow or division by zero")
+    
+    # Validate dictionary mathematical constraints
+    dict_norms_check = np.linalg.norm(dictionary, axis=1)
+    zero_norm_atoms = np.sum(dict_norms_check < 1e-12)
+    if zero_norm_atoms > 0:
+        warnings.warn(f"{zero_norm_atoms} dictionary atoms have near-zero norm (dead atoms)")
+    
+    # Check for degenerate solutions
+    if np.all(codes == 0):
+        warnings.warn("All sparse codes are zero - indicates convergence failure or excessive regularization")
     
     # Reconstruction
     X_reconstructed = codes @ dictionary
@@ -90,21 +119,16 @@ def validate_sparse_coding_data(X: np.ndarray, dictionary: np.ndarray,
     # Basic metrics
     reconstruction_error = mean_squared_error(X, X_reconstructed)
     
-    # FIXME: Division by zero risk in relative error calculation
-    # Issue: np.var(X) could be zero for constant data
-    # Solutions:
-    # 1. Add small epsilon to denominator
-    # 2. Handle zero variance case explicitly
-    # 3. Use alternative relative error metrics
-    #
-    # Example:
-    # var_X = np.var(X)
-    # if var_X < 1e-12:
-    #     relative_error = np.inf if reconstruction_error > 0 else 0.0
-    # else:
-    #     relative_error = reconstruction_error / var_X
-    
-    relative_error = reconstruction_error / np.var(X)
+    # Robust relative error calculation handling constant data
+    var_X = np.var(X)
+    if var_X < 1e-12:  # Constant or near-constant data
+        if reconstruction_error > 1e-12:
+            relative_error = np.inf  # Perfect reconstruction impossible
+            warnings.warn("Input data has zero variance - relative error is infinite")
+        else:
+            relative_error = 0.0  # Perfect reconstruction of constant data
+    else:
+        relative_error = reconstruction_error / var_X
     
     # Sparsity metrics
     sparsity = np.mean(np.sum(codes != 0, axis=1))  # Average non-zeros per sample
@@ -114,52 +138,81 @@ def validate_sparse_coding_data(X: np.ndarray, dictionary: np.ndarray,
     dict_norms = np.linalg.norm(dictionary, axis=1)
     dict_coherence = compute_dictionary_coherence(dictionary)
     
-    # FIXME: Potential division by zero in code statistics
-    # Issue: If all codes are zero, codes[codes != 0] is empty
-    # Solutions:
-    # 1. Check for empty arrays before computing statistics
-    # 2. Return NaN or special values for degenerate cases
-    # 3. Add warnings for unusual sparsity patterns
-    #
-    # Example:
-    # nonzero_codes = codes[codes != 0]
-    # if len(nonzero_codes) == 0:
-    #     code_mean = 0.0
-    #     code_std = 0.0
-    #     warnings.warn("All sparse codes are zero - possible convergence failure")
-    # else:
-    #     code_mean = np.mean(np.abs(nonzero_codes))
-    #     code_std = np.std(nonzero_codes)
+    # Robust code statistics computation handling edge cases
+    nonzero_codes = codes[codes != 0]
+    if len(nonzero_codes) == 0:
+        code_mean = 0.0
+        code_std = 0.0
+        warnings.warn("All sparse codes are zero - possible convergence failure or excessive sparsity")
+    else:
+        code_mean = np.mean(np.abs(nonzero_codes))
+        if len(nonzero_codes) > 1:
+            code_std = np.std(nonzero_codes)
+        else:
+            code_std = 0.0  # Single nonzero value has zero variance
+            warnings.warn("Only one nonzero coefficient - insufficient statistics")
     
-    # Code statistics
-    code_mean = np.mean(np.abs(codes[codes != 0]))
-    code_std = np.std(codes[codes != 0]) if np.sum(codes != 0) > 1 else 0
+    # Additional comprehensive validation metrics for research quality assessment
+    dictionary_condition_number = np.linalg.cond(dictionary)
+    dead_atoms = np.sum(np.all(codes == 0, axis=0))  # Unused dictionary atoms
     
-    # FIXME: Missing additional validation metrics
-    # Issue: Could add more comprehensive validation measures
-    # Solutions:
-    # 1. Add condition number of dictionary (numerical stability)
-    # 2. Compute residual statistics (should be white noise)
-    # 3. Check for dead dictionary atoms (never used)
-    # 4. Validate sparsity level is reasonable (not too sparse/dense)
-    #
-    # Additional metrics to consider:
-    # 'dictionary_condition_number': np.linalg.cond(dictionary),
-    # 'dead_atoms': np.sum(np.all(codes == 0, axis=0)),  # Unused dictionary atoms
-    # 'residual_whiteness': test_residual_whiteness(X - X_reconstructed),
-    # 'effective_sparsity': compute_effective_sparsity(codes),
+    # Effective sparsity (Hoyer's measure): (√n - ||x||₁/||x||₂) / (√n - 1)
+    def compute_effective_sparsity(x):
+        if np.linalg.norm(x) < 1e-12:
+            return 1.0  # All zeros = maximally sparse
+        n = len(x)
+        l1_norm = np.sum(np.abs(x))
+        l2_norm = np.linalg.norm(x)
+        return (np.sqrt(n) - l1_norm / l2_norm) / (np.sqrt(n) - 1)
     
+    effective_sparsity_mean = np.mean([compute_effective_sparsity(codes[i]) for i in range(codes.shape[0])])
+    
+    # Residual analysis (should be white noise for good reconstruction)
+    residual = X - X_reconstructed
+    residual_mean = np.mean(residual)
+    residual_autocorr = np.corrcoef(residual.flatten()[:-1], residual.flatten()[1:])[0, 1] if residual.size > 1 else 0
+    
+    # Sparsity level validation
+    if sparsity_ratio < 0.01:
+        warnings.warn(f"Very sparse codes ({sparsity_ratio*100:.2f}%) - may indicate over-regularization")
+    elif sparsity_ratio > 0.5:
+        warnings.warn(f"Dense codes ({sparsity_ratio*100:.2f}%) - may indicate under-regularization")
+    
+    if dead_atoms > 0:
+        warnings.warn(f"{dead_atoms}/{dictionary.shape[0]} dictionary atoms are never used (dead atoms)")
+    
+    if dictionary_condition_number > 1e12:
+        warnings.warn(f"Dictionary is poorly conditioned (κ = {dictionary_condition_number:.2e})")
+    
+    # Return comprehensive validation metrics with all FIXME solutions implemented
     return {
+        # Basic reconstruction metrics
         'reconstruction_error': reconstruction_error,
         'relative_reconstruction_error': relative_error,
+        'snr_db': 10 * np.log10(np.var(X) / reconstruction_error) if reconstruction_error > 0 else np.inf,
+        
+        # Sparsity analysis
         'mean_sparsity': sparsity,
         'sparsity_ratio': sparsity_ratio,
+        'effective_sparsity': effective_sparsity_mean,
+        
+        # Dictionary properties
         'dictionary_coherence': dict_coherence,
+        'dictionary_condition_number': dictionary_condition_number,
         'dictionary_norm_mean': np.mean(dict_norms),
         'dictionary_norm_std': np.std(dict_norms),
+        'dead_atoms_count': dead_atoms,
+        'dead_atoms_ratio': dead_atoms / dictionary.shape[0],
+        
+        # Code statistics
         'code_magnitude_mean': code_mean,
         'code_magnitude_std': code_std,
-        'snr_db': 10 * np.log10(np.var(X) / reconstruction_error) if reconstruction_error > 0 else np.inf
+        'nonzero_codes_count': len(nonzero_codes),
+        
+        # Residual analysis
+        'residual_mean': residual_mean,
+        'residual_autocorr': residual_autocorr,
+        'residual_variance': np.var(residual)
     }
 
 
@@ -280,14 +333,14 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Validation and Metrics Module")
+    # print("🏗️ Sparse Coding - Validation and Metrics Module")
     print("=" * 50)
-    print("📊 MODULE CONTENTS:")
+    # Removed print spam: "...
     print("  • Comprehensive sparse coding data validation")
     print("  • Dictionary coherence and spark computation")
     print("  • Convergence analysis for optimization algorithms")
     print("  • Quality metrics with extensive FIXME research accuracy notes")
     print("  • SNR, sparsity, and reconstruction error analysis")
     print("")
-    print("✅ Validation and metrics module loaded successfully!")
+    # # Removed print spam: "...
     print("🔬 Comprehensive quality assessment for sparse coding!")

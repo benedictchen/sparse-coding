@@ -92,7 +92,8 @@ class UtilitiesValidationMixin:
             Mean squared reconstruction error
         """
         
-        reconstruction = X.T - self.dictionary_.T @ codes.T
+        # SHAPE FIX: For atoms-as-columns, use D @ codes.T
+        reconstruction = X.T - self.dictionary_ @ codes.T
         return np.mean(reconstruction ** 2)
     
     def _sparsity_cost(self, codes: np.ndarray) -> float:
@@ -388,7 +389,8 @@ class UtilitiesValidationMixin:
             warnings_list.append(f"Found {dead_atoms} dead atoms with very small norms")
         
         # Check atom coherence (mutual coherence)
-        gram_matrix = self.dictionary_ @ self.dictionary_.T
+        # SHAPE FIX: For atoms-as-columns, Gram matrix = D.T @ D
+        gram_matrix = self.dictionary_.T @ self.dictionary_
         np.fill_diagonal(gram_matrix, 0)  # Remove diagonal elements
         max_coherence = np.max(np.abs(gram_matrix))
         quality_metrics['max_coherence'] = max_coherence
@@ -447,9 +449,9 @@ __all__ = ['UtilitiesValidationMixin']
 
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Utilities and Validation Module")
+    # print("🏗️ Sparse Coding - Utilities and Validation Module")
     print("=" * 50)
-    print("📊 MODULE CONTENTS:")
+    # Removed print spam: "...
     print("  • UtilitiesValidationMixin - Essential utility functions")
     print("  • Soft/hard thresholding (proximal operators)")
     print("  • Reconstruction error and sparsity cost calculation")
@@ -459,5 +461,5 @@ if __name__ == "__main__":
     print("  • Convergence checking and parameter validation")
     print("  • ZCA whitening and preprocessing methods")
     print("")
-    print("✅ Utilities and validation module loaded successfully!")
+    # # Removed print spam: "...
     print("🔬 Comprehensive sparse coding support functions!")

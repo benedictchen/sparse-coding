@@ -20,7 +20,6 @@ def test_feature_extraction_coverage():
     # Initialize feature extractor
     try:
         extractor = SparseFeatureExtractor(n_components=8, patch_size=(4, 4), sparsity_penalty=0.1)
-        print("✅ SparseFeatureExtractor initialized")
     except Exception as e:
         print(f"❌ SparseFeatureExtractor initialization: {e}")
         return
@@ -28,7 +27,6 @@ def test_feature_extraction_coverage():
     # Test fit method
     try:
         extractor.fit(test_images)
-        print("✅ fit method")
     except Exception as e:
         print(f"❌ fit method: {e}")
     
@@ -59,7 +57,6 @@ def test_feature_extraction_coverage():
     try:
         extractor_small = SparseFeatureExtractor(n_components=4, patch_size=(4, 4), 
                                                sparsity_penalty=0.05, whitening=False)
-        print("✅ Configuration without whitening")
     except Exception as e:
         print(f"❌ Configuration test: {e}")
     

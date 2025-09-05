@@ -94,7 +94,6 @@ def test_sparse_coder_advanced():
     try:
         # Test with verbose output disabled to speed up
         coder.fit(test_images, verbose=False, max_iterations=2)
-        print("✅ fit() with verbose=False")
     except Exception as e:
         print(f"❌ fit() verbose=False: {e}")
     
@@ -114,7 +113,6 @@ def test_sparse_coder_advanced():
     try:
         # This will test visualize_dictionary method
         coder.visualize_dictionary(figsize=(6, 6))
-        print("✅ visualize_dictionary")
     except Exception as e:
         print(f"❌ visualize_dictionary: {e}")
     

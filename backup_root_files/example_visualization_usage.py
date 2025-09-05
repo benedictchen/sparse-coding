@@ -188,7 +188,6 @@ def show_backward_compatibility():
     sc.training_history = {'reconstruction_error': [0.5, 0.3], 'sparsity': [10, 8]}
     sc.plot_training_curves()  # Enhanced with more analysis
     
-    print("✅ All original code continues to work!")
     print("   Users get enhanced features automatically")
     print("   No breaking changes to existing workflows")
 

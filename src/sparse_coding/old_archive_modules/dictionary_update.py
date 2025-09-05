@@ -1,4 +1,23 @@
 """
+📋 Dictionary Update
+=====================
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:

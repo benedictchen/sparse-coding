@@ -123,10 +123,6 @@ def run_verified_tests():
     print(f"🎉 VERIFIED RESULTS: {passed}/{total} test components passed")
     
     if passed == total:
-        print("✅ ALL VERIFIED FUNCTIONALITY IS WORKING!")
-        print("✅ SparseCoder: Dictionary learning + sparse encoding")
-        print("✅ DictionaryLearner: Patch-based dictionary learning")
-        print("✅ SparseFeatureExtractor: Image feature extraction")
         return True
     else:
         print(f"❌ {total - passed} components have issues")

@@ -20,7 +20,6 @@ def test_dictionary_learning_coverage():
     # Initialize dictionary learner
     try:
         learner = DictionaryLearner(n_components=8, max_iterations=2, tolerance=1e-3)
-        print("✅ DictionaryLearner initialized")
     except Exception as e:
         print(f"❌ DictionaryLearner initialization: {e}")
         return
@@ -28,7 +27,6 @@ def test_dictionary_learning_coverage():
     # Test fit method
     try:
         learner.fit(test_patches)
-        print("✅ fit method")
     except Exception as e:
         print(f"❌ fit method: {e}")
     
@@ -52,7 +50,6 @@ def test_dictionary_learning_coverage():
         if components is not None:
             print(f"✅ get_components: {components.shape}")
         else:
-            print("✅ get_components: None (not fitted yet)")
     except Exception as e:
         print(f"❌ get_components: {e}")
     
@@ -68,7 +65,6 @@ def test_dictionary_learning_coverage():
     print("Testing different configurations...")
     try:
         learner_small = DictionaryLearner(n_components=4, max_iterations=1, patch_size=(4, 4))
-        print("✅ Small configuration test")
     except Exception as e:
         print(f"❌ Small configuration: {e}")
     

@@ -1,4 +1,30 @@
 """
+🎨 Visualization
+=================
+
+🎯 ELI5 Summary:
+This is like an artist's palette for our data! Just like how artists use different 
+colors and brushes to paint pictures that help people understand their ideas, this file 
+creates charts, graphs, and visual displays that help researchers see and understand 
+what their algorithms are doing.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:
@@ -639,7 +665,7 @@ class VisualizationMixin:
             return {}
         
         try:
-            print("\n📊 Dictionary Analysis")
+            # Removed print spam: "\n...
             print("=" * 50)
             
             # Basic properties
@@ -670,7 +696,7 @@ class VisualizationMixin:
             spectral_radius = np.max(np.real(eigenvals))
             min_eigenval = np.min(np.real(eigenvals))
             
-            print(f"\n🔍 Dictionary Quality Metrics:")
+            # Removed print spam: f"\n...
             print(f"  Mutual coherence: {coherence:.4f}")
             print(f"  Condition number: {condition_number:.2e}")
             print(f"  Norm uniformity (CV): {norm_uniformity:.4f}")
@@ -678,7 +704,7 @@ class VisualizationMixin:
             print(f"  Minimum eigenvalue: {min_eigenval:.4f}")
             
             # Quality assessment
-            print(f"\n✅ Quality Assessment:")
+            # Removed print spam: f"\n...
             if coherence < 0.3:
                 print(f"  ✓ Low coherence - excellent for sparse recovery")
             elif coherence < 0.6:
@@ -764,7 +790,7 @@ class VisualizationMixin:
             return
         
         try:
-            print(f"\n📈 Training Statistics")
+            # Removed print spam: f"\n...
             print("=" * 40)
             
             if 'reconstruction_error' in self.training_history:
@@ -789,7 +815,7 @@ class VisualizationMixin:
         """Print reconstruction quality statistics."""
         
         try:
-            print(f"\n📊 Reconstruction Quality Statistics")
+            # Removed print spam: f"\n...
             print("=" * 45)
             
             print(f"Mean reconstruction error: {np.mean(reconstruction_errors):.6f}")
@@ -860,7 +886,7 @@ class VisualizationMixin:
                         f.write(f"  Final error: {errors[-1]:.6f}\n")
                         f.write(f"  Iterations: {len(errors)}\n")
             
-            print(f"✅ Visualization report generated in: {save_dir}")
+            # Removed print spam: f"...
             
         except Exception as e:
             print(f"⚠️  Report generation failed: {e}")
@@ -919,7 +945,7 @@ class VisualizationMixin:
             # Save to numpy archive
             np.savez_compressed(save_path, **export_data)
             
-            print(f"✅ Dictionary exported to: {save_path}")
+            # Removed print spam: f"...
             print(f"   Includes: dictionary, metadata, training history, analysis")
             
         except Exception as e:

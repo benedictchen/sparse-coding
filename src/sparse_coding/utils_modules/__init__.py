@@ -1,4 +1,29 @@
 """
+📋   Init  
+============
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 🏗️ Sparse Coding - Utils Modules Package
 ========================================
 
@@ -118,7 +143,7 @@ MODULE_INFO = {
 
 def print_module_info():
     """Print module information"""
-    print("🏗️ Utils Modules - Information")
+    # print("🏗️ Utils Modules - Information")
     print("=" * 50)
     for key, value in MODULE_INFO.items():
         print(f"{key.replace('_', ' ').title()}: {value}")
@@ -126,21 +151,33 @@ def print_module_info():
 
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Utils Modules Package")
+    # print("🏗️ Sparse Coding - Utils Modules Package")
     print("=" * 50)
-    print("📊 UTILITY MODULES:")
+    # Removed print spam: "...
     print(f"  Utility functions loaded successfully")
     print(f"  4 modules available with 997 total lines")
     print(f"  All utility modules available")
     print("")
-    print("🎯 MODULAR STRUCTURE:")
+    # Removed print spam: "...
     print(f"  • Data processing utilities: 256 lines")
     print(f"  • Optimization utilities: 213 lines")
     print(f"  • Validation and metrics: 244 lines") 
     print(f"  • Advanced specialized tools: 284 lines")
     print("")
-    print("✅ All utility functions available!")
-    print("🏗️ Sparse coding utilities based on research literature!")
-    print("🚀 Sparse coding utilities loaded successfully!")
+    # # Removed print spam: "...
+    # print("🏗️ Sparse coding utilities based on research literature!")
+    # # Removed print spam: "...
     print("")
     print_module_info()
+
+print("""
+💰 MODULE SUPPORT - Made possible by Benedict Chen
+   ]8;;mailto:benedict@benedictchen.com\benedict@benedictchen.com]8;;\
+
+💰 PLEASE DONATE! Your support keeps this research alive! 💰
+   🔗 ]8;;https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS\💳 CLICK HERE TO DONATE VIA PAYPAL]8;;\
+   ❤️ ]8;;https://github.com/sponsors/benedictchen\💖 SPONSOR ON GITHUB]8;;\
+
+   ☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
+   (Start small, dream big! Every donation helps! 😄)
+""")

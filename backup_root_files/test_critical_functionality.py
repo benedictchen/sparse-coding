@@ -313,12 +313,6 @@ def run_critical_tests():
     print(f"🎉 CRITICAL FUNCTIONALITY RESULTS: {passed}/{total} tests passed ({total_time:.2f}s)")
     
     if passed == total:
-        print("✅ ALL CRITICAL FUNCTIONALITY WORKING PERFECTLY!")
-        print("✅ Core sparse coding pipeline is fully functional")
-        print("✅ Dictionary learning algorithms working correctly") 
-        print("✅ Sparse encoding producing valid results")
-        print("✅ sklearn API compatibility confirmed")
-        print("✅ End-to-end pipeline verified")
         return True
     else:
         print(f"❌ {total - passed} CRITICAL FAILURES DETECTED!")

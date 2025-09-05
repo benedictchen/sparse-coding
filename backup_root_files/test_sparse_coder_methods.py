@@ -98,7 +98,6 @@ def test_sparse_coder_methods():
     
     try:
         coder.visualize_dictionary(figsize=(4, 4))  # Small figure for speed
-        print("✅ visualize_dictionary")
     except Exception as e:
         print(f"❌ visualize_dictionary: {e}")
     
@@ -107,7 +106,6 @@ def test_sparse_coder_methods():
     
     try:
         coder._validate_configuration()
-        print("✅ _validate_configuration (valid)")
     except Exception as e:
         print(f"❌ _validate_configuration: {e}")
     
@@ -117,7 +115,7 @@ def test_sparse_coder_methods():
         bad_coder._validate_configuration()
         print("❌ Should have failed validation")
     except ValueError:
-        print("✅ Error validation caught invalid parameters")
+        print("✅ Validation correctly rejected invalid configuration")  
     except Exception as e:
         print(f"❌ Unexpected error in validation: {e}")
     

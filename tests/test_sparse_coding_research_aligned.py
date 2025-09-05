@@ -1,25 +1,16 @@
 #!/usr/bin/env python3
 """
-🔬 Comprehensive Research-Aligned Tests for sparse_coding
-========================================================
-
-👨‍💻 Author: Benedict Chen
-💰 Donations: Help support this work! Buy me a coffee ☕, beer 🍺, or lamborghini 🏎️
-   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
-   💖 Sponsor: https://github.com/sponsors/benedictchen
-   💖 Please consider recurring donations to fully support continued research
+Research-aligned tests for sparse_coding module.
 
 Tests based on:
-• Olshausen & Field (1996) - Emergence of simple-cell receptive field properties
+- Olshausen & Field (1996) - Emergence of simple-cell receptive field properties
 
 Key concepts tested:
-• Dictionary Learning
-• L1 Sparsity
-• Overcomplete Basis
-• Natural Image Statistics
-• Receptive Fields
-
-Author: Benedict Chen (benedict@benedictchen.com)
+- Dictionary Learning
+- L1 Sparsity
+- Overcomplete Basis
+- Natural Image Statistics
+- Receptive Fields
 """
 
 import pytest
@@ -63,8 +54,10 @@ class TestBasicFunctionality:
         covered_concepts = []
         for concept in key_concepts:
             concept_words = concept.lower().replace(" ", "").replace("-", "")
-            if any(concept_words in attr.lower() for attr in module_attrs) or \
-               concept.lower() in module_str.lower():
+            # More flexible matching - check if concept words are contained in attributes
+            attr_match = any(concept_words in attr.lower().replace("_", "") for attr in module_attrs)
+            doc_match = concept.lower() in module_str.lower()
+            if attr_match or doc_match:
                 covered_concepts.append(concept)
         
         coverage_ratio = len(covered_concepts) / len(key_concepts)

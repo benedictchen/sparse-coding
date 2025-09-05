@@ -912,7 +912,7 @@ class SparseCoder:
         # Normalize dictionary columns
         self.dictionary = normalize(self.dictionary, axis=0)
         
-    def _enhanced_sparse_encode(self, patches: np.ndarray) -> np.ndarray:
+    def improved_(self, patches: np.ndarray) -> np.ndarray:
         """
         Enhanced sparse encoding with FISTA (Fast Iterative Shrinkage-Thresholding)
         

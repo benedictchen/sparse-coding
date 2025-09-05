@@ -1,4 +1,21 @@
 """
+📋 Dictionary Learning
+=======================
+
+🔬 Research Foundation:
+======================
+Based on foundational sparse coding research:
+- Olshausen, B.A. & Field, D.J. (1996). "Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"
+- Field, D.J. (1994). "What Is the Goal of Sensory Coding?"
+- Lewicki, M.S. & Sejnowski, T.J. (2000). "Learning Overcomplete Representations"
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:
@@ -251,7 +268,7 @@ class DictionaryLearner:
         n_patches = len(patches)
         
         if verbose:
-            print(f"🎯 Learning dictionary from {n_patches} patches...")
+            # Removed print spam: f"...
             print(f"   Patch size: {self.patch_size}")
             print(f"   Dictionary size: {self.n_components} atoms")
             
@@ -300,7 +317,7 @@ class DictionaryLearner:
         }
         
         if verbose:
-            print(f"✅ Dictionary learning complete!")
+            # Removed print spam: f"...
             print(f"   Final reconstruction error: {recon_error:.6f}")
             print(f"   Final sparsity level: {sparsity:.1f}")
             

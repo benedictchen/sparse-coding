@@ -1,9 +1,41 @@
 """
+📋 Batch Processor
+===================
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 Batch Processing Module for Sparse Coding
 
 Advanced batch processing capabilities for large-scale sparse coding operations,
 implementing efficient memory management, parallel processing, and distributed
 computing strategies following Olshausen & Field (1996) principles.
+
+🙏 If this library helps your research:
+💳 PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+💖 GitHub Sponsors: https://github.com/sponsors/benedictchen
+
+☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
+(Start small, dream big! Every donation helps advance AI research! 😄)
 
 Author: Benedict Chen (benedict@benedictchen.com)
 """

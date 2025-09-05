@@ -116,7 +116,6 @@ def test_enhanced_sparse_coding_features():
     assert hasattr(sparse_coder, 'create_overcomplete_basis'), "Should have create_overcomplete_basis method"
     assert hasattr(sparse_coder, 'lateral_inhibition'), "Should have lateral_inhibition method"
     
-    print("✅ Both required research compliance methods exist")
     
     print("\n🎉 All enhanced Sparse Coding features working correctly!")
     print(f"📊 Summary:")

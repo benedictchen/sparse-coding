@@ -1,4 +1,29 @@
 """
+🔧 Utils Refactored
+====================
+
+🎯 ELI5 Summary:
+This is like a toolbox full of helpful utilities! Just like how a carpenter has 
+different tools for different jobs (hammer, screwdriver, saw), this file contains helpful 
+functions that other parts of our code use to get their work done.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 🏗️ Sparse Coding - Refactored Utils Suite
 =========================================
 
@@ -62,7 +87,7 @@ REFACTORING_GUIDE = """
 
 OLD (994-line monolith):
 ```python
-from utils import extract_patches_2d, soft_threshold, validate_sparse_coding_data, create_gabor_dictionary
+from patch_processing_utilities import extract_patches_2d, soft_threshold, validate_sparse_coding_data, create_gabor_dictionary
 # All functionality in one massive file
 ```
 
@@ -150,22 +175,22 @@ RESEARCH ACCURACY (Preserved and Enhanced):
 """
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Utils Suite")
+    # print("🏗️ Sparse Coding - Utils Suite")
     print("=" * 50)
-    print("📊 UTILITY FUNCTIONS:")
+    # Removed print spam: "...
     print(f"  Utility functions available")
     print(f"  Organized into 4 modules for clarity")
     print(f"  All modules loaded successfully")
     print("")
-    print("🎯 NEW MODULAR STRUCTURE:")
+    # Removed print spam: "...
     print(f"  • Data processing utilities: 256 lines")
     print(f"  • Optimization utilities: 213 lines")
     print(f"  • Validation and metrics: 244 lines") 
     print(f"  • Advanced specialized tools: 284 lines")
     print("")
-    print("✅ 100% backward compatibility maintained!")
-    print("🏗️ Enhanced modular architecture with advanced capabilities!")
-    print("🚀 Complete sparse coding utilities with research accuracy!")
+    # # # # Removed print spam: "...
+    # # # print("🏗️ Enhanced modular architecture...")
+    # # # # Removed print spam: "...
     print("")
     
     # Demo utility workflow

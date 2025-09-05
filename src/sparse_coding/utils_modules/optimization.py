@@ -1,26 +1,127 @@
 """
-🏗️ Sparse Coding - Optimization Utilities Module
-===============================================
+📋 Optimization
+================
 
-
-Author: Benedict Chen (benedict@benedictchen.com)
-Based on: Olshausen & Field (1996) "Emergence of Simple-Cell Receptive Field Properties"
-
-🎯 MODULE PURPOSE:
-=================
-Optimization utilities for sparse coding including thresholding operators,
-Lipschitz constant computation, and line search algorithms.
-
-🔬 RESEARCH FOUNDATION:
+🔬 Research Foundation:
 ======================
-Implements optimization tools for sparse coding algorithms:
-- Soft/hard thresholding for proximal operators (ISTA/FISTA)
-- SCAD and other advanced thresholding operators
-- Lipschitz constant computation for gradient methods
-- Backtracking line search for step size selection
+Based on foundational sparse coding research:
+- Olshausen, B.A. & Field, D.J. (1996). "Emergence of Simple-Cell Receptive Field Properties by Learning a Sparse Code for Natural Images"
+- Field, D.J. (1994). "What Is the Goal of Sensory Coding?"
+- Lewicki, M.S. & Sejnowski, T.J. (2000). "Learning Overcomplete Representations"
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
 
-This module contains the optimization utilities, split from the
-994-line monolith for specialized optimization support functionality.
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+"""
+"""
+🏗️ Sparse Coding Optimization Utilities - ISTA/FISTA Mathematical Tools
+======================================================================
+
+🧠 ELI5 Explanation:
+Think of sparse coding like organizing your photo collection. You want to represent each photo 
+using just a few "basic building blocks" (dictionary atoms) instead of storing every pixel. 
+The optimization utilities here are like smart tools that help you decide:
+
+1. **Thresholding**: "Is this building block important enough to keep?" - If a coefficient 
+   is too small, set it to zero (sparsity). It's like deciding if a tiny dot of color in 
+   your photo is worth storing or can be ignored.
+
+2. **Lipschitz Constants**: "How fast can I safely adjust my guesses?" - Like knowing how 
+   hard you can press the gas pedal without losing control of your car. Too fast and you 
+   overshoot the best solution.
+
+3. **Line Search**: "What's the best step size to take?" - Like deciding how big steps to 
+   take when walking to a destination in the dark - small steps are safer but slower.
+
+The math ensures you find the sparsest representation (fewest building blocks) that still 
+captures the essence of your data, just like Olshausen & Field discovered in natural images.
+
+📚 Research Foundation:  
+- Olshausen, B. & Field, D. (1996) "Emergence of simple-cell receptive field properties"
+- Beck, A. & Teboulle, M. (2009) "A Fast Iterative Shrinkage-Thresholding Algorithm (FISTA)"
+- Fan, J. & Li, R. (2001) "Variable selection via nonconcave penalized likelihood (SCAD)"
+- Daubechies, I. et al. (2004) "An iterative thresholding algorithm (ISTA)"
+
+Key mathematical insight: Proximal operators solve: prox_λf(x) = argmin_z {½||z-x||² + λf(z)}
+For L1 penalty: prox_λ||·||₁(x) = sign(x) × max(|x| - λ, 0) (soft thresholding)
+
+🏗️ Optimization Components Architecture:
+┌─────────────────────────────────────────────────────────────────┐
+│                    SPARSE CODING OPTIMIZATION                   │
+├─────────────────────────────────────────────────────────────────┤
+│  Input Data → Thresholding → Sparsity Control → Output          │
+│       ↓            ↓              ↓               ↓             │
+│   [x₁,x₂,...] → [threshold] → [λ penalty] → [sparse_x]         │
+│                                                                 │
+│  Soft: sign(x) × max(|x|-λ, 0)   Hard: x × (|x| ≥ λ)          │
+│  SCAD: Smooth clipping            Garrote: Non-negative shrink  │
+│                                                                 │
+│  Gradient Method → Lipschitz → Step Size → Convergence         │
+│       ↓              ↓           ↓            ↓                │
+│   ∇f(x)       →  L = λₘₐₓ(AᵀA) → α ≤ 1/L → x_{k+1}           │
+│                                                                 │
+│  Line Search → Armijo Condition → Backtracking → Safe Steps    │
+│       ↓              ↓               ↓             ↓           │
+│   f(x+αd) ≤ f(x) + c₁α∇f(x)ᵀd  → α = βα → Guaranteed Descent │
+└─────────────────────────────────────────────────────────────────┘
+
+🔧 Usage Examples:
+```python
+# Sparse signal recovery with soft thresholding (ISTA step)
+noisy_coefficients = np.array([0.1, 2.5, -0.05, 3.2, 0.08])
+threshold = 0.1
+sparse_coeffs = soft_threshold(noisy_coefficients, threshold)
+# Result: [0.0, 2.4, 0.0, 3.1, 0.0] - small values zeroed out
+
+# Compute Lipschitz constant for safe gradient steps
+dictionary = np.random.randn(64, 256)  # 64 atoms, 256 dimensions
+L = compute_lipschitz_constant(dictionary)  
+safe_step_size = 0.9 / L  # Ensure convergence
+
+# Advanced SCAD thresholding for better sparsity patterns
+scad_result = shrinkage_threshold(noisy_coefficients, 0.1, 'scad')
+# SCAD provides continuous shrinkage, reducing bias for large coefficients
+```
+
+⚙️ Mathematical Foundations:
+- **Soft Thresholding**: prox_λ||·||₁(x) = sign(x) ⊙ max(|x| - λ, 0)
+- **SCAD Penalty**: λ|x| if |x| ≤ λ; (2aλ|x| - x² - λ²)/(2(a-1)) if λ < |x| ≤ aλ; λ²(a+1)/2 if |x| > aλ
+- **Lipschitz Constant**: L = λₘₐₓ(AᵀA) ensures ||∇f(x) - ∇f(y)|| ≤ L||x - y||
+- **Armijo Condition**: f(x + αd) ≤ f(x) + c₁α∇f(x)ᵀd guarantees sufficient decrease
+
+💰 FUNDING APPEAL - PLEASE DONATE! 💰
+=====================================
+🌟 This sparse coding optimization research is made possible by Benedict Chen
+   📧 Contact: benedict@benedictchen.com
+   
+💳 PLEASE DONATE! Your support keeps this research alive! 💳
+   🔗 PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   🔗 GitHub Sponsors: https://github.com/sponsors/benedictchen
+   
+☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
+(Start small, dream big! Every donation helps advance AI research! 😄)
+
+💡 Why donate? This optimization module took months of research, implementing 
+   cutting-edge algorithms from 1996-2009 papers with mathematical precision!
+   Your support enables more breakthrough AI implementations! 🚀
+"""
+
+"""
+💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+
+🙏 If this library helps your research or project, please consider donating:
+💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+
+Your support makes advanced AI research accessible to everyone! 🚀
+
+Made possible by Benedict Chen (benedict@benedictchen.com)
 """
 
 import numpy as np
@@ -117,75 +218,132 @@ def shrinkage_threshold(x: np.ndarray, threshold: float, shrinkage_type: str = '
 
 def compute_lipschitz_constant(A: np.ndarray) -> float:
     """
-    Compute Lipschitz constant for gradient of f(x) = 0.5 * ||Ax - b||^2
+    🔢 Compute Lipschitz Constant for Sparse Coding Optimization
+    
+    Computes the Lipschitz constant L for the gradient of f(x) = ½||Ax - b||² 
+    which equals the largest eigenvalue of A^T A. This is crucial for determining
+    safe step sizes in ISTA/FISTA algorithms to guarantee convergence.
+    
+    🧠 Mathematical Context:
+    The Lipschitz constant ensures ||∇f(x) - ∇f(y)|| ≤ L||x - y||, meaning
+    the gradient doesn't change too quickly. For ISTA: step size α ≤ 1/L ensures
+    the algorithm converges to the global optimum of the convex problem.
     
     Parameters
     ----------
     A : array, shape (m, n)
-        Matrix A
+        Dictionary matrix for sparse coding (atoms as columns)
         
     Returns
     -------
     L : float
         Lipschitz constant (largest eigenvalue of A^T A)
+        Always positive, with minimum value 1e-12 for numerical stability
+        
+    Raises
+    ------
+    ValueError
+        If input matrix has invalid dimensions or properties
+        
+    Notes
+    -----
+    Uses efficient algorithms based on matrix size:
+    - Small matrices: Direct eigendecomposition  
+    - Large matrices: Power iteration or matrix norm approximation
+    - Handles numerical issues with complex eigenvalues robustly
     """
-    # FIXME: Critical efficiency and numerical stability issues
-    # Issue 1: Using full eigendecomposition for large matrices is very expensive O(n³)
-    # Issue 2: No numerical stability checking for ill-conditioned matrices
-    # Issue 3: Complex eigenvalues not handled properly in edge cases
-    # Issue 4: No input validation for matrix dimensions or properties
-    
-    # FIXME: No input validation
-    # Issue: Could crash with invalid input matrices
-    # Solutions:
-    # 1. Validate input is 2D array with valid dimensions
-    # 2. Check for degenerate cases (zero matrix, single element)
-    # 3. Add warnings for ill-conditioned matrices
-    #
-    # Example validation:
-    # if A.ndim != 2:
-    #     raise ValueError("Input matrix must be 2-dimensional")
-    # if A.size == 0:
-    #     return 0.0
-    # if np.allclose(A, 0):
-    #     return 0.0
-    
-    if A.shape[0] <= A.shape[1]:
-        # More columns than rows: compute eigenvalues of A A^T
-        # FIXME: For large matrices, this is computationally expensive O(m³)
-        # Solutions:
-        # 1. Use power iteration for large matrices: faster O(mn) per iteration
-        # 2. Use scipy.sparse.linalg.norm for matrix norm approximation
-        # 3. Use randomized SVD for approximation: sklearn.utils.extmath.randomized_svd
-        #
-        # Example power iteration implementation:
-        # if A.shape[0] > 1000:  # For large matrices
-        #     return power_iteration_largest_eigenvalue(A @ A.T, max_iter=20)
+    # Input validation (FIXME solutions implemented)
+    if not isinstance(A, np.ndarray):
+        raise ValueError("Input must be a numpy array")
+    if A.ndim != 2:
+        raise ValueError("Input matrix must be 2-dimensional")
+    if A.size == 0:
+        return 1e-12  # Avoid zero Lipschitz constant
+    if np.allclose(A, 0):
+        return 1e-12  # Zero matrix case
         
-        eigenvals = np.linalg.eigvals(A @ A.T)
+    # Check for ill-conditioned matrices
+    if np.linalg.cond(A) > 1e12:
+        warnings.warn("Matrix appears ill-conditioned (condition number > 1e12). "
+                     "Lipschitz constant may be inaccurate.", UserWarning)
+    
+    m, n = A.shape
+    
+    # Efficient computation based on matrix size (FIXME solutions implemented)
+    if max(m, n) > 1000:  # Large matrix case
+        # Use power iteration for efficiency O(mn) per iteration instead of O(n³)
+        if m <= n:
+            # More columns than rows: compute largest eigenvalue of AA^T
+            return _power_iteration_largest_eigenvalue(A @ A.T, max_iter=20, tol=1e-6)
+        else:
+            # More rows than columns: compute largest eigenvalue of A^T A
+            return _power_iteration_largest_eigenvalue(A.T @ A, max_iter=20, tol=1e-6)
     else:
-        # More rows than columns: compute eigenvalues of A^T A  
-        # FIXME: Same computational complexity issue O(n³)
-        # Better approach for large matrices:
-        # if A.shape[1] > 1000:
-        #     return scipy.sparse.linalg.norm(A, ord=2)**2  # More efficient
+        # Small matrix case: use direct eigendecomposition
+        if m <= n:
+            # More columns than rows: compute eigenvalues of AA^T
+            eigenvals = np.linalg.eigvals(A @ A.T)
+        else:
+            # More rows than columns: compute eigenvalues of A^T A
+            eigenvals = np.linalg.eigvals(A.T @ A)
         
-        eigenvals = np.linalg.eigvals(A.T @ A)
+        # Handle numerical precision issues (FIXME solutions implemented)
+        max_eigenval = np.max(np.real(eigenvals))
+        
+        # Warn if significant imaginary components (numerical errors)
+        max_imag = np.max(np.abs(np.imag(eigenvals)))
+        if max_imag > 1e-10:
+            warnings.warn(f"Complex eigenvalues detected (max imaginary part: {max_imag:.2e}). "
+                         f"Taking real part. Consider checking matrix conditioning.", UserWarning)
+        
+        # Ensure positive minimum for numerical stability
+        return max(max_eigenval, 1e-12)
+
+
+def _power_iteration_largest_eigenvalue(M: np.ndarray, max_iter: int = 20, tol: float = 1e-6) -> float:
+    """
+    🔄 Power Iteration for Largest Eigenvalue (Efficient Implementation)
     
-    # FIXME: No handling of numerical precision issues
-    # Issue: Complex eigenvalues due to numerical errors aren't handled
-    # Solutions:
-    # 1. Take real part and warn if imaginary part is significant
-    # 2. Use more robust eigenvalue computation
-    # 3. Add tolerance checking for near-zero eigenvalues
-    #
-    # Example:
-    # max_eigenval = np.max(np.real(eigenvals))
-    # if np.max(np.imag(eigenvals)) > 1e-10:
-    #     warnings.warn("Complex eigenvalues detected, taking real part")
-    # return max(max_eigenval, 1e-12)  # Avoid zero Lipschitz constant
+    Implements the power iteration method to find the largest eigenvalue of a 
+    symmetric positive semidefinite matrix. This is much more efficient than
+    full eigendecomposition for large matrices: O(mn) vs O(n³).
     
-    return np.max(np.real(eigenvals))
+    Parameters
+    ----------
+    M : array, shape (k, k)
+        Symmetric matrix (typically A^T A or AA^T)
+    max_iter : int, default=20
+        Maximum number of iterations
+    tol : float, default=1e-6
+        Convergence tolerance for eigenvalue estimate
+        
+    Returns
+    -------
+    eigenval : float
+        Largest eigenvalue of M
+    """
+    n = M.shape[0]
+    
+    # Start with random vector
+    v = np.random.randn(n)
+    v = v / np.linalg.norm(v)
+    
+    eigenval_old = 0
+    
+    for i in range(max_iter):
+        # Power iteration step
+        Mv = M @ v
+        eigenval = np.dot(v, Mv)  # Rayleigh quotient
+        
+        # Check convergence
+        if abs(eigenval - eigenval_old) < tol:
+            break
+            
+        # Normalize for next iteration
+        v = Mv / np.linalg.norm(Mv)
+        eigenval_old = eigenval
+    
+    return max(eigenval, 1e-12)  # Ensure positive minimum
 
 
 def line_search_backtrack(f: Callable, grad_f: Callable, x: np.ndarray, 
@@ -242,14 +400,22 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    print("🏗️ Sparse Coding - Optimization Utilities Module")
+    # Removed print spam: "\n...
+    print("   📧 Contact: benedict@benedictchen.com")
+    print()
+    print("💰 PLEASE DONATE! Your support keeps this research alive! 💰")
+    print("   🔗 💳 CLICK HERE TO DONATE VIA PAYPAL")
+    print("   🔗 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS")
+    print()
+    print("   ☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!")
+    print("   (Start small, dream big! Every donation helps! 😄)")
+    print()
+    # print("🏗️ Sparse Coding - Optimization Utilities Module")
     print("=" * 50)
-    print("📊 MODULE CONTENTS:")
+    # Removed print spam: "...
     print("  • Soft and hard thresholding operators")
     print("  • Advanced shrinkage operators (SCAD, non-negative garrote)")
     print("  • Lipschitz constant computation for gradient methods")
     print("  • Backtracking line search with Armijo condition")
-    print("  • Research-accurate optimization tools with FIXME annotations")
     print("")
-    print("✅ Optimization utilities module loaded successfully!")
-    print("🔬 Essential optimization tools for sparse coding algorithms!")
+    print("Optimization utilities module loaded.")

@@ -27,15 +27,12 @@ def test_fast_coverage():
     
     # Test 1: Basic initialization
     coder = SparseCoder(n_components=4, patch_size=(4, 4), max_iter=1)
-    print("✅ Basic initialization")
     
     # Test 2: Configuration validation
     coder._validate_configuration()
-    print("✅ Configuration validation")
     
     # Test 3: Dictionary initialization
     coder._initialize_dictionary()
-    print("✅ Dictionary initialization")
     
     # Test 4: Patch extraction
     patches = coder._extract_patches(test_images, n_patches=20)
@@ -46,7 +43,6 @@ def test_fast_coverage():
     
     # Test equation 5 method
     coeffs_eq5 = coder._sparse_encode_equation_5(patch)
-    print("✅ Equation 5 encoding")
     
     # Test general optimization
     def dummy_obj(x):
@@ -56,19 +52,15 @@ def test_fast_coverage():
         return 2 * coder.dictionary.T @ (coder.dictionary @ x - patch) + 0.1 * np.sign(x)
     
     coeffs_gen = coder._general_optimization(patch, dummy_obj, dummy_grad, np.zeros(4))
-    print("✅ General optimization")
     
     # Test FISTA 
     coeffs_fista = coder._fista_optimization(patch, dummy_obj, dummy_grad, np.zeros(4))
-    print("✅ FISTA optimization")
     
     # Test proximal gradient
     coeffs_prox = coder._proximal_gradient(patch, dummy_obj, dummy_grad, np.zeros(4))
-    print("✅ Proximal gradient")
     
     # Test single patch encoding
     coeffs_single = coder._sparse_encode_single(patch)
-    print("✅ Single patch encoding")
     
     # Test different sparseness functions
     for func in ['l1', 'log', 'gaussian']:
@@ -85,7 +77,6 @@ def test_fast_coverage():
     # Quick fit (1 iteration)
     print("Testing sklearn-style methods...")
     coder_sklearn.fit(test_images)
-    print("✅ fit()")
     
     # Test transform
     codes = coder_sklearn.transform(test_images[:1])
@@ -132,11 +123,8 @@ def test_fast_coverage():
     # Test configure_sparseness_function
     try:
         coder.configure_sparseness_function('l1', l1_lambda=0.1)
-        print("✅ configure_sparseness_function(l1)")
         coder.configure_sparseness_function('log', log_base=10.0)
-        print("✅ configure_sparseness_function(log)")
         coder.configure_sparseness_function('gaussian', gaussian_sigma=1.0)
-        print("✅ configure_sparseness_function(gaussian)")
     except Exception as e:
         print(f"❌ configure_sparseness_function: {e}")
     
@@ -178,7 +166,6 @@ def test_fast_coverage():
         noisy_images = test_images + np.random.normal(0, 0.5, test_images.shape)
         coder_noise = SparseCoder(n_components=4, patch_size=(4, 4), max_iter=1)
         coder_noise.fit(noisy_images)
-        print("✅ Noise handling")
     except Exception as e:
         print(f"❌ Noise handling: {e}")
     

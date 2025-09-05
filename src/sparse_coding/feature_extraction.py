@@ -305,7 +305,7 @@ class SparseFeatureExtractor:
         """
         
         if verbose:
-            print(f"🎯 Fitting Sparse Feature Extractor...")
+            pass  # Implementation needed
             
         # Preprocess images
         processed_images = self._preprocess_images(images, fit=True)
@@ -330,7 +330,7 @@ class SparseFeatureExtractor:
         self.is_fitted = True
         
         if verbose:
-            print(f"✅ Sparse Feature Extractor fitted successfully!")
+            pass  # Implementation needed
             
         return results
         

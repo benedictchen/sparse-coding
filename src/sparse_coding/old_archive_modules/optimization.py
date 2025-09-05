@@ -1,4 +1,29 @@
 """
+📋 Optimization
+================
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:
@@ -560,7 +585,7 @@ class OptimizationMixin:
                 
         return coeffs
         
-    def _enhanced_sparse_encode(self, patches: np.ndarray) -> np.ndarray:
+    def improved_(self, patches: np.ndarray) -> np.ndarray:
         """
         Enhanced sparse encoding with FISTA for multiple patches
         
@@ -577,7 +602,7 @@ class OptimizationMixin:
         n_patches = patches.shape[0]
         coefficients = np.zeros((n_patches, self.n_components))
         
-        print(f"🔍 Enhanced sparse encoding {n_patches} patches using FISTA...")
+        # Removed print spam: f"...
         
         for i in range(n_patches):
             coefficients[i] = self._fista_sparse_encode(patches[i])

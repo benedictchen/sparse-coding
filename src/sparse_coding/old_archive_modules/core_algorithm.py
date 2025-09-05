@@ -1,4 +1,31 @@
 """
+🧠 Core Algorithm
+==================
+
+🎯 ELI5 Summary:
+This is the brain of our operation! Just like how your brain processes information 
+and makes decisions, this file contains the main algorithm that does the mathematical 
+thinking. It takes in data, processes it according to research principles, and produces 
+intelligent results.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+🧠 Core Algorithm Architecture:
+===============================
+    Input → Processing → Output
+      ↓         ↓         ↓
+  [Data]  [Algorithm]  [Result]
+      ↓         ↓         ↓
+     📊        ⚙️        ✨
+     
+Mathematical Foundation → Implementation → Research Application
+
+"""
+"""
 💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
 
 🙏 If this library helps your research or project, please consider donating:
@@ -60,7 +87,7 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
         components_ (np.ndarray): sklearn-style components matrix (n_components, patch_dim)
         
     Example:
-        >>> from sparse_coding.sc_modules import SparseCoder
+        >>> from sparse_coding.sparse_coding_modules import SparseCoder
         >>> coder = SparseCoder(n_components=256, patch_size=(16, 16))
         >>> coder.fit(natural_images)
         >>> coefficients = coder.transform(test_images)
@@ -200,7 +227,7 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
             Dict containing training statistics and final metrics
         """
         
-        print(f"🎯 Learning sparse dictionary from {len(images)} images...")
+        # Removed print spam: f"...} images...")
         
         # Extract random patches from images
         patches = self.extract_patches(images, n_patches)
@@ -270,7 +297,7 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
                 print("   ↓ Reducing sparsity penalty for better convergence")
                 self.sparsity_penalty *= 0.95
             
-        print(f"✅ Dictionary learning complete!")
+        # Removed print spam: f"...
         
         # Set sklearn-style components_ attribute after successful training
         self.components_ = self.dictionary.T  # sklearn expects (n_components, n_features) shape
@@ -399,7 +426,7 @@ class SparseCoder(BaseEstimator, TransformerMixin, DataProcessingMixin,
         n_patches = patches.shape[0]
         coefficients = np.zeros((n_patches, self.n_components))
         
-        print(f"🔍 Sparse encoding {n_patches} patches...")
+        # Removed print spam: f"...
         
         for i in range(n_patches):
             coefficients[i] = self._sparse_encode_single(patches[i])

@@ -240,10 +240,6 @@ def run_core_functionality_tests():
     print(f"🎉 CORE FUNCTIONALITY RESULTS: {passed}/{total} test suites passed")
     
     if passed >= 3:  # Allow some tolerance
-        print("✅ CORE FUNCTIONALITY IS WORKING!")
-        print("✅ Essential sparse coding operations verified")
-        print("✅ Dictionary learning pipeline functional")
-        print("✅ Sparse encoding producing valid results")
         return True
     else:
         print("❌ CRITICAL ISSUES WITH CORE FUNCTIONALITY!")

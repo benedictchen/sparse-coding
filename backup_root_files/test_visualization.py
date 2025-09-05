@@ -34,13 +34,11 @@ def test_visualization_coverage():
     
     # Initialize visualization
     viz = SparseVisualization(colormap='gray', figsize=(8, 8))
-    print("✅ SparseVisualization initialized")
     
     # Test dictionary visualization
     try:
         viz.visualize_dictionary(coder.dictionary, coder.patch_size, 
                                 max_atoms=8, title="Test Dictionary")
-        print("✅ visualize_dictionary")
     except Exception as e:
         print(f"❌ visualize_dictionary: {e}")
     
@@ -48,7 +46,6 @@ def test_visualization_coverage():
     try:
         if hasattr(viz, 'visualize_sparse_codes'):
             viz.visualize_sparse_codes(codes, title="Test Sparse Codes")
-            print("✅ visualize_sparse_codes")
     except Exception as e:
         print(f"❌ visualize_sparse_codes: {e}")
     
@@ -58,7 +55,6 @@ def test_visualization_coverage():
             reconstructions = coder.reconstruct(codes)
             viz.visualize_reconstruction(test_images[:1], reconstructions,
                                        patch_size=coder.patch_size)
-            print("✅ visualize_reconstruction")
     except Exception as e:
         print(f"❌ visualize_reconstruction: {e}")
     
@@ -68,7 +64,6 @@ def test_visualization_coverage():
             errors = [0.1, 0.08, 0.06, 0.05, 0.04]
             sparsity = [10, 12, 11, 10, 9]
             viz.visualize_learning_progress(errors, sparsity)
-            print("✅ visualize_learning_progress")
     except Exception as e:
         print(f"❌ visualize_learning_progress: {e}")
     
@@ -78,7 +73,6 @@ def test_visualization_coverage():
             basis1 = np.random.randn(16, 8)
             basis2 = np.random.randn(16, 8)
             viz.compare_basis_functions(basis1, basis2, coder.patch_size)
-            print("✅ compare_basis_functions")
     except Exception as e:
         print(f"❌ compare_basis_functions: {e}")
     
@@ -87,7 +81,6 @@ def test_visualization_coverage():
         if hasattr(viz, 'visualize_feature_usage'):
             usage_stats = np.random.rand(8)
             viz.visualize_feature_usage(usage_stats)
-            print("✅ visualize_feature_usage")
     except Exception as e:
         print(f"❌ visualize_feature_usage: {e}")
     

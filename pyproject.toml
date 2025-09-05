@@ -1,41 +1,58 @@
 [build-system]
-requires = ["hatchling>=1.21"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "sparse-coding"
-version = "2.3.0"
-description = "Biological vision principles for efficient representation learning from natural images"
+version = "0.1.0"
+description = "Research-faithful sparse coding with Olshausen-Field paper-exact mode and modern L1/FISTA."
 readme = "README.md"
-license = {text = "Custom Non-Commercial License with Donation Requirements"}
-authors = [
-    {name = "Benedict Chen", email = "benedict@benedictchen.com"},
-]
-maintainers = [
-    {name = "Benedict Chen", email = "benedict@benedictchen.com"},
-]
 requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Research Implementation"}]
 dependencies = [
-    "numpy>=1.21.0",
-    "scipy>=1.7.0", 
-    "scikit-learn>=1.0.0",
-    "matplotlib>=3.5.0",
+    "numpy>=1.23",
+    "pillow>=9.0",
+    "pyyaml>=6.0"
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
     "pytest>=7.0",
-    "pytest-cov>=4.0", 
+    "coverage>=7.0", 
+    "ruff>=0.6.0",
+    "mypy>=1.8"
+]
+docs = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.0"
 ]
 
-[project.urls]
-Funding = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS"
-Sponsor = "https://github.com/sponsors/benedictchen"
+[project.scripts]
+sparse-coding = "sparse_coding.cli:main"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
+[tool.setuptools]
+packages = {find = {where = ["."]}}
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = false  # Allow some flexibility for research code
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
-addopts = ["--cov=src/sparse_coding", "--cov-report=term-missing"]
+addopts = ["--strict-markers", "-v"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
+
+[tool.coverage.run]
+source = ["sparse_coding"]
+omit = [
+    "tests/*",
+    "examples/*"
+]

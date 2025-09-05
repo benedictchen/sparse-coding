@@ -1,4 +1,29 @@
 """
+📋   Init  
+============
+
+🎯 ELI5 Summary:
+This file is an important component in our AI research system! Like different organs 
+in your body that work together to keep you healthy, this file has a specific job that 
+helps the overall algorithm work correctly and efficiently.
+
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
+
+📋 Component Integration:
+========================
+    ┌──────────┐
+    │   This   │
+    │Component │ ←→ Other Components
+    └──────────┘
+         ↑↓
+    System Integration
+
+"""
+"""
 🏗️ Sparse Coding - Core Modules Package
 =======================================
 
@@ -106,7 +131,7 @@ def get_complete_sparse_coder_class():
     from typing import Optional, Dict, Any
     import numpy as np
     
-    class CompleteSparseCoder(
+    class SparseCoderComplete(
         BaseEstimator,
         TransformerMixin,
         CoreAlgorithmsMixin,
@@ -115,7 +140,7 @@ def get_complete_sparse_coder_class():
         UtilitiesValidationMixin
     ):
         """
-        🏗️ Complete Sparse Coder with All Modular Capabilities
+        Sparse coder with all algorithmic capabilities unified.
         
         Combines all sparse coding components into a unified interface:
         - Core algorithms (initialization, fitting, transformation)
@@ -134,7 +159,7 @@ def get_complete_sparse_coder_class():
             # Initialize all mixins through the core algorithms mixin
             CoreAlgorithmsMixin.__init__(self, **kwargs)
             
-        def comprehensive_analysis(self, X: Optional[np.ndarray] = None, 
+        def simplified_analysis_analysis(self, X: Optional[np.ndarray] = None, 
                                  codes: Optional[np.ndarray] = None) -> Dict[str, Any]:
             """
             🔬 Perform Comprehensive Sparse Coding Analysis
@@ -192,7 +217,7 @@ def get_complete_sparse_coder_class():
             
             return results
     
-    return CompleteSparseCoder
+    return SparseCoderComplete
 
 # Version information
 __version__ = "2.0.0"
@@ -201,8 +226,20 @@ __email__ = "benedict@benedictchen.com"
 
 def print_module_info():
     """Print available core modules"""
-    print("🏗️ Core Modules Available")
+    # print("🏗️ Core Modules Available")
     print("- CoreAlgorithmsMixin: Sparse coding algorithms")
     print("- OptimizationAlgorithmsMixin: FISTA, CD, GD optimizers")
     print("- DictionaryUpdatesMixin: Dictionary learning methods")
     print("- UtilitiesValidationMixin: Validation and utilities")
+
+print("""
+💰 MODULE SUPPORT - Made possible by Benedict Chen
+   ]8;;mailto:benedict@benedictchen.com\benedict@benedictchen.com]8;;\
+
+💰 PLEASE DONATE! Your support keeps this research alive! 💰
+   🔗 ]8;;https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS\💳 CLICK HERE TO DONATE VIA PAYPAL]8;;\
+   ❤️ ]8;;https://github.com/sponsors/benedictchen\💖 SPONSOR ON GITHUB]8;;\
+
+   ☕ Buy me a coffee → 🍺 Buy me a beer → 🏎️ Buy me a Lamborghini → ✈️ Buy me a private jet!
+   (Start small, dream big! Every donation helps! 😄)
+""")

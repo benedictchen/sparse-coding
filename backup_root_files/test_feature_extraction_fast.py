@@ -21,7 +21,6 @@ def test_feature_extraction_fast():
     try:
         extractor = SparseFeatureExtractor(n_components=4, patch_size=(4, 4), 
                                          sparsity_penalty=0.1, whitening=True)
-        print("✅ SparseFeatureExtractor initialized")
     except Exception as e:
         print(f"❌ SparseFeatureExtractor initialization: {e}")
         return
@@ -50,14 +49,12 @@ def test_feature_extraction_fast():
     # Test set_params
     try:
         extractor.set_params(sparsity_penalty=0.05)
-        print("✅ set_params")
     except Exception as e:
         print(f"❌ set_params: {e}")
     
     # Test fit with minimal iterations
     try:
         result = extractor.fit(test_images, max_iterations=1, verbose=False)
-        print("✅ fit (1 iteration)")
     except Exception as e:
         print(f"❌ fit: {e}")
     
@@ -94,7 +91,6 @@ def test_feature_extraction_fast():
     # Test configuration options
     try:
         extractor_no_whiten = SparseFeatureExtractor(n_components=2, whitening=False)
-        print("✅ Configuration without whitening")
     except Exception as e:
         print(f"❌ No whitening config: {e}")
     

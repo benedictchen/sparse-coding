@@ -1,676 +1,866 @@
 """
-💰 SUPPORT THIS RESEARCH - PLEASE DONATE! 💰
+🎨 Viz
+=======
 
-🙏 If this library helps your research or project, please consider donating:
-💳 https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+🎯 ELI5 Summary:
+This is like an artist's palette for our data! Just like how artists use different 
+colors and brushes to paint pictures that help people understand their ideas, this file 
+creates charts, graphs, and visual displays that help researchers see and understand 
+what their algorithms are doing.
 
-Your support makes advanced AI research accessible to everyone! 🚀
+🧪 Technical Details:
+===================
+Implementation details and technical specifications for this component.
+Designed to work seamlessly within the research framework while
+maintaining high performance and accuracy standards.
 
-🎨 Sparse Coding Visualization: Visual Analysis of Dictionary Learning & Sparse Representations
-=============================================================================================
+"""
+"""
+🎨 Sparse Coding Visualization & Analysis Plots
+===============================================
 
-Comprehensive visualization toolkit for analyzing sparse coding results, dictionary atoms, 
-and sparse activation patterns based on foundational research in computational neuroscience.
+Author: Benedict Chen (benedict@benedictchen.com)
 
-📚 **Key Research Citations:**
-• Olshausen, B.A. & Field, D.J. (1996). "Emergence of simple-cell receptive field properties 
-  by learning a sparse code for natural images." Nature, 381(6583), 607-609.
-  → Seminal work establishing sparse coding and introducing receptive field visualizations
-  
-• Olshausen, B.A. & Field, D.J. (1997). "Sparse coding with an overcomplete basis set: 
-  A strategy employed by V1?" Vision Research, 37(23), 3311-3325.
-  → Extended analysis with comprehensive visualization methodologies
-  
-• Bell, A.J. & Sejnowski, T.J. (1997). "The 'independent components' of natural scenes are edge filters."
-  Vision Research, 37(23), 3327-3338.
-  → Visualization techniques for understanding learned feature representations
-  
-• Hoyer, P.O. (2004). "Non-negative matrix factorization with sparseness constraints."
-  Journal of Machine Learning Research, 5, 1457-1469.
-  → Sparsity measurement and visualization methods
+💰 Donations: Help support this research!
+   PayPal: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
+   💖 Please consider recurring donations to support continued sparse coding research
 
-📖 **Historical Context:**
-Sparse coding visualization emerged from computational neuroscience's quest to understand 
-how the visual cortex processes information. Olshausen & Field's groundbreaking 1996 Nature
-paper showed that when algorithms learn efficient codes for natural images, they develop 
-receptive fields remarkably similar to those found in biological vision systems. These 
-visualizations became crucial for validating that artificial systems capture fundamental
-principles of neural computation.
+Comprehensive visualization suite for sparse coding research and analysis.
+Includes dictionary visualization, training diagnostics, and feature analysis plots.
 
-🎯 **ELI5 Explanation:**
-Imagine you're learning to paint by watching a master artist 🎨
+🔬 Research Foundation:
+======================
+Visualization techniques based on:
+- Olshausen & Field (1996): Original dictionary visualization methods
+- Bell & Sejnowski (1995): Receptive field plotting techniques
+- Hyvarinen et al. (2001): ICA and sparse coding feature visualization
+- Mairal et al. (2009): Convergence and sparsity analysis plots
 
-The artist has a special palette with hundreds of different brush strokes (dictionary atoms)
-- some make short edges, others long curves, some create textures. Instead of using all 
-brushes for every painting, the artist only picks a few key strokes (sparse activation)
-to capture the essence of each scene.
+ELI5 Explanation:
+================
+Think of this like a photographer's darkroom for neural algorithms! 📷
 
-Our visualization tools are like X-ray vision into this artistic process:
-1. 🖌️ **Dictionary Viewer** - See all the brush strokes the artist learned
-2. 📊 **Activation Maps** - Watch which strokes get used for each painting
-3. 🔍 **Before/After Comparison** - Compare original scenes to reconstructed versions
-4. 📈 **Learning Progress** - Watch the artist's style evolve during training
+🖼️ **The Photography Studio Analogy**:
+When developing photos (training algorithms), you need different tools to see your work:
 
-Just like art critics study brushwork to understand masterpieces, we visualize sparse 
-codes to understand how algorithms learn to see!
+- **Dictionary Plots** = Contact sheets showing all your photos at once
+- **Training Curves** = Time-lapse of how your photo develops over time  
+- **Sparsity Analysis** = Close-up magnifying glass to see fine details
+- **Reconstruction Plots** = Before/after comparison of original vs. developed photo
+- **Feature Maps** = Special filters that highlight different aspects (edges, textures)
 
-🏗️ **Visualization Architecture:**
-```
-📷 Input Image Patches
-        ↓
-🧠 Sparse Coding Algorithm
-    ┌─────────────────────────────────────────┐
-    │ Learn Dictionary: D = [d₁, d₂, ..., dₖ] │
-    │ Find Sparse Codes: x = sparse(D, patch) │
-    │ Reconstruct: patch ≈ D × x              │
-    └─────────────────────────────────────────┘
-        ↓ ↓ ↓
-📊 Visualization Pipeline:
-        
-🖼️ Dictionary Visualization
-   ┌─────────┬─────────┬─────────┐
-   │ Atom 1  │ Atom 2  │ Atom 3  │  ← Learned filters
-   │ ╱╲      │   ━━    │   │     │    (like receptive
-   │╱  ╲     │   ━━    │   │     │     fields)
-   └─────────┴─────────┴─────────┘
+🎯 **Why Visualization Matters**:
+Just like photographers need to see their work develop, researchers need to watch
+algorithms learn. These plots reveal whether the algorithm is discovering meaningful
+patterns (like edge detectors) or getting confused with random noise.
 
-📈 Sparse Code Visualization  
-   Activation Pattern: [0, 0.8, 0, 0.3, 0, 0.9, 0, ...]
-                        ↑ Only few coefficients active
-                        
-🔄 Reconstruction Analysis
-   Original → [Sparse Coding] → Reconstruction
-      vs             vs            vs
-   Quality Metrics & Error Analysis
-```
+ASCII Visualization Pipeline:
+============================
+    RAW ALGORITHM        VISUALIZATION         RESEARCH INSIGHTS
+    ┌─────────────┐     ┌─────────────┐      ┌─────────────┐
+    │ Dictionary  │────▶│ Grid Plot   │─────▶│ "Algorithm  │
+    │ Learning    │     │ Atoms 8x8   │      │  learned    │
+    │ Progress    │     │ ████ ░░░░   │      │  edge       │
+    │             │     │ ░░░░ ████   │      │  detectors!"│
+    └─────────────┘     └─────────────┘      └─────────────┘
+           │                   │                     │
+           ▼                   ▼                     │
+    ┌─────────────┐     ┌─────────────┐             │
+    │ Loss Curves │────▶│ Line Plots  │─────────────┘
+    │ Sparsity    │     │ Convergence │
+    │ Metrics     │     │ Analysis    │
+    └─────────────┘     └─────────────┘
 
-🔬 **Visualization Methods:**
-
-**🖼️ Dictionary Atom Visualization**
-Displays learned basis functions as image patches, revealing the fundamental 
-building blocks discovered by the algorithm. For natural images, these typically
-resemble oriented edge filters similar to simple cells in visual cortex.
-
-**📊 Sparse Activation Analysis**
-Bar plots and histograms showing which dictionary elements are active for 
-specific inputs, revealing the sparsity patterns and activation statistics.
-
-**🔍 Reconstruction Quality Assessment**
-Side-by-side comparisons of original patches with their sparse reconstructions,
-including error maps to identify reconstruction artifacts and quality metrics.
-
-**📈 Training Progress Monitoring**
-Time-series plots tracking dictionary evolution, sparsity levels, and
-reconstruction error throughout the learning process.
-
-**🧮 Receptive Field Analysis**
-Statistical analysis of learned dictionary atoms including orientation 
-distribution, spatial frequency content, and similarity to biological receptive fields.
-
-📊 **Mathematical Foundations:**
-
-**Sparse Coding Model:**
-Given input patch y ∈ ℝⁿ, find sparse representation x ∈ ℝᵏ such that:
-y ≈ Dx, where D ∈ ℝⁿˣᵏ is the learned dictionary
-
-**Sparsity Measures:**
-• **L₀ norm:** ||x||₀ = |{i : xᵢ ≠ 0}| (number of active coefficients)  
-• **L₁ norm:** ||x||₁ = Σᵢ |xᵢ| (promotes sparsity in optimization)
-• **Hoyer sparsity:** (√n - ||x||₁/||x||₂)/(√n - 1) ∈ [0,1]
-
-**Reconstruction Quality:**
-• **MSE:** (1/n)Σᵢ(yᵢ - ŷᵢ)² where ŷ = Dx
-• **PSNR:** 20log₁₀(MAX/√MSE) (signal-to-noise ratio)
-• **SSIM:** Structural similarity index for perceptual quality
-
-🚀 **Real-World Applications:**
-
-**Computer Vision** 👁️
-- Feature detection in natural images using learned edge filters
-- Object recognition with sparse feature representations
-- Image denoising through sparse reconstruction
-- Texture analysis with overcomplete dictionaries
-
-**Medical Imaging** 🏥
-- MRI reconstruction from undersampled data using sparse priors
-- CT scan artifact reduction through dictionary learning
-- Microscopy image enhancement with learned basis functions
-- Diagnostic feature extraction from medical images
-
-**Neuroscience Research** 🧠
-- Modeling visual cortex receptive field development
-- Understanding neural coding principles through sparse representations
-- Analyzing neural response patterns with dictionary methods
-- Validating computational theories of brain function
-
-**Signal Processing** 📡
-- Audio compression using learned sparse dictionaries
-- Speech recognition with sparse acoustic features
-- Sensor network data compression through distributed sparse coding
-- Radar/sonar signal analysis with adaptive dictionaries
-
-💡 **Visualization Insights:**
-
-**🔍 Dictionary Quality Assessment**
-Well-learned dictionaries for natural images show:
-- Oriented edge filters at multiple scales
-- Localized spatial support (not global patterns)
-- Similarity to Gabor filters and biological receptive fields
-- Diversity in orientation and frequency content
-
-**📊 Sparsity Pattern Analysis**
-Healthy sparse codes exhibit:
-- Most coefficients near zero (high sparsity)
-- Few large-magnitude activations
-- Consistent sparsity levels across different inputs
-- Meaningful activation patterns for similar inputs
-
-**🎯 Reconstruction Fidelity**
-Quality reconstructions demonstrate:
-- Low overall reconstruction error
-- Preserved important image structure
-- Acceptable perceptual quality despite sparsity
-- Graceful degradation with increased sparsity constraints
-
----
-💰 **Support This Research:** https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
-
-Developing comprehensive visualization tools for classical machine learning algorithms
-requires deep understanding of both the mathematical foundations and their historical 
-context. Your support enables continued development of these educational resources.
-
-💡 **Contribution Levels:**
-• ☕ $5-15: Fuel for long visualization coding sessions
-• 🍺 $20-50: Celebration of completed visualization suites
-• 🏎️ $100-500: Serious support for algorithm preservation efforts  
-• ✈️ $1000+: Enable research travel and conference presentations
-
-Help preserve these fundamental algorithms and make them accessible to new generations 
-of researchers and practitioners!
-
----
-👨‍💻 **Author:** Benedict Chen (benedict@benedictchen.com)
-🔗 **Related:** Dictionary Learning, Sparse Representations, Computational Neuroscience, Computer Vision
+🎨 Visualization Categories:
+===========================
+📊 **Training Analysis**: Loss curves, convergence plots, sparsity evolution
+🖼️ **Dictionary Plots**: Learned basis functions, receptive fields, atom grids  
+📈 **Statistical Analysis**: Histogram plots, coefficient distributions
+🔍 **Quality Assessment**: Reconstruction comparisons, error visualizations
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Tuple, Optional, List, Dict, Any
+import matplotlib.patches as patches
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import seaborn as sns
+from typing import Tuple, Optional, List, Dict, Any, Union
+import warnings
 
 
-class SparseVisualization:
+# Set default style
+plt.style.use('seaborn-v0_8' if 'seaborn-v0_8' in plt.style.available else 'default')
+sns.set_palette("husl")
+
+
+# =============================================================================
+# Dictionary Visualization
+# =============================================================================
+
+def plot_dictionary(dictionary: np.ndarray, patch_size: Tuple[int, int],
+                   figsize: Tuple[int, int] = (15, 10), max_atoms: int = 100,
+                   title: str = "Learned Dictionary", colormap: str = 'RdBu_r',
+                   normalize_atoms: bool = True) -> plt.Figure:
     """
-    Visualization tools for sparse coding results
+    Visualize dictionary atoms as image patches
     
-    Implements visualizations shown in Olshausen & Field (1996):
-    - Dictionary atoms as receptive fields
-    - Sparse activation patterns
-    - Reconstruction quality analysis
+    Parameters
+    ----------
+    dictionary : array, shape (n_atoms, n_features)
+        Dictionary matrix
+    patch_size : tuple
+        (height, width) of each patch
+    figsize : tuple
+        Figure size (width, height)
+    max_atoms : int
+        Maximum number of atoms to display
+    title : str
+        Plot title
+    colormap : str
+        Matplotlib colormap name
+    normalize_atoms : bool
+        Whether to normalize each atom for display
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
     """
+    n_atoms = min(max_atoms, dictionary.shape[0])
     
-    def __init__(self, colormap: str = 'gray', figsize: Tuple[int, int] = (15, 12)):
-        """
-        Initialize visualization tools
+    # Determine grid layout
+    grid_cols = int(np.ceil(np.sqrt(n_atoms)))
+    grid_rows = int(np.ceil(n_atoms / grid_cols))
+    
+    fig, axes = plt.subplots(grid_rows, grid_cols, figsize=figsize)
+    
+    # Handle single subplot case
+    if grid_rows == 1 and grid_cols == 1:
+        axes = [axes]
+    elif grid_rows == 1 or grid_cols == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+    
+    for i in range(n_atoms):
+        # Reshape atom to patch
+        atom = dictionary[i].reshape(patch_size)
         
-        Args:
-            colormap: Default colormap for visualizations
-            figsize: Default figure size for plots
-        """
-        self.colormap = colormap
-        self.default_figsize = figsize
+        # Normalize for visualization
+        if normalize_atoms:
+            atom_min, atom_max = atom.min(), atom.max()
+            if atom_max > atom_min:
+                atom = (atom - atom_min) / (atom_max - atom_min)
         
-        # Set up matplotlib parameters for better visualization
-        plt.rcParams.update({
-            'font.size': 10,
-            'axes.titlesize': 12,
-            'axes.labelsize': 10,
-            'xtick.labelsize': 8,
-            'ytick.labelsize': 8,
-            'legend.fontsize': 10,
-            'figure.titlesize': 14
-        })
+        # Plot atom
+        im = axes[i].imshow(atom, cmap=colormap, interpolation='nearest')
+        axes[i].set_title(f'Atom {i}', fontsize=8)
+        axes[i].axis('off')
         
-        # Visualization state tracking
-        self._last_plot_info = {}
-        
-        print(f"✅ SparseVisualization initialized with colormap='{colormap}'")
-        
-    def visualize_dictionary(self, dictionary: np.ndarray, patch_size: Tuple[int, int],
-                           figsize: Tuple[int, int] = (15, 12), max_atoms: int = 100,
-                           title: str = "Learned Dictionary Atoms") -> None:
-        """
-        Visualize dictionary atoms as receptive fields
-        
-        Args:
-            dictionary: Dictionary matrix (patch_dim, n_components)
-            patch_size: Size of patches (height, width)
-            figsize: Figure size
-            max_atoms: Maximum number of atoms to display
-            title: Plot title
-        """
-        # FIXME: Missing input validation and error handling
-        # Issue 1: No validation of dictionary shape compatibility with patch_size
-        # Issue 2: No handling of degenerate cases (empty dictionary, invalid patch_size)
-        # Issue 3: Potential memory issues with large max_atoms values
-        # Issue 4: No detection of NaN/Inf values that would break visualization
-        
-        # FIXME: No input validation
-        # Issue: Could crash with incompatible dictionary and patch_size
-        # Solutions:
-        # 1. Validate dictionary.shape[0] == patch_size[0] * patch_size[1]
-        # 2. Check for empty or invalid inputs
-        # 3. Add warnings for unusual dictionary properties
-        #
-        # Example validation:
-        # expected_patch_dim = patch_size[0] * patch_size[1]
-        # if dictionary.shape[0] != expected_patch_dim:
-        #     raise ValueError(f"Dictionary patch dimension {dictionary.shape[0]} != expected {expected_patch_dim}")
-        # if dictionary.size == 0:
-        #     raise ValueError("Dictionary is empty")
-        # if np.any(np.isnan(dictionary)) or np.any(np.isinf(dictionary)):
-        #     warnings.warn("Dictionary contains NaN/Inf values")
-        
-        n_atoms = min(dictionary.shape[1], max_atoms)
-        grid_size = int(np.ceil(np.sqrt(n_atoms)))
-        
-        # FIXME: No memory usage consideration for large visualizations
-        # Issue: Large grid_size can create enormous memory usage and crash
-        # Solutions:
-        # 1. Add memory estimation and warnings for large visualizations
-        # 2. Implement pagination for very large dictionaries
-        # 3. Add option for sparse visualization (only interesting atoms)
-        #
-        # Example:
-        # estimated_memory = grid_size**2 * figsize[0] * figsize[1] * 4 / (1024**2)  # MB
-        # if estimated_memory > 100:  # More than 100MB
-        #     warnings.warn(f"Large visualization may use ~{estimated_memory:.1f}MB memory")
-        
-        fig, axes = plt.subplots(grid_size, grid_size, figsize=figsize)
-        fig.suptitle(title, fontsize=16)
-        
-        if n_atoms == 1:
-            axes = [axes]
-        else:
-            axes = axes.flatten()
-        
-        for i in range(n_atoms):
-            # Reshape atom to image
-            atom = dictionary[:, i].reshape(patch_size)
-            
-            # FIXME: Normalization can fail or produce misleading results
-            # Issue 1: If atom.max() == atom.min(), normalization creates NaN
-            # Issue 2: Current normalization may hide important absolute scale information
-            # Issue 3: No option for different normalization schemes
-            # Solutions:
-            # 1. Handle constant atoms gracefully
-            # 2. Provide multiple normalization options (centered, standardized, etc.)
-            # 3. Add option to preserve absolute scale
-            #
-            # Example robust normalization:
-            # atom_range = atom.max() - atom.min()
-            # if atom_range < 1e-12:  # Constant atom
-            #     atom_norm = np.zeros_like(atom)
-            #     warnings.warn(f"Atom {i+1} is constant (dead neuron?)")
-            # else:
-            #     atom_norm = (atom - atom.min()) / atom_range
-            # Alternative: standardized normalization: (atom - atom.mean()) / (atom.std() + 1e-8)
-            
-            # Normalize for visualization
-            atom_norm = (atom - atom.min()) / (atom.max() - atom.min() + 1e-8)
-            
-            ax = axes[i]
-            im = ax.imshow(atom_norm, cmap='gray', aspect='equal')
-            ax.set_title(f'Atom {i+1}', fontsize=8)
-            ax.axis('off')
-            
-            # FIXME: No colorbar or scale information
-            # Issue: Users can't interpret absolute values or compare atoms quantitatively
-            # Solutions:
-            # 1. Add optional colorbar showing value ranges
-            # 2. Display min/max values for each atom
-            # 3. Add option for unified color scale across atoms
-            #
-            # Example:
-            # if i < 5:  # Show colorbar for first few atoms
-            #     plt.colorbar(im, ax=ax, shrink=0.8)
-            # ax.set_title(f'Atom {i+1}\n[{atom.min():.3f}, {atom.max():.3f}]', fontsize=8)
-            
-        # FIXME: No quality assessment of displayed dictionary
-        # Issue: No indication of dictionary quality or potential problems
-        # Solutions:
-        # 1. Analyze and display dictionary statistics
-        # 2. Highlight potentially problematic atoms (dead neurons, highly correlated)
-        # 3. Add visual indicators for atom quality
-        #
-        # Example statistics to add:
-        # dead_atoms = np.sum(np.var(dictionary, axis=0) < 1e-8)
-        # if dead_atoms > 0:
-        #     print(f"⚠️  Warning: {dead_atoms} atoms have very low variance (dead neurons)")
-        # coherence = compute_dictionary_coherence(dictionary.T)  # From utils
-        # print(f"   Dictionary coherence: {coherence:.4f}")
-        
-        # Hide unused subplots
-        for i in range(n_atoms, len(axes)):
-            axes[i].axis('off')
-            
-        plt.tight_layout()
-        plt.show()
-        
-        print(f"📊 Visualized {n_atoms} dictionary atoms")
-        print(f"   Patch size: {patch_size}")
-        print(f"   Dictionary shape: {dictionary.shape}")
-        
-    def visualize_sparse_codes(self, codes: np.ndarray, n_examples: int = 8,
-                              figsize: Tuple[int, int] = (12, 8)) -> None:
-        """
-        Visualize sparse activation patterns
-        
-        Args:
-            codes: Sparse codes array (n_samples, n_components)
-            n_examples: Number of examples to show
-            figsize: Figure size
-        """
-        
-        n_show = min(n_examples, len(codes))
-        
-        fig, axes = plt.subplots(2, (n_show + 1) // 2, figsize=figsize)
-        fig.suptitle('Sparse Code Activation Patterns', fontsize=14)
-        
-        if n_show == 1:
-            axes = [axes]
-        else:
-            axes = axes.flatten()
-            
-        for i in range(n_show):
-            code = codes[i]
-            active_indices = np.where(np.abs(code) > 1e-6)[0]
-            
-            ax = axes[i]
-            ax.bar(range(len(code)), code, alpha=0.7)
-            ax.set_title(f'Sample {i+1} ({len(active_indices)} active)')
-            ax.set_xlabel('Component Index')
-            ax.set_ylabel('Activation')
-            ax.grid(True, alpha=0.3)
-            
-        # Hide unused subplots
-        for i in range(n_show, len(axes)):
-            axes[i].axis('off')
-            
-        plt.tight_layout()
-        plt.show()
-        
-        # Print statistics
-        sparsity_levels = [np.sum(np.abs(code) > 1e-6) for code in codes[:n_show]]
-        avg_sparsity = np.mean(sparsity_levels)
-        
-        print(f"📊 Sparse Code Statistics:")
-        print(f"   Average active components: {avg_sparsity:.1f}")
-        print(f"   Sparsity ratio: {avg_sparsity/codes.shape[1]:.3f}")
-        print(f"   Code dimension: {codes.shape[1]}")
-        
-    def visualize_reconstruction(self, original_patches: np.ndarray, 
-                               reconstructed_patches: np.ndarray,
-                               patch_size: Tuple[int, int], n_examples: int = 8,
-                               figsize: Tuple[int, int] = (15, 10)) -> None:
-        """
-        Visualize reconstruction quality
-        
-        Args:
-            original_patches: Original patches (n_samples, patch_dim)
-            reconstructed_patches: Reconstructed patches (n_samples, patch_dim)
-            patch_size: Size of patches (height, width)
-            n_examples: Number of examples to show
-            figsize: Figure size
-        """
-        
-        n_show = min(n_examples, len(original_patches))
-        
-        fig, axes = plt.subplots(3, n_show, figsize=figsize)
-        fig.suptitle('Reconstruction Quality Analysis', fontsize=14)
-        
-        errors = []
-        
-        for i in range(n_show):
-            # Original
-            orig = original_patches[i].reshape(patch_size)
-            recon = reconstructed_patches[i].reshape(patch_size)
-            error = orig - recon
-            
-            # Calculate error metrics
-            mse = np.mean(error ** 2)
-            errors.append(mse)
-            
-            # Plot original
-            axes[0, i].imshow(orig, cmap='gray')
-            axes[0, i].set_title(f'Original {i+1}')
-            axes[0, i].axis('off')
-            
-            # Plot reconstruction
-            axes[1, i].imshow(recon, cmap='gray')
-            axes[1, i].set_title(f'Reconstructed')
-            axes[1, i].axis('off')
-            
-            # Plot error
-            im = axes[2, i].imshow(error, cmap='RdBu_r')
-            axes[2, i].set_title(f'Error (MSE: {mse:.4f})')
-            axes[2, i].axis('off')
-            
-        plt.tight_layout()
-        plt.show()
-        
-        # Print statistics
-        avg_error = np.mean(errors)
-        print(f"📊 Reconstruction Quality:")
-        print(f"   Average MSE: {avg_error:.6f}")
-        print(f"   Error range: [{min(errors):.6f}, {max(errors):.6f}]")
-        
-    def visualize_training_progress(self, training_history: Dict[str, List],
-                                   figsize: Tuple[int, int] = (12, 8)) -> None:
-        """
-        Visualize training progress
-        
-        Args:
-            training_history: Dictionary with training metrics
-            figsize: Figure size
-        """
-        
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        fig.suptitle('Training Progress', fontsize=14)
-        
-        # Reconstruction error
-        if 'reconstruction_errors' in training_history:
-            ax = axes[0, 0]
-            errors = training_history['reconstruction_errors']
-            ax.plot(errors, 'b-', linewidth=2)
-            ax.set_title('Reconstruction Error')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('MSE')
-            ax.grid(True, alpha=0.3)
-            ax.semilogy()  # Log scale for better visualization
-            
-        # Sparsity levels
-        if 'sparsity_levels' in training_history:
-            ax = axes[0, 1]
-            sparsity = training_history['sparsity_levels']
-            ax.plot(sparsity, 'g-', linewidth=2)
-            ax.set_title('Sparsity Level')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Active Components')
-            ax.grid(True, alpha=0.3)
-            
-        # Dictionary changes
-        if 'dictionary_changes' in training_history:
-            ax = axes[1, 0]
-            changes = training_history['dictionary_changes']
-            ax.plot(changes, 'r-', linewidth=2)
-            ax.set_title('Dictionary Changes')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('L2 Norm of Change')
-            ax.grid(True, alpha=0.3)
-            ax.semilogy()
-            
-        # Learning rates (if available)
-        if 'learning_rates' in training_history:
-            ax = axes[1, 1]
-            lr = training_history['learning_rates']
-            ax.plot(lr, 'purple', linewidth=2)
-            ax.set_title('Learning Rate')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Learning Rate')
-            ax.grid(True, alpha=0.3)
-        else:
-            axes[1, 1].axis('off')
-            
-        plt.tight_layout()
-        plt.show()
-        
-    def analyze_receptive_fields(self, dictionary: np.ndarray, 
-                                patch_size: Tuple[int, int]) -> Dict[str, Any]:
-        """
-        Analyze properties of learned receptive fields
-        
-        Args:
-            dictionary: Dictionary matrix (patch_dim, n_components)
-            patch_size: Size of patches (height, width)
-            
-        Returns:
-            Analysis results dictionary
-        """
-        
-        n_atoms = dictionary.shape[1]
-        
-        # Reshape atoms to images
-        atoms = dictionary.T.reshape(n_atoms, *patch_size)
-        
-        # Analyze orientations (simplified)
-        orientations = []
-        frequencies = []
-        
-        for atom in atoms:
-            # Simple edge detection to estimate orientation
-            grad_x = np.gradient(atom, axis=1)
-            grad_y = np.gradient(atom, axis=0)
-            
-            # Dominant gradient direction
-            total_grad_x = np.sum(np.abs(grad_x))
-            total_grad_y = np.sum(np.abs(grad_y))
-            
-            if total_grad_x + total_grad_y > 1e-6:
-                orientation = np.arctan2(total_grad_y, total_grad_x)
-                orientations.append(orientation)
-                
-                # Rough frequency estimate (number of zero crossings)
-                center_row = atom[patch_size[0]//2, :]
-                zero_crossings = np.sum(np.diff(np.sign(center_row)) != 0)
-                frequencies.append(zero_crossings)
-            else:
-                orientations.append(0)
-                frequencies.append(0)
-                
-        results = {
-            'orientations': np.array(orientations),
-            'frequencies': np.array(frequencies),
-            'n_atoms': n_atoms,
-            'atom_shapes': atoms.shape
-        }
-        
-        # Create orientation histogram
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-        
-        # Orientation distribution
-        ax1.hist(orientations, bins=20, alpha=0.7, edgecolor='black')
-        ax1.set_title('Orientation Distribution')
-        ax1.set_xlabel('Orientation (radians)')
-        ax1.set_ylabel('Count')
-        ax1.grid(True, alpha=0.3)
-        
-        # Frequency distribution
-        ax2.hist(frequencies, bins=range(max(frequencies) + 2), alpha=0.7, edgecolor='black')
-        ax2.set_title('Spatial Frequency Distribution')
-        ax2.set_xlabel('Zero Crossings')
-        ax2.set_ylabel('Count')
-        ax2.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.show()
-        
-        print(f"📊 Receptive Field Analysis:")
-        print(f"   Number of atoms: {n_atoms}")
-        print(f"   Orientation range: [{np.min(orientations):.2f}, {np.max(orientations):.2f}] rad")
-        print(f"   Average frequency: {np.mean(frequencies):.1f} zero crossings")
-        
-        return results
-        
-    def compare_dictionaries(self, dict1: np.ndarray, dict2: np.ndarray,
-                           patch_size: Tuple[int, int], labels: List[str] = None,
-                           figsize: Tuple[int, int] = (15, 8)) -> None:
-        """
-        Compare two dictionaries side by side
-        
-        Args:
-            dict1: First dictionary
-            dict2: Second dictionary  
-            patch_size: Size of patches
-            labels: Labels for the dictionaries
-            figsize: Figure size
-        """
-        
-        if labels is None:
-            labels = ['Dictionary 1', 'Dictionary 2']
-            
-        n_show = min(dict1.shape[1], dict2.shape[1], 50)  # Show up to 50 atoms
-        
-        fig = plt.figure(figsize=figsize)
-        gs = GridSpec(2, n_show, figure=fig)
-        
-        fig.suptitle(f'Dictionary Comparison: {labels[0]} vs {labels[1]}', fontsize=14)
-        
-        for i in range(n_show):
-            # First dictionary
-            atom1 = dict1[:, i].reshape(patch_size)
-            ax1 = fig.add_subplot(gs[0, i])
-            ax1.imshow(atom1, cmap='gray')
-            ax1.axis('off')
-            if i == 0:
-                ax1.set_ylabel(labels[0], rotation=90, labelpad=20)
-                
-            # Second dictionary
-            atom2 = dict2[:, i].reshape(patch_size)
-            ax2 = fig.add_subplot(gs[1, i])
-            ax2.imshow(atom2, cmap='gray')
-            ax2.axis('off')
-            if i == 0:
-                ax2.set_ylabel(labels[1], rotation=90, labelpad=20)
-                
-        plt.tight_layout()
-        plt.show()
-        
-        # Calculate similarity metrics
-        similarities = []
-        for i in range(min(dict1.shape[1], dict2.shape[1])):
-            atom1 = dict1[:, i]
-            atom2 = dict2[:, i]
-            # Normalize atoms
-            atom1_norm = atom1 / (np.linalg.norm(atom1) + 1e-8)
-            atom2_norm = atom2 / (np.linalg.norm(atom2) + 1e-8)
-            # Compute cosine similarity
-            similarity = np.dot(atom1_norm, atom2_norm)
-            similarities.append(abs(similarity))  # Take absolute value
-            
-        avg_similarity = np.mean(similarities)
-        
-        print(f"📊 Dictionary Comparison:")
-        print(f"   Average atom similarity: {avg_similarity:.4f}")
-        print(f"   Similarity range: [{min(similarities):.4f}, {max(similarities):.4f}]")
-        print(f"   Compared {len(similarities)} atom pairs")
+        # Add colorbar for first few atoms
+        if i < 4:
+            divider = make_axes_locatable(axes[i])
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+            plt.colorbar(im, cax=cax)
+    
+    # Hide unused subplots
+    for i in range(n_atoms, len(axes)):
+        axes[i].axis('off')
+    
+    fig.suptitle(title, fontsize=16, fontweight='bold')
+    plt.tight_layout()
+    
+    return fig
 
-"""
-💝 Thank you for using this research software! 💝
 
-📚 If this work contributed to your research, please:
-💳 DONATE: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS
-📝 CITE: Benedict Chen (2025) - Sparse Coding Research Implementation
+def plot_dictionary_evolution(dictionaries: List[np.ndarray], patch_size: Tuple[int, int],
+                             iterations: List[int], figsize: Tuple[int, int] = (20, 12),
+                             n_atoms_show: int = 16) -> plt.Figure:
+    """
+    Show evolution of dictionary atoms during training
+    
+    Parameters
+    ----------
+    dictionaries : list of arrays
+        List of dictionary states during training
+    patch_size : tuple
+        Size of patches
+    iterations : list of int
+        Iteration numbers corresponding to each dictionary
+    figsize : tuple
+        Figure size
+    n_atoms_show : int
+        Number of atoms to show evolution for
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    n_snapshots = len(dictionaries)
+    
+    fig, axes = plt.subplots(n_atoms_show, n_snapshots, figsize=figsize)
+    
+    for snapshot_idx, (dictionary, iteration) in enumerate(zip(dictionaries, iterations)):
+        for atom_idx in range(min(n_atoms_show, dictionary.shape[0])):
+            # Reshape and normalize atom
+            atom = dictionary[atom_idx].reshape(patch_size)
+            atom = (atom - atom.min()) / (atom.max() - atom.min() + 1e-8)
+            
+            # Plot
+            axes[atom_idx, snapshot_idx].imshow(atom, cmap='RdBu_r', interpolation='nearest')
+            axes[atom_idx, snapshot_idx].axis('off')
+            
+            # Add iteration label on top row
+            if atom_idx == 0:
+                axes[atom_idx, snapshot_idx].set_title(f'Iter {iteration}', fontsize=10)
+            
+            # Add atom label on left column
+            if snapshot_idx == 0:
+                axes[atom_idx, snapshot_idx].set_ylabel(f'Atom {atom_idx}', fontsize=8)
+    
+    fig.suptitle('Dictionary Evolution During Training', fontsize=16, fontweight='bold')
+    plt.tight_layout()
+    
+    return fig
 
-Your support enables continued development of  AI research tools! 🎓✨
-"""
+
+def plot_dictionary_statistics(dictionary: np.ndarray, figsize: Tuple[int, int] = (15, 5)) -> plt.Figure:
+    """
+    Plot statistical analysis of dictionary properties
+    
+    Parameters
+    ----------
+    dictionary : array, shape (n_atoms, n_features)
+        Dictionary matrix
+    figsize : tuple
+        Figure size
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    fig, axes = plt.subplots(1, 3, figsize=figsize)
+    
+    # 1. Atom norms
+    norms = np.linalg.norm(dictionary, axis=1)
+    axes[0].hist(norms, bins=30, alpha=0.7, color='skyblue', edgecolor='black')
+    axes[0].set_xlabel('L2 Norm')
+    axes[0].set_ylabel('Count')
+    axes[0].set_title('Distribution of Atom Norms')
+    axes[0].axvline(np.mean(norms), color='red', linestyle='--', label=f'Mean: {np.mean(norms):.3f}')
+    axes[0].legend()
+    
+    # 2. Mutual coherence
+    from .patch_processing_utilities import compute_mutual_coherence_matrix
+    coherence_matrix = compute_mutual_coherence_matrix(dictionary)
+    
+    im = axes[1].imshow(coherence_matrix, cmap='viridis', interpolation='nearest')
+    axes[1].set_xlabel('Atom Index')
+    axes[1].set_ylabel('Atom Index')
+    axes[1].set_title('Mutual Coherence Matrix')
+    plt.colorbar(im, ax=axes[1])
+    
+    # 3. Coherence distribution
+    coherences = coherence_matrix[np.triu_indices_from(coherence_matrix, k=1)]
+    axes[2].hist(coherences, bins=30, alpha=0.7, color='lightcoral', edgecolor='black')
+    axes[2].set_xlabel('Mutual Coherence')
+    axes[2].set_ylabel('Count')
+    axes[2].set_title('Distribution of Pairwise Coherences')
+    axes[2].axvline(np.mean(coherences), color='blue', linestyle='--', 
+                   label=f'Mean: {np.mean(coherences):.3f}')
+    axes[2].axvline(np.max(coherences), color='red', linestyle='--',
+                   label=f'Max: {np.max(coherences):.3f}')
+    axes[2].legend()
+    
+    plt.tight_layout()
+    return fig
+
+
+# =============================================================================
+# Training Analysis Visualization
+# =============================================================================
+
+def plot_training_history(history: Dict[str, List[float]], 
+                         figsize: Tuple[int, int] = (15, 5),
+                         log_scale: bool = False) -> plt.Figure:
+    """
+    Plot training history (costs, errors, etc.)
+    
+    Parameters
+    ----------
+    history : dict
+        Training history with keys like 'reconstruction_error', 'sparsity_cost', etc.
+    figsize : tuple
+        Figure size
+    log_scale : bool
+        Whether to use log scale for y-axis
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    n_plots = len(history)
+    fig, axes = plt.subplots(1, n_plots, figsize=figsize)
+    
+    if n_plots == 1:
+        axes = [axes]
+    
+    for i, (metric_name, values) in enumerate(history.items()):
+        axes[i].plot(values, linewidth=2, marker='o', markersize=4)
+        axes[i].set_xlabel('Iteration')
+        axes[i].set_ylabel(metric_name.replace('_', ' ').title())
+        axes[i].set_title(f'{metric_name.replace("_", " ").title()} vs Iteration')
+        axes[i].grid(True, alpha=0.3)
+        
+        if log_scale:
+            axes[i].set_yscale('log')
+        
+        # Add final value annotation
+        if len(values) > 0:
+            final_value = values[-1]
+            axes[i].annotate(f'Final: {final_value:.4f}', 
+                           xy=(len(values)-1, final_value),
+                           xytext=(10, 10), textcoords='offset points',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7),
+                           arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+    
+    plt.tight_layout()
+    return fig
+
+
+def plot_convergence_analysis(history: List[float], window: int = 10,
+                            figsize: Tuple[int, int] = (12, 4)) -> plt.Figure:
+    """
+    Analyze and visualize convergence behavior
+    
+    Parameters
+    ----------
+    history : list
+        History of objective function values
+    window : int
+        Window size for moving average
+    figsize : tuple
+        Figure size
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    
+    # 1. Objective value and moving average
+    iterations = np.arange(len(history))
+    axes[0].plot(iterations, history, 'b-', alpha=0.6, label='Objective Value')
+    
+    # Compute moving average
+    if len(history) >= window:
+        moving_avg = np.convolve(history, np.ones(window)/window, mode='valid')
+        moving_avg_iterations = iterations[window-1:]
+        axes[0].plot(moving_avg_iterations, moving_avg, 'r-', linewidth=2, 
+                    label=f'{window}-point Moving Average')
+    
+    axes[0].set_xlabel('Iteration')
+    axes[0].set_ylabel('Objective Value')
+    axes[0].set_title('Convergence Behavior')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    
+    # 2. Relative change
+    if len(history) > 1:
+        relative_changes = [abs(history[i] - history[i-1]) / (abs(history[i-1]) + 1e-8) 
+                           for i in range(1, len(history))]
+        
+        axes[1].semilogy(iterations[1:], relative_changes, 'g-', linewidth=2, marker='o', markersize=3)
+        axes[1].set_xlabel('Iteration')
+        axes[1].set_ylabel('Relative Change (log scale)')
+        axes[1].set_title('Convergence Rate')
+        axes[1].grid(True, alpha=0.3)
+        
+        # Add convergence threshold line
+        axes[1].axhline(y=1e-6, color='red', linestyle='--', alpha=0.7, 
+                       label='Typical Convergence Threshold')
+        axes[1].legend()
+    
+    plt.tight_layout()
+    return fig
+
+
+# =============================================================================
+# Sparse Code Visualization
+# =============================================================================
+
+def plot_sparse_codes(codes: np.ndarray, figsize: Tuple[int, int] = (12, 8),
+                     max_samples: int = 50, max_atoms: int = 100) -> plt.Figure:
+    """
+    Visualize sparse codes as activation patterns
+    
+    Parameters
+    ----------
+    codes : array, shape (n_samples, n_atoms)
+        Sparse coefficient matrix
+    figsize : tuple
+        Figure size
+    max_samples : int
+        Maximum number of samples to show
+    max_atoms : int
+        Maximum number of atoms to show
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    n_samples_show = min(max_samples, codes.shape[0])
+    n_atoms_show = min(max_atoms, codes.shape[1])
+    
+    codes_subset = codes[:n_samples_show, :n_atoms_show]
+    
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    
+    # 1. Sparse code matrix
+    im = axes[0, 0].imshow(codes_subset, cmap='RdBu_r', interpolation='nearest', aspect='auto')
+    axes[0, 0].set_xlabel('Atom Index')
+    axes[0, 0].set_ylabel('Sample Index')
+    axes[0, 0].set_title('Sparse Code Matrix')
+    plt.colorbar(im, ax=axes[0, 0])
+    
+    # 2. Sparsity histogram
+    sparsity_per_sample = np.sum(codes != 0, axis=1)
+    axes[0, 1].hist(sparsity_per_sample, bins=30, alpha=0.7, color='lightgreen', edgecolor='black')
+    axes[0, 1].set_xlabel('Number of Active Atoms')
+    axes[0, 1].set_ylabel('Count')
+    axes[0, 1].set_title('Sparsity Distribution')
+    axes[0, 1].axvline(np.mean(sparsity_per_sample), color='red', linestyle='--',
+                      label=f'Mean: {np.mean(sparsity_per_sample):.1f}')
+    axes[0, 1].legend()
+    
+    # 3. Coefficient magnitude histogram
+    active_coeffs = codes[codes != 0]
+    if len(active_coeffs) > 0:
+        axes[1, 0].hist(np.abs(active_coeffs), bins=50, alpha=0.7, color='orange', edgecolor='black')
+        axes[1, 0].set_xlabel('Coefficient Magnitude')
+        axes[1, 0].set_ylabel('Count')
+        axes[1, 0].set_title('Active Coefficient Magnitudes')
+        axes[1, 0].axvline(np.mean(np.abs(active_coeffs)), color='blue', linestyle='--',
+                          label=f'Mean: {np.mean(np.abs(active_coeffs)):.3f}')
+        axes[1, 0].legend()
+    
+    # 4. Atom usage frequency
+    usage_frequency = np.sum(codes != 0, axis=0) / codes.shape[0]
+    axes[1, 1].bar(range(len(usage_frequency)), usage_frequency, alpha=0.7, color='purple')
+    axes[1, 1].set_xlabel('Atom Index')
+    axes[1, 1].set_ylabel('Usage Frequency')
+    axes[1, 1].set_title('Atom Usage Frequency')
+    
+    plt.tight_layout()
+    return fig
+
+
+def plot_reconstruction_comparison(original: np.ndarray, reconstructed: np.ndarray,
+                                 patch_size: Tuple[int, int],
+                                 n_examples: int = 10,
+                                 figsize: Tuple[int, int] = (15, 6)) -> plt.Figure:
+    """
+    Compare original patches with their reconstructions
+    
+    Parameters
+    ----------
+    original : array, shape (n_samples, n_features)
+        Original patches
+    reconstructed : array, same shape as original
+        Reconstructed patches
+    patch_size : tuple
+        Size of patches for reshaping
+    n_examples : int
+        Number of examples to show
+    figsize : tuple
+        Figure size
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    n_show = min(n_examples, original.shape[0])
+    
+    fig, axes = plt.subplots(3, n_show, figsize=figsize)
+    
+    for i in range(n_show):
+        # Original patch
+        orig_patch = original[i].reshape(patch_size)
+        axes[0, i].imshow(orig_patch, cmap='gray', interpolation='nearest')
+        axes[0, i].set_title(f'Original {i}', fontsize=10)
+        axes[0, i].axis('off')
+        
+        # Reconstructed patch
+        recon_patch = reconstructed[i].reshape(patch_size)
+        axes[1, i].imshow(recon_patch, cmap='gray', interpolation='nearest')
+        axes[1, i].set_title(f'Reconstructed {i}', fontsize=10)
+        axes[1, i].axis('off')
+        
+        # Error
+        error_patch = np.abs(orig_patch - recon_patch)
+        im = axes[2, i].imshow(error_patch, cmap='hot', interpolation='nearest')
+        axes[2, i].set_title(f'Error {i}', fontsize=10)
+        axes[2, i].axis('off')
+        
+        # Add error value as text
+        mse = np.mean(error_patch**2)
+        axes[2, i].text(0.5, -0.1, f'MSE: {mse:.4f}', transform=axes[2, i].transAxes,
+                       ha='center', fontsize=8)
+    
+    # Add row labels
+    axes[0, 0].set_ylabel('Original', rotation=90, labelpad=20, fontsize=12)
+    axes[1, 0].set_ylabel('Reconstructed', rotation=90, labelpad=20, fontsize=12)  
+    axes[2, 0].set_ylabel('Error', rotation=90, labelpad=20, fontsize=12)
+    
+    plt.tight_layout()
+    return fig
+
+
+# =============================================================================
+# Advanced Visualizations
+# =============================================================================
+
+def plot_feature_map_responses(feature_extractor, image: np.ndarray,
+                             figsize: Tuple[int, int] = (15, 10)) -> plt.Figure:
+    """
+    Visualize sparse feature responses across an image
+    
+    Parameters
+    ----------
+    feature_extractor : SparseFeatureExtractor
+        Trained feature extractor
+    image : array, shape (height, width)
+        Input image
+    figsize : tuple
+        Figure size
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    # Extract features
+    features_info = feature_extractor.extract_features(image)
+    codes = features_info['codes']
+    
+    # Find most active atoms
+    atom_activities = np.mean(np.abs(codes), axis=0)
+    top_atoms = np.argsort(atom_activities)[-9:]  # Top 9 atoms
+    
+    fig, axes = plt.subplots(3, 4, figsize=figsize)
+    
+    # Show original image
+    axes[0, 0].imshow(image, cmap='gray')
+    axes[0, 0].set_title('Original Image')
+    axes[0, 0].axis('off')
+    
+    # Show top active atoms from dictionary
+    dictionary = feature_extractor.sparse_coder.dictionary_
+    patch_size = feature_extractor.patch_size
+    
+    for i, atom_idx in enumerate(top_atoms):
+        row = (i + 1) // 4
+        col = (i + 1) % 4
+        
+        atom = dictionary[atom_idx].reshape(patch_size)
+        axes[row, col].imshow(atom, cmap='RdBu_r', interpolation='nearest')
+        axes[row, col].set_title(f'Atom {atom_idx}\n(Activity: {atom_activities[atom_idx]:.3f})')
+        axes[row, col].axis('off')
+    
+    # Hide unused subplots
+    for i in range(10, 12):
+        row = i // 4
+        col = i % 4
+        axes[row, col].axis('off')
+    
+    plt.tight_layout()
+    return fig
+
+
+def plot_sparsity_path(lambdas: List[float], sparsity_levels: List[float],
+                      errors: List[float], figsize: Tuple[int, int] = (12, 5)) -> plt.Figure:
+    """
+    Plot sparsity-error trade-off curve (regularization path)
+    
+    Parameters
+    ----------
+    lambdas : list
+        List of sparsity parameters
+    sparsity_levels : list
+        Corresponding sparsity levels (number of non-zeros)
+    errors : list
+        Corresponding reconstruction errors
+    figsize : tuple
+        Figure size
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    
+    # 1. Error vs Lambda
+    axes[0].semilogx(lambdas, errors, 'bo-', linewidth=2, markersize=6)
+    axes[0].set_xlabel('Sparsity Parameter (λ)')
+    axes[0].set_ylabel('Reconstruction Error')
+    axes[0].set_title('Error vs Sparsity Parameter')
+    axes[0].grid(True, alpha=0.3)
+    
+    # 2. Error vs Sparsity
+    axes[1].plot(sparsity_levels, errors, 'ro-', linewidth=2, markersize=6)
+    axes[1].set_xlabel('Average Sparsity (# non-zeros)')
+    axes[1].set_ylabel('Reconstruction Error')
+    axes[1].set_title('Sparsity-Error Trade-off')
+    axes[1].grid(True, alpha=0.3)
+    
+    # Add annotations for some points
+    n_annotate = min(5, len(lambdas))
+    indices = np.linspace(0, len(lambdas)-1, n_annotate, dtype=int)
+    
+    for idx in indices:
+        # Annotate lambda plot
+        axes[0].annotate(f'λ={lambdas[idx]:.3f}', 
+                        xy=(lambdas[idx], errors[idx]),
+                        xytext=(10, 10), textcoords='offset points',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7),
+                        fontsize=8)
+        
+        # Annotate sparsity plot  
+        axes[1].annotate(f's={sparsity_levels[idx]:.1f}',
+                        xy=(sparsity_levels[idx], errors[idx]),
+                        xytext=(10, 10), textcoords='offset points',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='cyan', alpha=0.7),
+                        fontsize=8)
+    
+    plt.tight_layout()
+    return fig
+
+
+def plot_dictionary_comparison(dict1: np.ndarray, dict2: np.ndarray,
+                              patch_size: Tuple[int, int],
+                              labels: Tuple[str, str] = ('Dictionary 1', 'Dictionary 2'),
+                              figsize: Tuple[int, int] = (15, 8),
+                              n_atoms: int = 25) -> plt.Figure:
+    """
+    Compare two dictionaries side by side
+    
+    Parameters
+    ----------
+    dict1, dict2 : arrays, shape (n_atoms, n_features)
+        Dictionaries to compare
+    patch_size : tuple
+        Size of patches
+    labels : tuple
+        Labels for the two dictionaries
+    figsize : tuple
+        Figure size
+    n_atoms : int
+        Number of atoms to show
+        
+    Returns
+    -------
+    fig : Figure
+        Matplotlib figure object
+    """
+    n_show = min(n_atoms, dict1.shape[0], dict2.shape[0])
+    grid_size = int(np.ceil(np.sqrt(n_show)))
+    
+    fig, (axes1, axes2) = plt.subplots(2, grid_size, figsize=figsize)
+    
+    for i in range(n_show):
+        col = i % grid_size
+        
+        # Dictionary 1
+        atom1 = dict1[i].reshape(patch_size)
+        atom1 = (atom1 - atom1.min()) / (atom1.max() - atom1.min() + 1e-8)
+        axes1[col].imshow(atom1, cmap='RdBu_r', interpolation='nearest')
+        axes1[col].set_title(f'Atom {i}', fontsize=8)
+        axes1[col].axis('off')
+        
+        # Dictionary 2  
+        atom2 = dict2[i].reshape(patch_size)
+        atom2 = (atom2 - atom2.min()) / (atom2.max() - atom2.min() + 1e-8)
+        axes2[col].imshow(atom2, cmap='RdBu_r', interpolation='nearest')
+        axes2[col].set_title(f'Atom {i}', fontsize=8)
+        axes2[col].axis('off')
+    
+    # Hide unused subplots
+    for i in range(n_show, grid_size):
+        axes1[i].axis('off')
+        axes2[i].axis('off')
+    
+    # Add dictionary labels
+    axes1[0].set_ylabel(labels[0], rotation=90, labelpad=20, fontsize=14)
+    axes2[0].set_ylabel(labels[1], rotation=90, labelpad=20, fontsize=14)
+    
+    plt.tight_layout()
+    return fig
+
+
+# =============================================================================
+# Interactive Plotting Utilities
+# =============================================================================
+
+def create_interactive_dictionary_explorer(dictionary: np.ndarray, 
+                                          patch_size: Tuple[int, int]):
+    """
+    Create interactive dictionary explorer (requires widget backend)
+    
+    Parameters
+    ----------
+    dictionary : array, shape (n_atoms, n_features)
+        Dictionary to explore
+    patch_size : tuple
+        Size of patches
+    """
+    try:
+        import ipywidgets as widgets
+        from IPython.display import display
+        
+        def plot_atom(atom_idx=0):
+            atom = dictionary[atom_idx].reshape(patch_size)
+            
+            fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+            
+            # Show atom
+            axes[0].imshow(atom, cmap='RdBu_r', interpolation='nearest')
+            axes[0].set_title(f'Dictionary Atom {atom_idx}')
+            axes[0].axis('off')
+            
+            # Show atom statistics
+            axes[1].hist(atom.flatten(), bins=20, alpha=0.7, edgecolor='black')
+            axes[1].set_xlabel('Pixel Value')
+            axes[1].set_ylabel('Count')
+            axes[1].set_title('Atom Value Distribution')
+            axes[1].axvline(atom.mean(), color='red', linestyle='--', label=f'Mean: {atom.mean():.3f}')
+            axes[1].axvline(atom.std(), color='green', linestyle='--', label=f'Std: {atom.std():.3f}')
+            axes[1].legend()
+            
+            plt.tight_layout()
+            plt.show()
+        
+        # Create interactive widget
+        atom_slider = widgets.IntSlider(
+            value=0,
+            min=0,
+            max=dictionary.shape[0] - 1,
+            step=1,
+            description='Atom Index:',
+            style={'description_width': 'initial'}
+        )
+        
+        interactive_plot = widgets.interactive(plot_atom, atom_idx=atom_slider)
+        display(interactive_plot)
+        
+    except ImportError:
+        print("Interactive exploration requires ipywidgets. Install with: pip install ipywidgets")
+        print("Using static plot instead...")
+        plot_dictionary(dictionary, patch_size)
+
+
+# =============================================================================
+# Utility Functions for Visualization
+# =============================================================================
+
+def setup_publication_style():
+    """Setup matplotlib style for publication-quality figures"""
+    plt.rcParams.update({
+        'font.size': 12,
+        'axes.labelsize': 14,
+        'axes.titlesize': 16,
+        'xtick.labelsize': 10,
+        'ytick.labelsize': 10,
+        'legend.fontsize': 12,
+        'figure.titlesize': 18,
+        'font.family': 'serif',
+        'font.serif': ['Times New Roman'],
+        'text.usetex': False,  # Set to True if LaTeX is available
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+        'axes.grid': True,
+        'axes.grid.alpha': 0.3,
+        'figure.dpi': 150
+    })
+
+
+def save_figure(fig: plt.Figure, filename: str, dpi: int = 300, 
+               bbox_inches: str = 'tight', formats: List[str] = ['png']):
+    """
+    Save figure in multiple formats with publication settings
+    
+    Parameters
+    ----------
+    fig : Figure
+        Matplotlib figure to save
+    filename : str
+        Base filename (without extension)
+    dpi : int
+        Resolution for raster formats
+    bbox_inches : str
+        Bounding box setting
+    formats : list
+        List of formats to save ('png', 'pdf', 'svg', 'eps')
+    """
+    for fmt in formats:
+        full_filename = f"{filename}.{fmt}"
+        fig.savefig(full_filename, format=fmt, dpi=dpi, bbox_inches=bbox_inches)
+        print(f"Saved: {full_filename}")
+
+
+if __name__ == "__main__":
+    # Example usage and testing
+    print("🎨 Sparse Coding Visualization")
+    print("=" * 40)
+    
+    # Create test data
+    np.random.seed(42)
+    
+    # Test dictionary
+    n_atoms, patch_dim = 50, 64
+    test_dict = np.random.randn(n_atoms, patch_dim)
+    patch_size = (8, 8)
+    
+    # Test sparse codes
+    n_samples = 100
+    test_codes = np.zeros((n_samples, n_atoms))
+    # Make sparse (only 5% non-zero)
+    for i in range(n_samples):
+        active_indices = np.random.choice(n_atoms, size=5, replace=False)
+        test_codes[i, active_indices] = np.random.randn(5)
+    
+    # Test training history
+    test_history = {
+        'reconstruction_error': [1.0, 0.8, 0.6, 0.5, 0.4, 0.35, 0.32, 0.30],
+        'sparsity_cost': [0.2, 0.18, 0.15, 0.12, 0.10, 0.09, 0.08, 0.08],
+        'total_cost': [1.2, 0.98, 0.75, 0.62, 0.50, 0.44, 0.40, 0.38]
+    }
+    
+    # Removed print spam: "...
+    fig1 = plot_dictionary(test_dict, patch_size, max_atoms=25, figsize=(10, 8))
+    plt.close(fig1)
+    
+    # Removed print spam: "...
+    fig2 = plot_training_history(test_history, figsize=(12, 4))
+    plt.close(fig2)
+    
+    # Removed print spam: "...
+    fig3 = plot_sparse_codes(test_codes, max_samples=50, max_atoms=50, figsize=(10, 8))
+    plt.close(fig3)
+    
+    # Removed print spam: "...
+    fig4 = plot_dictionary_statistics(test_dict, figsize=(12, 4))
+    plt.close(fig4)
+    
+    # # Removed print spam: "...
+    print("   - Dictionary plots: OK")
+    print("   - Training analysis: OK") 
+    print("   - Sparse code analysis: OK")
+    print("   - Statistical analysis: OK")
