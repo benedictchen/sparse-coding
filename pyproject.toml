@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sparse-coding"
-version = "0.1.0"
+version = "2.4.0"
 description = "Research-faithful sparse coding with Olshausen-Field paper-exact mode and modern L1/FISTA."
 readme = "README.md"
 requires-python = ">=3.9"
