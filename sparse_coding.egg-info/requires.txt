@@ -1,0 +1,13 @@
+numpy>=1.23
+pillow>=9.0
+pyyaml>=6.0
+
+[dev]
+pytest>=7.0
+coverage>=7.0
+ruff>=0.6.0
+mypy>=1.8
+
+[docs]
+mkdocs>=1.5
+mkdocs-material>=9.0

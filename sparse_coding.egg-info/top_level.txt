@@ -1,0 +1,7 @@
+backup_root_files
+dist
+examples
+old_archive
+sparse_coding
+src
+tests
