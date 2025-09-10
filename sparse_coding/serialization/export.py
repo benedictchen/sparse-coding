@@ -535,15 +535,11 @@ def create_deployment_package(
             pipeline = export_to_sklearn_pipeline(learner)
             
             # Save using joblib
-            try:
-                import joblib
-                pipeline_path = package_dir / 'sklearn_pipeline.joblib'
-                joblib.dump(pipeline, pipeline_path)
-                results['sklearn'] = True
-                print(f"✅ Sklearn pipeline saved to {pipeline_path}")
-            except ImportError:
-                results['sklearn'] = False
-                print("⚠️ joblib not available for sklearn pipeline export")
+            import joblib
+            pipeline_path = package_dir / 'sklearn_pipeline.joblib'
+            joblib.dump(pipeline, pipeline_path)
+            results['sklearn'] = True
+            print(f"✅ Sklearn pipeline saved to {pipeline_path}")
                 
         except Exception as e:
             results['sklearn'] = False

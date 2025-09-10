@@ -17,10 +17,7 @@ import numpy as np
 import joblib
 
 from ..core.array import ArrayLike, get_array_info
-try:
-    from .. import __version__
-except ImportError:
-    __version__ = "2.5.0"
+from .. import __version__
 
 
 @dataclass 

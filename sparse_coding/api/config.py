@@ -220,10 +220,7 @@ def create_default_config() -> Dict[str, Any]:
         Default config dictionary
     """
     from datetime import datetime
-    try:
-        from .. import __version__
-    except ImportError:
-        __version__ = "2.5.0"
+    from .. import __version__
     
     return {
         "penalty": {

@@ -291,16 +291,8 @@ class FeatureAnalyzer:
         if A is None:
             A = encode_features(X, self.features)
         
-        try:
-            from sklearn.cluster import KMeans
-            from sklearn.metrics import silhouette_score
-        except ImportError:
-            warnings.warn(
-                "scikit-learn required for polysemantic detection. "
-                "Install with: pip install scikit-learn"
-            )
-            # Fallback to simple variance-based heuristic
-            return self._simple_polysemantic_fallback(X, A, n_clusters)
+        from sklearn.cluster import KMeans
+        from sklearn.metrics import silhouette_score
         
         backend = xp(A)
         n_samples, n_atoms = A.shape
@@ -886,11 +878,10 @@ def detect_polysemantic_features(
     if n_samples < min_cluster_size * 2:
         warnings.warn("Too few samples for reliable clustering analysis")
         
-    # Try sklearn-based clustering first
-    try:
-        from sklearn.cluster import KMeans
-        from sklearn.metrics import silhouette_score
-        method_used = 'sklearn'
+    # Use sklearn-based clustering
+    from sklearn.cluster import KMeans
+    from sklearn.metrics import silhouette_score
+    method_used = 'sklearn'
         
         polysemantic_features = []
         feature_scores = np.zeros(n_features)
@@ -980,48 +971,6 @@ def detect_polysemantic_features(
                     # Silhouette calculation failed
                     continue
                     
-    except ImportError:
-        warnings.warn(
-            "scikit-learn not available. Using variance-based fallback for polysemanticity detection. "
-            "Install sklearn for more accurate clustering analysis: pip install scikit-learn"
-        )
-        method_used = 'fallback'
-        
-        # Variance-based heuristic fallback
-        polysemantic_features = []
-        feature_scores = np.zeros(n_features)
-        cluster_analysis = {}
-        
-        for feat_idx in range(n_features):
-            feat_activations = activations[:, feat_idx]
-            
-            # Skip mostly inactive features
-            active_mask = np.abs(feat_activations) > 1e-6
-            if np.sum(active_mask) < min_cluster_size:
-                continue
-                
-            active_vals = feat_activations[active_mask]
-            
-            # Simple heuristic: high variance suggests multiple modes
-            if len(active_vals) >= min_cluster_size:
-                # Normalize by mean to get relative variance
-                rel_variance = np.var(active_vals) / (np.mean(np.abs(active_vals)) + 1e-12)
-                activation_freq = np.sum(active_mask) / len(feat_activations)
-                
-                # Simple polysemanticity score based on relative variance
-                poly_score = min(1.0, rel_variance / 2.0) * min(1.0, activation_freq * 5)
-                
-                feature_scores[feat_idx] = poly_score
-                cluster_analysis[feat_idx] = {
-                    'relative_variance': rel_variance,
-                    'activation_frequency': activation_freq,
-                    'polysemanticity_score': poly_score,
-                    'method': 'variance_heuristic'
-                }
-                
-                # Conservative threshold for fallback method
-                if poly_score > 0.5:
-                    polysemantic_features.append(feat_idx)
     
     return {
         'polysemantic_features': polysemantic_features,
