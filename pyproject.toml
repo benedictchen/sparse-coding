@@ -7,7 +7,7 @@ name = "sparse-coding"
 version = "2.5.0"
 description = "Research-accurate implementation of sparse coding algorithms"
 readme = "README.md"
-license = {text = "Custom Non-Commercial License with Donation Requirements"}
+license = {text = "AGPL-3.0-or-later OR Commercial"}
 authors = [{name = "Benedict Chen", email = "benedict@benedictchen.com"}]
 requires-python = ">=3.9"
 dependencies = [
