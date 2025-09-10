@@ -9,60 +9,9 @@ import numpy as np
 from typing import Optional, Dict, Any, Union
 import warnings
 
-try:
-    from sklearn.base import BaseEstimator, TransformerMixin
-    from sklearn.utils.validation import check_array, check_is_fitted
-    from sklearn.utils import check_random_state
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    # Provide stubs for development without sklearn
-    class BaseEstimator:
-        def get_params(self, deep=True):
-            return {}
-        def set_params(self, **params):
-            return self
-    
-    class TransformerMixin:
-        def fit_transform(self, X, y=None, **fit_params):
-            return self.fit(X, y, **fit_params).transform(X)
-    
-    def check_array(X, **kwargs):
-        return np.asarray(X)
-    
-    def check_is_fitted(estimator, attributes=None):
-        """
-        Check if estimator has been fitted.
-        
-        Parameters
-        ----------
-        estimator : estimator instance
-            Estimator to check
-        attributes : list of str or str, optional
-            Attributes to check for. If None, checks for common attributes.
-        """
-        if attributes is None:
-            # Common attributes that indicate a fitted estimator
-            attributes = ['dictionary', 'D', '_fitted', 'components_', 'coef_']
-        elif isinstance(attributes, str):
-            attributes = [attributes]
-        
-        # Check if at least one of the attributes exists
-        fitted_attrs = []
-        for attr in attributes:
-            if hasattr(estimator, attr):
-                attr_val = getattr(estimator, attr)
-                if attr_val is not None:
-                    fitted_attrs.append(attr)
-        
-        if not fitted_attrs:
-            raise NotFittedError(
-                f"This {type(estimator).__name__} instance is not fitted yet. "
-                f"Call 'fit' with appropriate arguments before using this estimator."
-            )
-    
-    def check_random_state(seed):
-        return np.random.RandomState(seed)
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.validation import check_array, check_is_fitted
+from sklearn.utils import check_random_state
 
 from ..api.registry import create_from_config
 from ..api.config import create_default_config, validate_config

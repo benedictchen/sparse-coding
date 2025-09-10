@@ -10,10 +10,7 @@ Uses alternating optimization between dictionary update and sparse coding.
 
 import numpy as np
 from typing import Tuple, Dict, Any, Optional, List
-try:
-    from .sparse_coder import SparseCoder
-except ImportError:
-    from sparse_coder import SparseCoder
+from .sparse_coder import SparseCoder
 
 
 class DictionaryLearner:

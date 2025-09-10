@@ -20,15 +20,12 @@ class TB:
         Args:
             logdir: Directory for TensorBoard logs
         """
-        self.writer = None
         if logdir:
-            try:
-                from torch.utils.tensorboard import SummaryWriter
-                self.writer = SummaryWriter(logdir)
-                print(f"TensorBoard logging to: {logdir}")
-            except ImportError:
-                print("TensorBoard not available. Install with: pip install tensorboard")
-                self.writer = None
+            from torch.utils.tensorboard import SummaryWriter
+            self.writer = SummaryWriter(logdir)
+            print(f"TensorBoard logging to: {logdir}")
+        else:
+            self.writer = None
         
     def add_scalar(self, tag: str, val: float, step: int):
         """Log scalar value"""

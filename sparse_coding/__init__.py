@@ -23,24 +23,11 @@ from . import adapters
 from . import streaming
 from . import serialization
 
-# Framework adapters (optional imports)
-try:
-    from .sklearn_estimator import SparseCoderEstimator
-except ImportError:
-    SparseCoderEstimator = None
-
-try:
-    from .adapters.sklearn import SparseCoderEstimator as SparseCoderEstimatorV2
-    from .adapters.sklearn import DictionaryLearnerEstimator
-except ImportError:
-    SparseCoderEstimatorV2 = None
-    DictionaryLearnerEstimator = None
-
-try:
-    from .adapters.torch import SparseCodingModule, DictionaryLearningModule
-except ImportError:
-    SparseCodingModule = None
-    DictionaryLearningModule = None
+# Framework adapters - these will fail if dependencies missing
+from .sklearn_estimator import SparseCoderEstimator
+from .adapters.sklearn import SparseCoderEstimator as SparseCoderEstimatorV2
+from .adapters.sklearn import DictionaryLearnerEstimator
+from .adapters.torch import SparseCodingModule, DictionaryLearningModule
 
 __all__ = [
     # Version

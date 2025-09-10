@@ -13,10 +13,7 @@ from typing import Dict, Any, Optional, Union, List
 from dataclasses import dataclass, asdict
 import warnings
 
-try:
-    from .. import __version__
-except ImportError:
-    __version__ = "2.5.0"
+from .. import __version__
 
 
 @dataclass
@@ -115,11 +112,7 @@ class ModelCard:
     
     def to_yaml(self) -> str:
         """Convert model card to YAML string."""
-        try:
-            return yaml.dump(self.to_dict(), default_flow_style=False, sort_keys=False)
-        except ImportError:
-            warnings.warn("PyYAML not available. Using JSON format.")
-            return self.to_json()
+        return yaml.dump(self.to_dict(), default_flow_style=False, sort_keys=False)
     
     def save(self, path: Union[str, Path], format: str = 'auto'):
         """
@@ -162,11 +155,8 @@ class ModelCard:
     @classmethod
     def from_yaml(cls, yaml_str: str) -> 'ModelCard':
         """Create model card from YAML string."""
-        try:
-            data = yaml.safe_load(yaml_str)
-            return cls.from_dict(data)
-        except ImportError:
-            raise ImportError("PyYAML required for YAML support")
+        data = yaml.safe_load(yaml_str)
+        return cls.from_dict(data)
     
     def add_training_info(self, config: Dict[str, Any], stats: Optional[Dict[str, Any]] = None):
         """

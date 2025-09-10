@@ -1,12 +1,5 @@
 import numpy as np
-try:
-    from numba import njit
-    NUMBA_OK = True
-except Exception:  # pragma: no cover
-    NUMBA_OK = False
-    def njit(*a, **k):
-        def wrap(f): return f
-        return wrap
+from numba import njit
 
 @njit(cache=True)
 def _soft_thresh(x, t):
@@ -30,11 +23,9 @@ def _fista_batch_numba(DtD, DtX, lam, L, K, N, max_iter):
     return A
 
 def fista_batch_numba(D, X, lam, L=None, max_iter=200):
-    from .fista_batch import fista_batch, power_iter_L
     p, K = D.shape; N = X.shape[1]
     DtD = D.T @ D; DtX = D.T @ X
     if L is None:
+        from .fista_batch import power_iter_L
         L = power_iter_L(D)
-    if not NUMBA_OK:
-        return fista_batch(D, X, lam, L=L, max_iter=max_iter)
     return _fista_batch_numba(DtD, DtX, lam, L, K, N, max_iter)

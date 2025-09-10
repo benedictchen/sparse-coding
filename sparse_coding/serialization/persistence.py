@@ -14,12 +14,7 @@ from typing import Dict, Any, Optional, Union, List
 from dataclasses import dataclass, asdict
 import numpy as np
 
-try:
-    import joblib
-    HAS_JOBLIB = True
-except ImportError:
-    HAS_JOBLIB = False
-    warnings.warn("joblib not available. Some serialization features disabled.")
+import joblib
 
 from ..core.array import ArrayLike, get_array_info
 try:
@@ -207,7 +202,7 @@ def save_model(learner, path: Union[str, Path],
         json.dump(config_data, f, indent=2, default=_json_serialize_helper)
     
     # Save sklearn-compatible wrapper if requested
-    if include_sklearn and HAS_JOBLIB:
+    if include_sklearn:
         try:
             from ..adapters.sklearn import SparseCoderEstimator
             
@@ -313,9 +308,6 @@ def load_model(path: Union[str, Path],
 
 def _load_sklearn_model(path: Path):
     """Load sklearn-compatible model."""
-    if not HAS_JOBLIB:
-        raise ImportError("joblib required to load sklearn models")
-    
     joblib_path = path / 'sklearn_model.joblib'
     return joblib.load(joblib_path)
 

@@ -8,24 +8,8 @@ automatic differentiation, and GPU acceleration via DLPack.
 import warnings
 from typing import Optional, Dict, Any, Union, Tuple
 
-try:
-    import torch
-    import torch.nn as nn
-    HAS_TORCH = True
-except ImportError:
-    HAS_TORCH = False
-    warnings.warn("PyTorch not available. Torch adapters disabled.")
-    
-    # Provide stubs
-    class nn:
-        class Module:
-            def __init__(self): pass
-            def forward(self, x): return x
-            def parameters(self): return []
-            def state_dict(self): return {}
-            def load_state_dict(self, d): pass
-    
-    torch = None
+import torch
+import torch.nn as nn
 
 import numpy as np
 from ..core.array import as_same, get_array_info

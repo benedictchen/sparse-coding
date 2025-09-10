@@ -10,21 +10,10 @@ import warnings
 from typing import Optional, Dict, Any, Union, Tuple
 from pathlib import Path
 
-try:
-    import onnx
-    import onnxruntime as ort
-    HAS_ONNX = True
-except ImportError:
-    HAS_ONNX = False
-    warnings.warn("ONNX not available. ONNX export disabled.")
-
-try:
-    from sklearn.pipeline import Pipeline
-    from sklearn.base import BaseEstimator, TransformerMixin
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    warnings.warn("scikit-learn not available. sklearn export disabled.")
+import onnx
+import onnxruntime as ort
+from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from ..core.array import ArrayLike, ensure_array
 
@@ -70,8 +59,6 @@ def export_to_onnx(
     >>> # Export to ONNX
     >>> export_to_onnx(learner, "sparse_coder.onnx", input_shape=(1, 256))
     """
-    if not HAS_ONNX:
-        raise ImportError("ONNX and onnxruntime required for ONNX export")
     
     # Get dictionary
     if hasattr(learner, 'D') and learner.D is not None:
@@ -250,8 +237,6 @@ def test_onnx_model(
     results : dict
         Test results with outputs and comparisons
     """
-    if not HAS_ONNX:
-        raise ImportError("ONNX and onnxruntime required for ONNX testing")
     
     # Load ONNX model
     session = ort.InferenceSession(str(onnx_path))
@@ -434,8 +419,6 @@ def export_to_sklearn_pipeline(
     >>> # Use in sklearn workflow
     >>> sparse_codes = pipeline.transform(X_test)
     """
-    if not HAS_SKLEARN:
-        raise ImportError("scikit-learn required for sklearn export")
     
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
@@ -547,7 +530,7 @@ def create_deployment_package(
         results['numpy'] = export_dictionary_as_numpy(learner, numpy_path)
     
     # Export sklearn pipeline
-    if 'sklearn' in formats and HAS_SKLEARN:
+    if 'sklearn' in formats:
         try:
             pipeline = export_to_sklearn_pipeline(learner)
             
@@ -567,7 +550,7 @@ def create_deployment_package(
             print(f"❌ Sklearn export failed: {e}")
     
     # Export ONNX model
-    if 'onnx' in formats and HAS_ONNX:
+    if 'onnx' in formats:
         onnx_path = package_dir / 'sparse_coder.onnx'
         results['onnx'] = export_to_onnx(learner, onnx_path)
     

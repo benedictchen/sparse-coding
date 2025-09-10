@@ -10,18 +10,8 @@ import warnings
 from typing import Dict, Any, Optional, Union, List
 from pathlib import Path
 
-try:
-    import jsonschema
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
-    warnings.warn("jsonschema not available. Config validation disabled.")
-
-try:
-    import yaml
-    HAS_YAML = True
-except ImportError:
-    HAS_YAML = False
+import jsonschema
+import yaml
 
 
 # Configuration schema for validation
@@ -97,10 +87,6 @@ def validate_config(config: Dict[str, Any], strict: bool = True) -> Dict[str, Li
     """
     errors = {}
     
-    if not HAS_JSONSCHEMA:
-        if strict:
-            warnings.warn("jsonschema not available. Skipping validation.")
-        return errors
     
     try:
         jsonschema.validate(config, CONFIG_SCHEMA)
@@ -169,8 +155,6 @@ def load_config(path: Union[str, Path], validate: bool = True) -> Dict[str, Any]
             if suffix == '.json':
                 config = json.load(f)
             elif suffix in ['.yaml', '.yml']:
-                if not HAS_YAML:
-                    raise ImportError("PyYAML required for YAML config files")
                 config = yaml.safe_load(f)
             else:
                 # Try JSON first, then YAML
@@ -179,10 +163,7 @@ def load_config(path: Union[str, Path], validate: bool = True) -> Dict[str, Any]
                 try:
                     config = json.loads(content)
                 except json.JSONDecodeError:
-                    if HAS_YAML:
-                        config = yaml.safe_load(content)
-                    else:
-                        raise ValueError(f"Unknown config format: {suffix}")
+                    config = yaml.safe_load(content)
     except Exception as e:
         raise ValueError(f"Failed to load config from {path}: {e}") from e
     
@@ -224,8 +205,6 @@ def save_config(config: Dict[str, Any], path: Union[str, Path], format: str = 'a
             if format == 'json':
                 json.dump(config, f, indent=2, sort_keys=True)
             elif format == 'yaml':
-                if not HAS_YAML:
-                    raise ImportError("PyYAML required for YAML output")
                 yaml.dump(config, f, default_flow_style=False, sort_keys=True)
             else:
                 raise ValueError(f"Unknown format: {format}")
@@ -375,7 +354,6 @@ def get_config_template(include_comments: bool = True) -> str:
         
         # Convert to YAML-style with comments
         import yaml
-        if HAS_YAML:
-            return yaml.dump(commented, default_flow_style=False, allow_unicode=True)
+        return yaml.dump(commented, default_flow_style=False, allow_unicode=True)
     
     return json.dumps(template, indent=2)

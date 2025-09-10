@@ -15,13 +15,8 @@ from ..core.array import ArrayLike, xp, as_same, ensure_array
 from ..sparse_coder import SparseCoder
 from ..dictionary_learner import DictionaryLearner
 
-try:
-    import torch
-    from .torch_sae import SAE, L1SAE, TopKSAE
-    HAS_TORCH = True
-except ImportError:
-    HAS_TORCH = False
-    warnings.warn("PyTorch not available. SAE features disabled.")
+import torch
+from .torch_sae import SAE, L1SAE, TopKSAE
 
 
 @dataclass
@@ -90,9 +85,6 @@ class FeatureExtractor:
         self.kwargs = kwargs
         self._fitted_features: Optional[Features] = None
         
-        # Validate method availability
-        if method in ['sae', 'hybrid'] and not HAS_TORCH:
-            raise ImportError("PyTorch required for SAE-based methods")
     
     def fit(self, X: ArrayLike, **fit_kwargs) -> 'FeatureExtractor':
         """
@@ -212,8 +204,6 @@ class FeatureExtractor:
     
     def _fit_sae(self, X: ArrayLike, **kwargs) -> Features:
         """Fit sparse autoencoder."""
-        if not HAS_TORCH:
-            raise ImportError("PyTorch required for SAE fitting")
         
         # Convert to torch tensor
         X_torch = torch.from_numpy(as_same(X, np.array([]))).float()
@@ -390,8 +380,6 @@ def encode_features(X: ArrayLike, features: Features) -> ArrayLike:
     
     elif features.method == 'sae':
         # Use SAE encoding
-        if not HAS_TORCH:
-            raise ImportError("PyTorch required for SAE encoding")
         
         sae = features.metadata['sae']
         X_torch = torch.from_numpy(as_same(X, np.array([]))).float()
@@ -439,8 +427,6 @@ def decode_features(A: ArrayLike, features: Features) -> ArrayLike:
     
     elif features.method == 'sae':
         # Use SAE decoding
-        if not HAS_TORCH:
-            raise ImportError("PyTorch required for SAE decoding")
         
         sae = features.metadata['sae']
         A_torch = torch.from_numpy(as_same(A, np.array([]))).float()
@@ -534,11 +520,7 @@ def visualize_features(
     figsize : tuple, default=(12, 8)
         Figure size for matplotlib
     """
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        warnings.warn("matplotlib required for visualization")
-        return
+    import matplotlib.pyplot as plt
     
     D = features.dictionary
     n_features, n_atoms = D.shape

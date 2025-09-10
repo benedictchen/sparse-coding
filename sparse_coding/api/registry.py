@@ -37,65 +37,15 @@ def register(kind: str, name: str, *, override: bool = False):
         Decorator function or original class/function
         
     Examples:
+        # Using as decorator
         @register("penalty", "l1")
         class L1Penalty:
-            """L1 penalty implementation for sparse coding."""
-            def __init__(self, lam: float):
+            def __init__(self, lam: float = 0.1):
                 self.lam = lam
             def prox(self, z, t):
                 return np.sign(z) * np.maximum(np.abs(z) - t*self.lam, 0.0)
             def value(self, a):
                 return self.lam * np.sum(np.abs(a))
-        
-        @register("solver", "fista")
-        class FISTASolver:
-            """Fast Iterative Shrinkage-Thresholding Algorithm solver."""
-            def __init__(self, max_iter=100, tol=1e-6):
-                self.max_iter = max_iter
-                self.tol = tol
-            def solve(self, D, X, penalty):
-                """Solve sparse coding using FISTA algorithm."""
-                # Implementation based on Bech & Teboulle (2009) FISTA paper
-                n_atoms = D.shape[1]
-                if X.ndim == 1:
-                    X = X.reshape(-1, 1)
-                n_samples = X.shape[1]
-                
-                # Estimate Lipschitz constant
-                L = float(np.linalg.norm(D, ord=2) ** 2)
-                
-                A = np.zeros((n_atoms, n_samples))
-                for i in range(n_samples):
-                    x = X[:, i]
-                    
-                    # Initialize
-                    a = np.zeros(n_atoms)
-                    z = np.zeros(n_atoms)
-                    t = 1.0
-                    
-                    for _ in range(self.max_iter):
-                        a_old = a.copy()
-                        
-                        # Gradient step
-                        grad = D.T @ (D @ z - x)
-                        z_grad = z - grad / L
-                        
-                        # Proximal step
-                        a = penalty.prox(z_grad, 1.0 / L)
-                        
-                        # Momentum update (Nesterov acceleration)
-                        t_new = (1.0 + np.sqrt(1.0 + 4.0 * t**2)) / 2.0
-                        beta = (t - 1.0) / t_new
-                        z = a + beta * (a - a_old)
-                        t = t_new
-                        
-                        # Convergence check
-                        if np.linalg.norm(a - a_old) < self.tol:
-                            break
-                    
-                    A[:, i] = a
-                
-                return A if n_samples > 1 else A[:, 0]
         
         # Direct registration
         register("penalty", "custom", MyCustomPenalty)
@@ -359,3 +309,84 @@ def _validate_component(component: Any, kind: str) -> None:
 get = get_registry
 create = create_from_config
 list_all = list_registered
+
+
+# Example implementations that work with the registry
+import numpy as np
+
+class ExampleL1Penalty:
+    """Production-quality L1 penalty implementation for sparse coding."""
+    
+    def __init__(self, lam: float = 0.1):
+        self.lam = lam
+    
+    def prox(self, z, t):
+        """L1 proximal operator (soft thresholding)."""
+        return np.sign(z) * np.maximum(np.abs(z) - t * self.lam, 0.0)
+    
+    def value(self, a):
+        """L1 penalty value."""
+        return self.lam * np.sum(np.abs(a))
+    
+    def __repr__(self):
+        return f"ExampleL1Penalty(lam={self.lam})"
+
+
+class ExampleFISTASolver:
+    """Production-quality FISTA solver implementation."""
+    
+    def __init__(self, max_iter=100, tol=1e-6):
+        self.max_iter = max_iter
+        self.tol = tol
+    
+    def solve(self, D, X, penalty):
+        """Solve sparse coding using FISTA algorithm."""
+        # Implementation based on Beck & Teboulle (2009) FISTA paper
+        n_atoms = D.shape[1]
+        if X.ndim == 1:
+            X = X.reshape(-1, 1)
+        n_samples = X.shape[1]
+        
+        # Estimate Lipschitz constant
+        L = float(np.linalg.norm(D, ord=2) ** 2)
+        
+        A = np.zeros((n_atoms, n_samples))
+        for i in range(n_samples):
+            x = X[:, i]
+            
+            # Initialize
+            a = np.zeros(n_atoms)
+            z = np.zeros(n_atoms)
+            t = 1.0
+            
+            for _ in range(self.max_iter):
+                a_old = a.copy()
+                
+                # Gradient step
+                grad = D.T @ (D @ z - x)
+                z_grad = z - grad / L
+                
+                # Proximal step
+                a = penalty.prox(z_grad, 1.0 / L)
+                
+                # Momentum update (Nesterov acceleration)
+                t_new = (1.0 + np.sqrt(1.0 + 4.0 * t**2)) / 2.0
+                beta = (t - 1.0) / t_new
+                z = a + beta * (a - a_old)
+                t = t_new
+                
+                # Convergence check
+                if np.linalg.norm(a - a_old) < self.tol:
+                    break
+            
+            A[:, i] = a
+        
+        return A if n_samples > 1 else A[:, 0]
+    
+    def __repr__(self):
+        return f"ExampleFISTASolver(max_iter={self.max_iter}, tol={self.tol})"
+
+
+# Auto-register the examples
+register("penalty", "example_l1")(ExampleL1Penalty)
+register("solver", "example_fista")(ExampleFISTASolver)

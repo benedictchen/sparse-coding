@@ -43,23 +43,14 @@ def xp(arr: ArrayLike):
     arr_type = str(type(arr).__module__)
     
     if "torch" in arr_type:
-        try:
-            import torch
-            return torch
-        except ImportError:
-            pass
+        import torch  # Will fail loudly if torch array passed but torch not installed
+        return torch
     elif "cupy" in arr_type:
-        try:
-            import cupy
-            return cupy
-        except ImportError:
-            pass
+        import cupy  # Will fail loudly if cupy array passed but cupy not installed
+        return cupy
     elif "jax" in arr_type:
-        try:
-            import jax.numpy
-            return jax.numpy
-        except ImportError:
-            pass
+        import jax.numpy  # Will fail loudly if jax array passed but jax not installed
+        return jax.numpy
     
     # Default fallback
     return np
