@@ -1,0 +1,104 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sparse-coding"
+version = "2.5.0"
+description = "Research-accurate implementation of sparse coding algorithms"
+readme = "README.md"
+license = {text = "Custom Non-Commercial License with Donation Requirements"}
+authors = [{name = "Benedict Chen", email = "benedict@benedictchen.com"}]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0", 
+    "scikit-learn>=1.0.0",
+    "matplotlib>=3.5.0",
+    "tensorboard>=2.8.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "hypothesis[numpy]>=6.68.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-xdist>=3.0.0"
+]
+dev = [
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=5.0.0",
+    "mypy>=0.991"
+]
+
+[project.urls]
+Homepage = "https://github.com/benedictchen/sparse-coding"
+Repository = "https://github.com/benedictchen/sparse-coding"
+Funding = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WXQKYYKPHWXHS"
+Sponsor = "https://github.com/sponsors/benedictchen"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sparse_coding"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=sparse_coding", 
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--strict-markers",
+    "-ra"
+]
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests for complete workflows", 
+    "research: Research validation tests against papers",
+    "property: Property-based tests with Hypothesis",
+    "slow: Tests that take significant time to run",
+    "convergence: Tests that verify algorithm convergence",
+    "numerical: Tests for numerical stability and accuracy"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+
+[tool.coverage.run]
+source = ["sparse_coding"]
+omit = [
+    "*/tests/*",
+    "*/examples/*",
+    "*/__pycache__/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+include = '\.pyi?$'
+extend-exclude = '''
+(
+  /(
+      \.git
+    | \.pytest_cache
+    | \.coverage
+    | htmlcov
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3

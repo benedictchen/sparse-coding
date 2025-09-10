@@ -1,0 +1,1 @@
+"""Research validation tests against original papers and mathematical theory."""

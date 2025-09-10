@@ -165,9 +165,9 @@ class DictionaryLearner:
             # Step 1: Sparse coding - update codes given dictionary
             codes = []
             for i in range(patches.shape[1]):
-                patch = patches[:, i]
+                patch = patches[:, i:i+1]  # Keep as 2D for compatibility
                 code = self.sparse_coder.encode(patch)
-                codes.append(code)
+                codes.append(code[:, 0])  # Extract 1D result
             codes = np.array(codes).T
             
             # Step 2: Dictionary update - update dictionary given codes
@@ -222,9 +222,9 @@ class DictionaryLearner:
             # Encode each patch
             codes = []
             for i in range(patches.shape[1]):
-                patch = patches[:, i]
+                patch = patches[:, i:i+1]  # Keep as 2D for compatibility
                 code = self.sparse_coder.encode(patch)
-                codes.append(code)
+                codes.append(code[:, 0])  # Extract 1D result
             codes = np.array(codes)
             
             # Pool codes across spatial locations

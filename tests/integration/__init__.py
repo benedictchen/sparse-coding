@@ -1,0 +1,1 @@
+"""Integration tests for complete sparse coding workflows."""
