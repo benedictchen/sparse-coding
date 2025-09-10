@@ -22,6 +22,9 @@ from . import components  # Auto-registers default components
 from . import adapters
 from . import streaming
 from . import serialization
+from . import algorithms
+from . import factories
+from . import examples
 
 # Framework adapters - these will fail if dependencies missing
 from .sklearn_estimator import SparseCoderEstimator
@@ -57,6 +60,9 @@ __all__ = [
     "adapters",
     "streaming",
     "serialization",
+    "algorithms",
+    "factories", 
+    "examples",
     
     # Framework adapters (may be None if dependencies missing)
     "SparseCoderEstimator",           # Legacy sklearn adapter

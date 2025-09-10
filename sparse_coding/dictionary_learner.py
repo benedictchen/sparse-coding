@@ -30,20 +30,23 @@ class DictionaryLearner:
     
     def __init__(
         self,
-        n_components: int = 100,
+        n_components: Optional[int] = None,
+        n_atoms: Optional[int] = None,
         patch_size: Tuple[int, int] = (8, 8),
         sparsity_penalty: float = 0.1,
         learning_rate: float = 0.01,
         max_iterations: int = 1000,
         tolerance: float = 1e-6,
         mode: str = "l1",
-        random_seed: Optional[int] = None
+        random_seed: Optional[int] = None,
+        **kwargs
     ):
         """
         Initialize Dictionary Learner
         
         Args:
-            n_components: Number of dictionary atoms
+            n_components: Number of dictionary atoms (sklearn-style)
+            n_atoms: Number of dictionary atoms (sparse coding style) - alias for n_components
             patch_size: Size of image patches
             sparsity_penalty: L1 regularization parameter
             learning_rate: Dictionary update learning rate
@@ -53,7 +56,39 @@ class DictionaryLearner:
             random_seed: Random seed for reproducibility
         """
         
-        self.n_components = n_components
+        # Handle both n_components and n_atoms parameter names
+        if n_components is not None and n_atoms is not None:
+            raise ValueError("Cannot specify both n_components and n_atoms. Use one or the other.")
+        elif n_atoms is not None:
+            self.n_components = n_atoms
+        elif n_components is not None:
+            self.n_components = n_components
+        else:
+            self.n_components = 100  # Default value
+        
+        # Handle other potential API inconsistencies from kwargs
+        if 'max_iter' in kwargs:
+            max_iterations = kwargs.pop('max_iter')
+        if 'fit_algorithm' in kwargs:
+            fit_alg = kwargs.pop('fit_algorithm')
+            # Map fit_algorithm names to SparseCoder mode names
+            algorithm_map = {
+                'fista': 'l1',
+                'ista': 'l1', 
+                'l1': 'l1',
+                'paper': 'paper',
+                'paper_gdD': 'paper_gdD',
+                'olshausen_field': 'paper'
+            }
+            mode = algorithm_map.get(fit_alg, fit_alg)  # Use mapping or pass through
+        if 'dict_init' in kwargs:
+            self.dict_init = kwargs.pop('dict_init')
+        else:
+            self.dict_init = 'random'
+        if 'tol' in kwargs:
+            tolerance = kwargs.pop('tol')
+        if 'seed' in kwargs:
+            random_seed = kwargs.pop('seed')
         self.patch_size = patch_size
         self.patch_dim = patch_size[0] * patch_size[1]
         self.sparsity_penalty = sparsity_penalty
@@ -66,12 +101,12 @@ class DictionaryLearner:
             np.random.seed(random_seed)
             
         # Initialize dictionary randomly
-        self.dictionary = np.random.randn(self.patch_dim, n_components)
+        self.dictionary = np.random.randn(self.patch_dim, self.n_components)
         self._normalize_dictionary()
         
         # Initialize sparse coder
         self.sparse_coder = SparseCoder(
-            n_atoms=n_components,
+            n_atoms=self.n_components,
             lam=sparsity_penalty,
             mode=mode,
             max_iter=1000,
@@ -145,24 +180,41 @@ class DictionaryLearner:
             'sparsity_level': sparsity_level
         }
     
-    def fit(self, images: np.ndarray, overlap_factor: float = 0.5, verbose: bool = True) -> Dict[str, List[float]]:
+    def fit(self, data: np.ndarray, overlap_factor: float = 0.5, verbose: bool = True) -> Dict[str, List[float]]:
         """
         Train dictionary on image patches
         
         Args:
-            images: Input images (can be single image or batch)
-            overlap_factor: Patch overlap (0=no overlap, 0.5=50% overlap)
+            data: Either raw images to extract patches from, or pre-extracted patches
+            overlap_factor: Patch overlap (0=no overlap, 0.5=50% overlap) - only used for raw images
             verbose: Print training progress
             
         Returns:
             Dict containing training history
         """
         
-        # Extract patches
-        patches = self._extract_patches(images, overlap_factor)
+        # Determine if data is raw images or pre-extracted patches
+        # Heuristic: if data is 2D and samples > features, assume pre-extracted patches
+        if data.ndim == 2 and data.shape[1] > 1:
+            # Pre-extracted patches: (n_features, n_patches)
+            patches = data
+            if verbose:
+                print(f"Training on {patches.shape[1]} pre-extracted patches of size {patches.shape[0]}")
+        else:
+            # Raw images: need to extract patches  
+            patches = self._extract_patches(data, overlap_factor)
+            if verbose:
+                print(f"Training on {patches.shape[1]} extracted patches of size {self.patch_dim}")
         
-        if verbose:
-            print(f"Training on {patches.shape[1]} patches of size {self.patch_dim}")
+        # Adjust dictionary size to match patch dimensions
+        if self.dictionary.shape[0] != patches.shape[0]:
+            if verbose:
+                print(f"Adjusting dictionary size from {self.dictionary.shape} to ({patches.shape[0]}, {self.n_components})")
+            self.dictionary = np.random.randn(patches.shape[0], self.n_components)
+            self._normalize_dictionary()
+            
+            # Update sparse coder with new dictionary
+            self.sparse_coder.D = self.dictionary
         
         # Training loop
         for iteration in range(self.max_iterations):
@@ -203,48 +255,74 @@ class DictionaryLearner:
         
         return self.training_history
     
-    def transform(self, images: np.ndarray, pooling: str = 'max') -> np.ndarray:
+    def transform(self, data: np.ndarray, pooling: str = 'max') -> np.ndarray:
         """
-        Transform images to sparse features
+        Transform data to sparse features
         
         Args:
-            images: Input images
+            data: Either raw images to extract patches from, or pre-extracted patches
             pooling: Pooling method ('max', 'mean', 'sum')
             
         Returns:
-            Feature vectors for each image
+            Feature vectors for each image/dataset
         """
         
-        if len(images.shape) == 2:
-            images = images[np.newaxis, :, :]
-        
-        features = []
-        
-        for image in images:
-            # Extract patches
-            patches = self._extract_patches(image[np.newaxis, :, :])
+        # Determine if data is raw images or pre-extracted patches
+        # Heuristic: if data is 2D and samples > features, assume pre-extracted patches
+        if data.ndim == 2 and data.shape[1] > 1:
+            # Pre-extracted patches: (n_features, n_patches)
+            patches = data
             
-            # Encode each patch
+            # Ensure sparse coder dictionary matches patch dimensions
+            if self.sparse_coder.D.shape[0] != patches.shape[0]:
+                self.sparse_coder.D = self.dictionary
+            
+            # Encode all patches directly - return codes for all patches
             codes = []
             for i in range(patches.shape[1]):
                 patch = patches[:, i:i+1]  # Keep as 2D for compatibility
                 code = self.sparse_coder.encode(patch)
                 codes.append(code[:, 0])  # Extract 1D result
-            codes = np.array(codes)
+            codes = np.array(codes).T  # Transpose to (n_atoms, n_patches)
             
-            # Pool codes across spatial locations
-            if pooling == 'max':
-                feature = np.max(np.abs(codes), axis=0)
-            elif pooling == 'mean':
-                feature = np.mean(codes, axis=0)
-            elif pooling == 'sum':
-                feature = np.sum(codes, axis=0)
-            else:
-                raise ValueError(f"Unknown pooling method: {pooling}")
+            return codes
+            
+        else:
+            # Raw images: need to extract patches
+            if len(data.shape) == 2:
+                data = data[np.newaxis, :, :]
+            
+            features = []
+            
+            for image in data:
+                # Extract patches
+                patches = self._extract_patches(image[np.newaxis, :, :])
                 
-            features.append(feature)
-        
-        return np.array(features)
+                # Ensure sparse coder dictionary matches patch dimensions
+                if self.sparse_coder.D.shape[0] != patches.shape[0]:
+                    self.sparse_coder.D = self.dictionary
+                
+                # Encode each patch
+                codes = []
+                for i in range(patches.shape[1]):
+                    patch = patches[:, i:i+1]  # Keep as 2D for compatibility
+                    code = self.sparse_coder.encode(patch)
+                    codes.append(code[:, 0])  # Extract 1D result
+                codes = np.array(codes)
+                
+                # Pool codes across spatial locations
+                if pooling == 'max':
+                    feature = np.max(np.abs(codes), axis=0)
+                elif pooling == 'mean':
+                    feature = np.mean(codes, axis=0)
+                elif pooling == 'sum':
+                    feature = np.sum(codes, axis=0)
+                else:
+                    raise ValueError(f"Unknown pooling method: {pooling}")
+                    
+                features.append(feature)
+            
+            return np.array(features)
     
     def fit_transform(self, images: np.ndarray, **kwargs) -> np.ndarray:
         """Fit dictionary and transform images"""

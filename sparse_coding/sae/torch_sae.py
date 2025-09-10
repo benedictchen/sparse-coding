@@ -242,25 +242,35 @@ class SAE(nn.Module):
         return x_hat, a
     
     def apply_sparsity(self, a: torch.Tensor) -> torch.Tensor:
-        """Apply sparsity constraint. Implemented in subclasses."""
-        # FIXME: This is an abstract method - subclasses must implement
-        # Example implementations:
-        # L1SAE: return F.relu(a)  # Simple ReLU activation
-        # TopKSAE: keep only top-k largest activations, zero out rest
-        # L0SAE: use straight-through estimator for discrete sparsity
-        # GroupSAE: apply group-wise sparsity constraints
-        raise NotImplementedError("Subclasses must implement apply_sparsity")
+        """
+        Apply sparsity constraint to activations.
+        
+        Default implementation uses ReLU activation for non-negative sparsity.
+        Subclasses can override for other sparsity types:
+        - TopKSAE: keep only top-k largest activations
+        - L0SAE: use straight-through estimator for discrete sparsity
+        - GroupSAE: apply group-wise sparsity constraints
+        """
+        import torch.nn.functional as F
+        # Default: ReLU activation for non-negative sparse activations
+        return F.relu(a)
     
     def sparsity_loss(self, a: torch.Tensor) -> torch.Tensor:
-        """Compute sparsity penalty. Implemented in subclasses."""
-        # FIXME: This is an abstract method - subclasses must implement  
-        # Example implementations:
-        # L1SAE: return self.l1_penalty * torch.mean(torch.abs(a))
-        # L2SAE: return self.l2_penalty * torch.mean(a**2)
-        # TopKSAE: return torch.tensor(0.0) # Hard constraint, no additional loss
-        # L0SAE: return self.l0_penalty * torch.mean(torch.sigmoid(a * temperature))
-        # BatchSparsenessSAE: return torch.abs(torch.mean(a, dim=0) - target_sparsity).mean()
-        raise NotImplementedError("Subclasses must implement sparsity_loss")
+        """
+        Compute sparsity penalty for regularization.
+        
+        Default implementation uses L1 penalty (standard sparse autoencoder).
+        Subclasses can override for other penalty types:
+        - L1SAE: return self.l1_penalty * torch.mean(torch.abs(a))
+        - L2SAE: return self.l2_penalty * torch.mean(a**2)
+        - TopKSAE: return torch.tensor(0.0) # Hard constraint, no additional loss
+        - L0SAE: return self.l0_penalty * torch.mean(torch.sigmoid(a * temperature))
+        - BatchSparsenessSAE: return torch.abs(torch.mean(a, dim=0) - target_sparsity).mean()
+        """
+        import torch
+        # Default: L1 penalty with standard coefficient
+        l1_penalty = getattr(self, 'l1_penalty', 0.001)
+        return l1_penalty * torch.mean(torch.abs(a))
     
     def compute_loss(
         self, 
