@@ -184,6 +184,12 @@ experiments/
 runs/
 logs/
 tensorboard/
+**/events.out.tfevents.*
+test/events.out.tfevents.*
+**/test/
+# TensorBoard log directories
+**/tb_logs/
+**/lightning_logs/
 
 # CUDA cache
 .nv_cache/
