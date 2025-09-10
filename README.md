@@ -35,7 +35,7 @@ learner = DictionaryLearner(
     n_components=100,        # 100 dictionary atoms
     patch_size=(8, 8),       # 8x8 patches
     sparsity_penalty=0.05,   # L1 regularization
-    max_iterations=500
+    max_iterations=500       # Set in constructor, not fit()
 )
 
 # Train on image patches
@@ -74,12 +74,13 @@ Complete dictionary learning with alternating optimization:
 ```python
 from sparse_coding import DictionaryLearner
 
+# Full parameter specification with correct interface
 learner = DictionaryLearner(
-    n_components=144,
-    patch_size=(12, 12),
-    sparsity_penalty=0.03,
-    learning_rate=0.01,
-    max_iterations=1000
+    n_components=144,        # Number of dictionary atoms
+    patch_size=(12, 12),     # Patch dimensions
+    sparsity_penalty=0.03,   # L1 regularization strength
+    learning_rate=0.01,      # Dictionary update step size
+    max_iterations=1000      # Training iterations
 )
 ```
 

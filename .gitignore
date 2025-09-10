@@ -132,6 +132,8 @@ dmypy.json
 examples/**/output/
 examples/**/results/
 examples/**/*_output/
+examples/*_output/
+examples/enhanced_demo_output/
 examples/**/*.png
 examples/**/*.jpg
 examples/**/*.pdf
