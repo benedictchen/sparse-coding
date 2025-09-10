@@ -31,7 +31,35 @@ except ImportError:
         return np.asarray(X)
     
     def check_is_fitted(estimator, attributes=None):
-        pass
+        """
+        Check if estimator has been fitted.
+        
+        Parameters
+        ----------
+        estimator : estimator instance
+            Estimator to check
+        attributes : list of str or str, optional
+            Attributes to check for. If None, checks for common attributes.
+        """
+        if attributes is None:
+            # Common attributes that indicate a fitted estimator
+            attributes = ['dictionary', 'D', '_fitted', 'components_', 'coef_']
+        elif isinstance(attributes, str):
+            attributes = [attributes]
+        
+        # Check if at least one of the attributes exists
+        fitted_attrs = []
+        for attr in attributes:
+            if hasattr(estimator, attr):
+                attr_val = getattr(estimator, attr)
+                if attr_val is not None:
+                    fitted_attrs.append(attr)
+        
+        if not fitted_attrs:
+            raise NotFittedError(
+                f"This {type(estimator).__name__} instance is not fitted yet. "
+                f"Call 'fit' with appropriate arguments before using this estimator."
+            )
     
     def check_random_state(seed):
         return np.random.RandomState(seed)

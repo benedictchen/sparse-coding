@@ -38,10 +38,64 @@ def register(kind: str, name: str, *, override: bool = False):
         
     Examples:
         @register("penalty", "l1")
-        class L1Penalty: ...
+        class L1Penalty:
+            """L1 penalty implementation for sparse coding."""
+            def __init__(self, lam: float):
+                self.lam = lam
+            def prox(self, z, t):
+                return np.sign(z) * np.maximum(np.abs(z) - t*self.lam, 0.0)
+            def value(self, a):
+                return self.lam * np.sum(np.abs(a))
         
         @register("solver", "fista")
-        class FISTA: ...
+        class FISTASolver:
+            """Fast Iterative Shrinkage-Thresholding Algorithm solver."""
+            def __init__(self, max_iter=100, tol=1e-6):
+                self.max_iter = max_iter
+                self.tol = tol
+            def solve(self, D, X, penalty):
+                """Solve sparse coding using FISTA algorithm."""
+                # Implementation based on Bech & Teboulle (2009) FISTA paper
+                n_atoms = D.shape[1]
+                if X.ndim == 1:
+                    X = X.reshape(-1, 1)
+                n_samples = X.shape[1]
+                
+                # Estimate Lipschitz constant
+                L = float(np.linalg.norm(D, ord=2) ** 2)
+                
+                A = np.zeros((n_atoms, n_samples))
+                for i in range(n_samples):
+                    x = X[:, i]
+                    
+                    # Initialize
+                    a = np.zeros(n_atoms)
+                    z = np.zeros(n_atoms)
+                    t = 1.0
+                    
+                    for _ in range(self.max_iter):
+                        a_old = a.copy()
+                        
+                        # Gradient step
+                        grad = D.T @ (D @ z - x)
+                        z_grad = z - grad / L
+                        
+                        # Proximal step
+                        a = penalty.prox(z_grad, 1.0 / L)
+                        
+                        # Momentum update (Nesterov acceleration)
+                        t_new = (1.0 + np.sqrt(1.0 + 4.0 * t**2)) / 2.0
+                        beta = (t - 1.0) / t_new
+                        z = a + beta * (a - a_old)
+                        t = t_new
+                        
+                        # Convergence check
+                        if np.linalg.norm(a - a_old) < self.tol:
+                            break
+                    
+                    A[:, i] = a
+                
+                return A if n_samples > 1 else A[:, 0]
         
         # Direct registration
         register("penalty", "custom", MyCustomPenalty)

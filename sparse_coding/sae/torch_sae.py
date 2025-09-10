@@ -3,6 +3,19 @@ PyTorch-based Sparse Autoencoders (SAEs) for interpretability workflows.
 
 Implements L1 and TopK sparse autoencoders with unified interface compatible
 with classical sparse coding. Designed for LLM feature extraction and analysis.
+
+Key References
+--------------
+- Bricken et al. (2023): "Towards Monosemanticity: Decomposing Language Models
+  With Dictionary Learning" - modern SAE techniques for LLM interpretability
+- Gao et al. (2024): "Scaling and evaluating sparse autoencoders" - TopK SAEs
+  for exact sparsity control and improved training stability
+- Templeton et al. (2024): "Scaling Monosemanticity: Extracting Interpretable
+  Features from Claude 3 Sonnet" - large-scale SAE deployment
+- Sharkey et al. (2022): "Taking features out of superposition with sparse
+  autoencoders" - SAE fundamentals and training techniques
+- Lee & Seung (1999): "Learning the parts of objects by non-negative matrix
+  factorization" - theoretical foundations of sparse decomposition
 """
 
 import torch
@@ -82,8 +95,15 @@ class SAE(nn.Module):
         else:
             return self.W_dec
     
-    def normalize_decoder_weights(self):
-        """Normalize decoder columns to unit norm."""
+    def normalize_decoder_weights(self, dead_feature_threshold: float = 1e-6):
+        """
+        Normalize decoder columns to unit norm and handle dead features.
+        
+        Parameters
+        ----------
+        dead_feature_threshold : float, default=1e-6
+            Threshold below which features are considered "dead" and re-initialized
+        """
         if not self.normalize_decoder:
             return
         
@@ -91,11 +111,48 @@ class SAE(nn.Module):
             if self.tie_weights:
                 # Normalize rows of encoder (columns of decoder)
                 norms = torch.norm(self.W_enc, dim=1, keepdim=True)
+                
+                # Identify dead features
+                dead_mask = (norms < dead_feature_threshold).squeeze()
+                n_dead = dead_mask.sum().item()
+                
+                if n_dead > 0:
+                    import warnings
+                    warnings.warn(f"Reinitializing {n_dead} dead features")
+                    
+                    # Reinitialize dead features with small random weights
+                    self.W_enc.data[dead_mask] = torch.randn_like(
+                        self.W_enc.data[dead_mask]
+                    ) * 0.01
+                    
+                    # Recompute norms after reinitialization
+                    norms = torch.norm(self.W_enc, dim=1, keepdim=True)
+                
+                # Normalize all features
                 norms = torch.clamp(norms, min=1e-8)
                 self.W_enc.div_(norms)
+                
             else:
                 # Normalize columns of decoder directly
                 norms = torch.norm(self.W_dec, dim=0, keepdim=True)
+                
+                # Identify dead features
+                dead_mask = (norms < dead_feature_threshold).squeeze()
+                n_dead = dead_mask.sum().item()
+                
+                if n_dead > 0:
+                    import warnings
+                    warnings.warn(f"Reinitializing {n_dead} dead features")
+                    
+                    # Reinitialize dead features
+                    self.W_dec.data[:, dead_mask] = torch.randn_like(
+                        self.W_dec.data[:, dead_mask]
+                    ) * 0.01
+                    
+                    # Recompute norms after reinitialization
+                    norms = torch.norm(self.W_dec, dim=0, keepdim=True)
+                
+                # Normalize all features
                 norms = torch.clamp(norms, min=1e-8)
                 self.W_dec.div_(norms)
     
@@ -113,6 +170,19 @@ class SAE(nn.Module):
         a : torch.Tensor, shape (..., n_latents)
             Latent activations
         """
+        # Input validation
+        if not isinstance(x, torch.Tensor):
+            raise TypeError(f"Expected torch.Tensor, got {type(x)}")
+        
+        if x.size(-1) != self.n_features:
+            raise ValueError(
+                f"Input feature dimension {x.size(-1)} doesn't match "
+                f"expected {self.n_features}"
+            )
+        
+        if not torch.isfinite(x).all():
+            raise ValueError("Input contains non-finite values (NaN or Inf)")
+        
         # Linear projection
         a = F.linear(x, self.W_enc, self.b_enc)
         
@@ -133,6 +203,19 @@ class SAE(nn.Module):
         x_hat : torch.Tensor, shape (..., n_features)
             Reconstructed input
         """
+        # Input validation
+        if not isinstance(a, torch.Tensor):
+            raise TypeError(f"Expected torch.Tensor, got {type(a)}")
+        
+        if a.size(-1) != self.n_latents:
+            raise ValueError(
+                f"Latent dimension {a.size(-1)} doesn't match "
+                f"expected {self.n_latents}"
+            )
+        
+        if not torch.isfinite(a).all():
+            raise ValueError("Activations contain non-finite values (NaN or Inf)")
+        
         # decoder_weights is (n_features, n_latents)
         # For F.linear, we need weight matrix of shape (out_features, in_features)
         # decoder_weights is already in the correct shape: (n_features, n_latents)
@@ -160,10 +243,23 @@ class SAE(nn.Module):
     
     def apply_sparsity(self, a: torch.Tensor) -> torch.Tensor:
         """Apply sparsity constraint. Implemented in subclasses."""
+        # FIXME: This is an abstract method - subclasses must implement
+        # Example implementations:
+        # L1SAE: return F.relu(a)  # Simple ReLU activation
+        # TopKSAE: keep only top-k largest activations, zero out rest
+        # L0SAE: use straight-through estimator for discrete sparsity
+        # GroupSAE: apply group-wise sparsity constraints
         raise NotImplementedError("Subclasses must implement apply_sparsity")
     
     def sparsity_loss(self, a: torch.Tensor) -> torch.Tensor:
         """Compute sparsity penalty. Implemented in subclasses."""
+        # FIXME: This is an abstract method - subclasses must implement  
+        # Example implementations:
+        # L1SAE: return self.l1_penalty * torch.mean(torch.abs(a))
+        # L2SAE: return self.l2_penalty * torch.mean(a**2)
+        # TopKSAE: return torch.tensor(0.0) # Hard constraint, no additional loss
+        # L0SAE: return self.l0_penalty * torch.mean(torch.sigmoid(a * temperature))
+        # BatchSparsenessSAE: return torch.abs(torch.mean(a, dim=0) - target_sparsity).mean()
         raise NotImplementedError("Subclasses must implement sparsity_loss")
     
     def compute_loss(
@@ -268,9 +364,19 @@ class TopKSAE(SAE):
         # Apply ReLU first
         a_pos = F.relu(a)
         
-        # Find top-k values along last dimension
-        if self.k >= a_pos.shape[-1]:
+        # Validate k for this tensor
+        latent_dim = a_pos.shape[-1]
+        if self.k >= latent_dim:
+            if self.k > latent_dim:
+                import warnings
+                warnings.warn(
+                    f"k={self.k} > latent_dim={latent_dim}, using all activations. "
+                    f"Consider reducing k for meaningful sparsity."
+                )
             return a_pos
+        
+        if self.k <= 0:
+            raise ValueError(f"k must be positive, got {self.k}")
         
         # Get top-k indices
         _, top_indices = torch.topk(a_pos, self.k, dim=-1)
@@ -294,10 +400,13 @@ def train_sae(
     sparsity_weight: float = 1.0,
     normalize_freq: int = 10,
     device: Optional[torch.device] = None,
-    verbose: bool = True
+    verbose: bool = True,
+    validation_data: Optional[torch.utils.data.DataLoader] = None,
+    early_stopping_patience: int = 10,
+    early_stopping_threshold: float = 1e-6
 ) -> Dict[str, Any]:
     """
-    Train SAE with standard training loop.
+    Train SAE with standard training loop and optional early stopping.
     
     Parameters
     ----------
@@ -317,11 +426,17 @@ def train_sae(
         Device to train on
     verbose : bool, default=True
         Whether to print training progress
+    validation_data : DataLoader, optional
+        Validation data for early stopping
+    early_stopping_patience : int, default=10
+        Number of epochs to wait for improvement before stopping
+    early_stopping_threshold : float, default=1e-6
+        Minimum improvement threshold for early stopping
         
     Returns
     -------
     history : dict
-        Training history with losses
+        Training history with losses and early stopping info
     """
     if device is not None:
         sae = sae.to(device)
@@ -329,8 +444,16 @@ def train_sae(
     history = {
         'total_loss': [],
         'reconstruction_loss': [],
-        'sparsity_loss': []
+        'sparsity_loss': [],
+        'validation_loss': [],
+        'early_stopped': False,
+        'best_epoch': 0
     }
+    
+    # Early stopping variables
+    best_val_loss = float('inf')
+    patience_counter = 0
+    best_model_state = None
     
     sae.train()
     
@@ -363,10 +486,60 @@ def train_sae(
         for key in epoch_losses:
             epoch_losses[key] /= n_batches
         
-        # Record history
+        # Record training history
         history['total_loss'].append(epoch_losses['total'])
         history['reconstruction_loss'].append(epoch_losses['reconstruction'])
         history['sparsity_loss'].append(epoch_losses['sparsity'])
+        
+        # Validation and early stopping
+        val_loss = None
+        if validation_data is not None:
+            sae.eval()
+            val_losses = {'total': 0.0, 'reconstruction': 0.0, 'sparsity': 0.0}
+            n_val_batches = 0
+            
+            with torch.no_grad():
+                for val_batch_x in validation_data:
+                    if device is not None:
+                        val_batch_x = val_batch_x.to(device)
+                    
+                    val_x_hat, val_a = sae(val_batch_x)
+                    val_losses_batch = sae.compute_loss(val_batch_x, val_x_hat, val_a, sparsity_weight)
+                    
+                    val_losses['total'] += val_losses_batch['total'].item()
+                    val_losses['reconstruction'] += val_losses_batch['reconstruction'].item()
+                    val_losses['sparsity'] += val_losses_batch['sparsity'].item()
+                    n_val_batches += 1
+            
+            # Average validation losses
+            for key in val_losses:
+                val_losses[key] /= n_val_batches
+            
+            val_loss = val_losses['total']
+            history['validation_loss'].append(val_loss)
+            
+            # Early stopping check
+            if val_loss < best_val_loss - early_stopping_threshold:
+                best_val_loss = val_loss
+                patience_counter = 0
+                history['best_epoch'] = epoch
+                best_model_state = {k: v.cpu().clone() for k, v in sae.state_dict().items()}
+            else:
+                patience_counter += 1
+            
+            sae.train()
+        else:
+            # Use training loss for early stopping if no validation data
+            val_loss = epoch_losses['total']
+            history['validation_loss'].append(val_loss)
+            
+            if val_loss < best_val_loss - early_stopping_threshold:
+                best_val_loss = val_loss
+                patience_counter = 0
+                history['best_epoch'] = epoch
+                best_model_state = {k: v.cpu().clone() for k, v in sae.state_dict().items()}
+            else:
+                patience_counter += 1
         
         # Normalize decoder weights periodically
         if (epoch + 1) % normalize_freq == 0:
@@ -374,10 +547,25 @@ def train_sae(
         
         # Print progress
         if verbose and (epoch + 1) % 10 == 0:
+            val_str = f", Val={val_loss:.6f}" if val_loss is not None else ""
             print(f"Epoch {epoch+1}/{n_epochs}: "
                   f"Total={epoch_losses['total']:.6f}, "
                   f"Recon={epoch_losses['reconstruction']:.6f}, "
-                  f"Sparse={epoch_losses['sparsity']:.6f}")
+                  f"Sparse={epoch_losses['sparsity']:.6f}"
+                  f"{val_str}")
+        
+        # Early stopping
+        if patience_counter >= early_stopping_patience:
+            if verbose:
+                print(f"Early stopping at epoch {epoch+1} (patience: {early_stopping_patience})")
+            history['early_stopped'] = True
+            break
+    
+    # Restore best model if early stopping was used
+    if best_model_state is not None and validation_data is not None:
+        sae.load_state_dict({k: v.to(device if device else 'cpu') for k, v in best_model_state.items()})
+        if verbose:
+            print(f"Restored best model from epoch {history['best_epoch'] + 1}")
     
     return history
 

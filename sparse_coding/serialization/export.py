@@ -124,22 +124,77 @@ def export_to_onnx(
             name='sparse_encoding_matmul'
         )
         
-        # Node 2: Soft thresholding (simplified as ReLU for now)
-        # Note: True soft thresholding would need more complex graph
-        relu_node = helper.make_node(
-            'Relu',
-            inputs=['matmul_out'],
-            outputs=['output'],
-            name='sparse_activation'
+        # Node 2: True soft thresholding implementation
+        # soft_thresh(x, lambda) = sign(x) * max(|x| - lambda, 0)
+        
+        # Extract threshold parameter (lambda) - default L1 penalty strength
+        threshold_value = getattr(learner, 'lam', 0.1)  # Default threshold
+        if hasattr(learner, '_penalty') and hasattr(learner._penalty, 'lam'):
+            threshold_value = learner._penalty.lam
+        
+        # Create threshold constant
+        threshold_tensor = helper.make_tensor(
+            name='threshold',
+            data_type=onnx.TensorProto.FLOAT,
+            dims=[],
+            vals=[float(threshold_value)]
         )
         
-        # Create graph
+        # Soft thresholding nodes
+        # Step 1: Compute absolute value |x|
+        abs_node = helper.make_node(
+            'Abs',
+            inputs=['matmul_out'],
+            outputs=['abs_out'],
+            name='absolute_value'
+        )
+        
+        # Step 2: Subtract threshold: |x| - lambda
+        sub_node = helper.make_node(
+            'Sub',
+            inputs=['abs_out', 'threshold'],
+            outputs=['sub_out'],
+            name='subtract_threshold'
+        )
+        
+        # Step 3: Apply max(|x| - lambda, 0)
+        zero_tensor = helper.make_tensor(
+            name='zero',
+            data_type=onnx.TensorProto.FLOAT,
+            dims=[],
+            vals=[0.0]
+        )
+        
+        max_node = helper.make_node(
+            'Max',
+            inputs=['sub_out', 'zero'],
+            outputs=['max_out'],
+            name='max_with_zero'
+        )
+        
+        # Step 4: Compute sign(x)
+        sign_node = helper.make_node(
+            'Sign',
+            inputs=['matmul_out'],
+            outputs=['sign_out'],
+            name='compute_sign'
+        )
+        
+        # Step 5: Final multiplication: sign(x) * max(|x| - lambda, 0)
+        final_mul_node = helper.make_node(
+            'Mul',
+            inputs=['sign_out', 'max_out'],
+            outputs=['output'],
+            name='soft_thresholding'
+        )
+        
+        # Create graph with all soft-thresholding nodes
         graph = helper.make_graph(
-            [matmul_node, relu_node],
+            [matmul_node, abs_node, sub_node, max_node, sign_node, final_mul_node],
             'sparse_coding_model',
             [input_tensor],
             [output_tensor],
-            [dictionary_tensor, lambda_tensor]
+            [dictionary_tensor, threshold_tensor, zero_tensor]
         )
         
         # Create model
