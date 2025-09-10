@@ -19,10 +19,10 @@ from typing import Literal, Optional
 
 
 class GradientDescentUpdate:
-    """Research-accurate gradient descent with all optimization variants.
+    """Olshausen & Field (1996) gradient descent dictionary update.
     
-    Implements multiple gradient-based optimizers from the literature
-    with configurable normalization strategies.
+    Updates dictionary by gradient descent on reconstruction error:
+    ∇E/∇D = -(X - DA)A^T, with optional momentum and adaptive learning rates.
     """
     
     def __init__(self, 

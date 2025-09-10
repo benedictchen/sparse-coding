@@ -166,7 +166,7 @@ class SparseCodingModule(nn.Module):
         if single_sample:
             codes = codes.unsqueeze(0)
         
-        # Simple matrix multiplication: X = D @ A
+        # Linear reconstruction via dictionary synthesis: X = A @ D.T
         reconstructed = torch.mm(codes, self.dictionary.T)  # (batch, features)
         
         if single_sample:
@@ -253,7 +253,7 @@ class SparseCodingModule(nn.Module):
         """
         codes = self.forward(X)
         
-        # Simple L1 penalty (could be extended based on penalty_config)
+        # L1 penalty for sparse regularization (extensible to other penalty types)
         l1_loss = torch.abs(codes)
         
         if reduction == 'mean':

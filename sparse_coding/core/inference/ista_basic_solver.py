@@ -21,8 +21,8 @@ from ..penalties.penalty_protocol import PenaltyProtocol
 class ISTASolver:
     """Daubechies et al. (2004) Iterative Shrinkage-Thresholding Algorithm.
     
-    Implements all research variants from "An iterative thresholding algorithm for 
-    linear inverse problems with a sparsity constraint" and extensions.
+    Solves the optimization problem: min_a 0.5*||x - Da||² + λP(a)
+    using proximal gradient descent with soft thresholding.
     """
     
     def __init__(self, 

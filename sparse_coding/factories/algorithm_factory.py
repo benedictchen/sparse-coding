@@ -1,8 +1,8 @@
 """
-Factory functions for creating configurable sparse coding algorithms.
+Factory functions for sparse coding algorithm components.
 
-Provides unified interface for instantiating penalty functions, solvers,
-and dictionary updaters with research-validated parameter combinations.
+Provides unified interface for instantiating penalty functions, inference solvers,
+and dictionary update methods for dictionary learning systems.
 """
 
 import numpy as np
@@ -27,11 +27,10 @@ from ..core.interfaces import Penalty, InferenceSolver, DictUpdater
 @dataclass
 class LearnerConfig:
     """
-    Configuration for complete dictionary learning system.
+    Configuration for dictionary learning system.
     
-    Combines penalty, solver, and dictionary update configurations
-    for end-to-end sparse coding and dictionary learning with
-    research-validated convergence monitoring.
+    Parameters for penalty functions, sparse coding solvers, dictionary
+    update methods, and convergence criteria.
     """
     # Algorithm selection
     penalty_type: PenaltyType = PenaltyType.L1
@@ -190,10 +189,10 @@ def create_dict_updater(updater_type: Union[str, UpdaterType], **kwargs) -> Dict
 
 class CompleteDictionaryLearner:
     """
-    Complete dictionary learning system combining sparse coding and dictionary updates.
+    Dictionary learning system using alternating optimization.
     
-    Integrates penalty functions, sparse coding solvers, and dictionary update methods
-    into a unified learning system with objective tracking and convergence monitoring.
+    Alternates between sparse coding (fixed dictionary) and dictionary update
+    (fixed codes) phases, with convergence monitoring and early stopping.
     """
     
     def __init__(self, config: LearnerConfig):
@@ -242,7 +241,7 @@ class CompleteDictionaryLearner:
         self.dictionary = np.random.randn(n_features, self.config.n_atoms)
         self.dictionary /= np.linalg.norm(self.dictionary, axis=0, keepdims=True)
         
-        # Research-accurate alternating optimization with convergence monitoring
+        # Alternating optimization with convergence monitoring
         prev_objective = float('inf')
         prev_dictionary = self.dictionary.copy()
         stagnation_count = 0
@@ -320,7 +319,7 @@ class CompleteDictionaryLearner:
         if self.dictionary is None:
             raise ValueError("Dictionary not learned. Call fit() first.")
         
-        # Comprehensive input validation
+        # Input validation
         if not isinstance(X, np.ndarray):
             raise TypeError("X must be numpy array")
         if X.ndim != 2:
@@ -333,7 +332,7 @@ class CompleteDictionaryLearner:
         if not np.isfinite(X).all():
             raise ValueError("X contains non-finite values (NaN or Inf)")
         
-        # Robust solver with error recovery
+        # Solver with fallback on numerical errors
         try:
             return self.solver.solve(self.dictionary, X, self.penalty)
         except np.linalg.LinAlgError as e:
@@ -436,7 +435,7 @@ def create_complete_learner(
     **kwargs
 ) -> CompleteDictionaryLearner:
     """
-    Factory function to create complete dictionary learning system with research-accurate convergence monitoring.
+    Factory function to create dictionary learning system with convergence monitoring.
     
     Args:
         penalty_type: Penalty function type ('l1', 'elastic_net', etc.)
@@ -452,11 +451,11 @@ def create_complete_learner(
             - patience: Number of iterations to wait before early stopping
         
     Returns:
-        Configured CompleteDictionaryLearner instance with convergence monitoring
+        CompleteDictionaryLearner instance
         
     Example:
         ```python
-        # Create L1+FISTA+MOD learner with convergence monitoring
+        # Create L1+FISTA+MOD learner
         learner = create_complete_learner(
             penalty_type='l1',
             solver_type='fista', 
@@ -468,7 +467,7 @@ def create_complete_learner(
             enable_early_stopping=True
         )
         
-        # Train on data with automatic convergence detection
+        # Train dictionary
         learner.fit(training_data)
         
         # Check convergence status

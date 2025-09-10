@@ -1,5 +1,5 @@
 """
-Advanced Optimization Methods for Sparse Coding
+Optimization Methods for Sparse Coding
 
 Implements multiple optimization algorithms beyond basic FISTA:
 - Proximal gradient methods
@@ -81,8 +81,8 @@ class NonNegativeL1Proximal(ProximalOperator):
             return np.inf
 
 
-class AdvancedOptimizer:
-    """Advanced optimization algorithms for sparse coding"""
+class ProximalGradientOptimizer:
+    """Proximal gradient optimization algorithms for sparse coding"""
     
     def __init__(self, 
                  dictionary: np.ndarray,
@@ -90,7 +90,7 @@ class AdvancedOptimizer:
                  max_iter: int = 1000,
                  tolerance: float = 1e-6):
         """
-        Initialize advanced optimizer
+        Initialize proximal gradient optimizer
         
         Args:
             dictionary: Dictionary matrix
@@ -369,12 +369,12 @@ class AdvancedOptimizer:
         }
 
 
-def create_advanced_sparse_coder(dictionary: np.ndarray, 
+def create_proximal_sparse_coder(dictionary: np.ndarray, 
                                penalty_type: str = 'l1',
                                penalty_params: Dict[str, float] = None,
-                               **kwargs) -> AdvancedOptimizer:
+                               **kwargs) -> ProximalGradientOptimizer:
     """
-    Factory function for creating advanced sparse coder
+    Factory function for creating proximal gradient sparse coder
     
     Args:
         dictionary: Dictionary matrix
@@ -383,7 +383,7 @@ def create_advanced_sparse_coder(dictionary: np.ndarray,
         **kwargs: Additional arguments for optimizer
         
     Returns:
-        AdvancedOptimizer instance
+        ProximalGradientOptimizer instance
     """
     
     if penalty_params is None:
@@ -401,4 +401,4 @@ def create_advanced_sparse_coder(dictionary: np.ndarray,
     else:
         raise ValueError(f"Unknown penalty type: {penalty_type}")
     
-    return AdvancedOptimizer(dictionary, proximal_op, **kwargs)
+    return ProximalGradientOptimizer(dictionary, proximal_op, **kwargs)

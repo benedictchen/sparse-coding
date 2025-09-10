@@ -33,7 +33,7 @@ def detect_polysemantic_features(
     random_state: int = 42
 ) -> Dict[str, Any]:
     """
-    Enhanced polysemanticity detection with configurable parameters and robust fallbacks.
+    Polysemanticity detection with configurable parameters and robust fallbacks.
     
     Uses clustering analysis to identify features that respond to multiple
     distinct input patterns, indicating polysemantic behavior.

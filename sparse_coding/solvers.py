@@ -397,7 +397,7 @@ class NonlinearConjugateGradient:
         direction = -grad
         
         for iteration in range(self.max_iter):
-            # Line search (simple backtracking)
+            # Armijo line search with backtracking for step size selection
             alpha = 1.0
             obj_current = objective(A_flat)
             

@@ -251,7 +251,7 @@ class FeatureExtractor:
             sae = sae.to(device)
             X_torch = X_torch.to(device)
         
-        # Simple training (can be extended with DataLoader for large data)
+        # Batch training on provided dataset (scalable to larger datasets via DataLoader)
         optimizer = torch.optim.Adam(sae.parameters(), lr=kwargs.get('lr', 1e-3))
         n_epochs = kwargs.get('n_epochs', 100)
         
@@ -429,7 +429,7 @@ def decode_features(A: ArrayLike, features: Features) -> ArrayLike:
     backend = xp(A)
     
     if features.method in ['dict', 'hybrid']:
-        # Simple matrix multiplication: X_hat = A @ D.T
+        # Linear reconstruction via dictionary synthesis: X_hat = A @ D.T
         D = as_same(features.dictionary, A)
         return backend.matmul(A, D.T) if hasattr(backend, 'matmul') else A @ D.T
     

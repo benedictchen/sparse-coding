@@ -19,8 +19,8 @@ from ..penalties.penalty_protocol import PenaltyProtocol
 class FISTASolver:
     """Beck & Teboulle (2009) Fast Iterative Shrinkage-Thresholding Algorithm.
     
-    Implements all research variants from "A fast iterative shrinkage-thresholding 
-    algorithm for linear inverse problems" with configurable acceleration strategies.
+    Solves the optimization problem: min_a 0.5*||x - Da||² + λP(a)
+    using accelerated proximal gradient descent with Nesterov acceleration.
     """
     
     def __init__(self, 

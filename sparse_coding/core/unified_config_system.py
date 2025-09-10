@@ -453,7 +453,7 @@ class SparseCodingFactory:
         }
 
 
-# Convenience function for quick system creation
+# Factory function for rapid sparse coding system instantiation
 def create_sparse_coding_system(
     learner_algorithm: str = 'composite',
     solver_algorithm: str = 'fista', 

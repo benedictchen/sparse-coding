@@ -32,7 +32,7 @@ def create_feature_atlas(
     sort_by: str = 'usage'
 ) -> Dict[str, Any]:
     """
-    Create comprehensive atlas of learned features with examples.
+    Create atlas of learned features with examples.
     
     Parameters
     ----------
@@ -48,7 +48,7 @@ def create_feature_atlas(
     Returns
     -------
     atlas : dict
-        Comprehensive feature atlas with examples and statistics
+        Feature atlas with examples and statistics
     """
     analyzer = FeatureAnalyzer(features)
     

@@ -21,10 +21,10 @@ from typing import Tuple, Optional, Literal
 
 
 class OrthogonalMatchingPursuit:
-    """Research-accurate Orthogonal Matching Pursuit with all greedy variants.
+    """Pati et al. (1993) Orthogonal Matching Pursuit greedy algorithm.
     
-    Implements Pati et al. (1993) standard OMP, Weak OMP, Regularized OMP, 
-    and Stagewise OMP with numerically stable least squares solvers.
+    Iteratively selects dictionary atoms with highest correlation to residual,
+    solving least squares subproblems for sparse signal reconstruction.
     """
     
     def __init__(self, 

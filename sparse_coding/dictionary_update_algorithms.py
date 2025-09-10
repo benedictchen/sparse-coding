@@ -179,7 +179,7 @@ class KSVDUpdater:
                 A[k, using_atom_k] = sigma[0] * Vt[0, :]
                 
             except np.linalg.LinAlgError:
-                # SVD failed - use simple normalization
+                # SVD decomposition failed - fallback to column normalization
                 if np.linalg.norm(E_k) > 1e-12:
                     D[:, k] = E_k[:, 0] / np.linalg.norm(E_k[:, 0])
                 else:

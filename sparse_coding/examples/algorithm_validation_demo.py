@@ -259,31 +259,31 @@ def demo_complete_pipeline():
                 **{k: v for k, v in combo.items() if k not in ['name', 'penalty_type', 'solver_type', 'updater_type', 'n_iterations']}
             )
             
-            # Fit the model (FIXME #12: dictionary learning logic)
+            # Perform dictionary learning via alternating minimization (Olshausen & Field 1996)
             learner.fit(X)
             
-            # Test encode/decode (FIXME #13-14: encoding/decoding logic)
+            # Test sparse coding phase: encode training data using learned dictionary
             codes = learner.encode(X[:, :10])  # Encode first 10 samples
             reconstructed = learner.decode(codes)
             
-            # Compute reconstruction error
+            # Evaluate reconstruction fidelity (L2 relative error)
             original = X[:, :10]
             recon_error = np.linalg.norm(original - reconstructed) / np.linalg.norm(original)
             
-            # Compute sparsity
+            # Measure sparsity level (fraction of near-zero coefficients)
             sparsity = np.mean(np.abs(codes) < 1e-6)
             
-            # Test configuration serialization (FIXME #16-17)
+            # Validate configuration persistence for reproducibility
             config = learner.get_config()
             
-            print(f"  ✅ Training completed: {len(learner._training_history)} objective evaluations")
-            print(f"  📊 Reconstruction error: {recon_error:.4f}")
-            print(f"  🔍 Sparsity achieved: {sparsity:.1%}")
-            print(f"  💾 Config keys: {len(config)} parameters saved")
+            print(f"\n--- Testing: {combo['name']} ---")
+            print(f"Training completed: {len(learner._training_history)} iterations")
+            print(f"Reconstruction error: {recon_error:.4f}")
+            print(f"Sparsity achieved: {sparsity:.1%}")
             
-            # Verify dictionary property (FIXME #15)
+            # Access learned dictionary for analysis and visualization
             learned_dict = learner.dictionary
-            print(f"  📖 Dictionary shape: {learned_dict.shape}")
+            print(f"Dictionary shape: {learned_dict.shape}")
             
             results.append({
                 'name': combo['name'],
@@ -294,7 +294,7 @@ def demo_complete_pipeline():
             })
             
         except Exception as e:
-            print(f"  ❌ Failed: {str(e)[:80]}...")
+            print(f"Failed: {str(e)[:80]}...")
     
     return results
 

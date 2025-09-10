@@ -218,12 +218,12 @@ def encode_stream(
         L = float(np.linalg.norm(D, ord=2) ** 2)
     
     if verbose:
-        print(f"Streaming sparse coding:")
-        print(f"   Data: {X_path} ({n_features}×{total_samples})")
-        print(f"   Dictionary: {D.shape}")
-        print(f"   Sparsity: λ={lam}")
-        print(f"   Batch size: {batch_size}")
-        print(f"   Output: {out_path}")
+        print(f"Initializing streaming sparse coding pipeline:")
+        print(f"   Input dataset: {X_path} ({n_features} features × {total_samples} samples)")
+        print(f"   Dictionary matrix: {D.shape}")
+        print(f"   Sparsity parameter: λ={lam}")
+        print(f"   Processing batch size: {batch_size}")
+        print(f"   Output file: {out_path}")
         print(f"   Lipschitz constant: L={L:.4f}")
     
     # Create memory-mapped output file
@@ -260,12 +260,12 @@ def encode_stream(
             sample_offset += batch_samples
         
         if verbose:
-            print(f"✅ Streaming encoding complete: {sample_offset} samples processed")
+            print(f"Streaming sparse coding completed: {sample_offset} samples processed")
             
             # Compute and report sparsity statistics
             sparsity_ratio = np.mean(np.abs(codes_mmap[:, :min(1000, total_samples)]) < 1e-6)
-            print(f"   Sparsity ratio: {sparsity_ratio:.3f} (fraction of near-zero codes)")
-            print(f"   Output size: {out_path.stat().st_size / (1024**3):.2f} GB")
+            print(f"   Coefficient sparsity: {sparsity_ratio:.3f} (fraction of near-zero elements)")
+            print(f"   Output file size: {out_path.stat().st_size / (1024**3):.2f} GB")
         
     finally:
         # Ensure memory-mapped file is properly closed

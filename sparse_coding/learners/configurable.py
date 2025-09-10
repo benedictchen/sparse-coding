@@ -94,7 +94,7 @@ class ConfigurableLearner:
             
             # Check convergence (optional)
             if iteration > 0 and kwargs.get('check_convergence', False):
-                # Simple convergence check based on reconstruction error
+                # Convergence criterion based on mean squared reconstruction error
                 reconstruction = self._dictionary @ codes
                 error = np.mean((X - reconstruction) ** 2)
                 if error < self.tol:

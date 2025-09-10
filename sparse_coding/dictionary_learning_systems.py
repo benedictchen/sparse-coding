@@ -1,5 +1,5 @@
 """
-Comprehensive Dictionary Learning Implementations
+Dictionary Learning Implementations
 
 High-level learners that orchestrate inference solvers and dictionary updaters.
 Implements research-based dictionary learning algorithms with configuration options.
@@ -15,8 +15,8 @@ from .solvers import get_solver
 from .dictionary_update_algorithms import get_dict_updater
 
 
-class ComprehensiveDictionaryLearner:
-    """Comprehensive dictionary learning with configurable components.
+class DictionaryLearner:
+    """Dictionary learning with configurable components.
     
     Provides a unified interface to all sparse coding algorithms with research-based
     implementations. Users can configure penalty functions, solvers, and updaters.
@@ -42,7 +42,7 @@ class ComprehensiveDictionaryLearner:
         verbose: bool = False
     ):
         """
-        Initialize comprehensive dictionary learner.
+        Initialize dictionary learner.
         
         Args:
             n_atoms: Number of dictionary atoms
@@ -120,7 +120,7 @@ class ComprehensiveDictionaryLearner:
         else:
             return penalty
     
-    def fit(self, X: ArrayLike, **kwargs) -> 'ComprehensiveDictionaryLearner':
+    def fit(self, X: ArrayLike, **kwargs) -> 'DictionaryLearner':
         \"\"\"
         Learn dictionary from data.
         
@@ -142,10 +142,10 @@ class ComprehensiveDictionaryLearner:
             self._normalize_dictionary()
         
         if self.verbose:
-            print(f\"Dictionary learning with {self.n_atoms} atoms on {n_samples} samples\")
-            print(f\"Penalty: {type(self.penalty).__name__}\")
-            print(f\"Solver: {self.solver.name}\")
-            print(f\"Updater: {self.dict_updater.name}\")
+            print(f\"Initializing dictionary learning: {self.n_atoms} atoms, {n_samples} training samples\")
+            print(f\"Sparsity penalty: {type(self.penalty).__name__}\")
+            print(f\"Solver algorithm: {self.solver.name}\")
+            print(f\"Dictionary update method: {self.dict_updater.name}\")
         
         # Main learning loop
         obj_prev = float('inf')
@@ -177,12 +177,12 @@ class ComprehensiveDictionaryLearner:
             
             # Print progress
             if self.verbose and (iteration % 10 == 0 or iteration == self.max_iter - 1):
-                print(f\"Iter {iteration:3d}: obj={objective:.6f}, \"\n                      f\"recon_err={reconstruction_error:.6f}, sparsity={sparsity_level:.3f}\")
+                print(f\"Iteration {iteration:3d}: objective={objective:.6f}, \"\n                      f\"reconstruction_error={reconstruction_error:.6f}, sparsity={sparsity_level:.3f}\")
             
             # Convergence check
             if abs(objective - obj_prev) / max(abs(objective), 1e-8) < self.tol:
                 if self.verbose:
-                    print(f\"Converged after {iteration} iterations\")
+                    print(f\"Algorithm converged after {iteration} iterations\")
                 break
             
             obj_prev = objective
@@ -300,7 +300,7 @@ class OnlineDictionaryLearner:
         if random_state is not None:
             np.random.seed(random_state)
         
-        # Configure components like ComprehensiveDictionaryLearner
+        # Configure components like DictionaryLearner
         self.penalty = self._create_penalty(penalty, penalty_params or {})
         self.solver = get_solver(solver, **(solver_params or {}))
         
@@ -312,7 +312,7 @@ class OnlineDictionaryLearner:
         self._B_avg = None  # Running average of data-coefficient cross products
     
     def _create_penalty(self, penalty: Union[str, Penalty], params: Dict[str, Any]) -> Penalty:
-        \"\"\"Same as ComprehensiveDictionaryLearner.\"\"\"
+        \"\"\"Same as DictionaryLearner.\"\"\"
         if isinstance(penalty, str):
             if penalty == 'l1':
                 return L1(lam=params.get('lam', 0.1))
@@ -436,7 +436,7 @@ class OnlineDictionaryLearner:
 
 # Registry of available learners
 LEARNERS = {
-    'comprehensive': ComprehensiveDictionaryLearner,
+    'comprehensive': DictionaryLearner,
     'online': OnlineDictionaryLearner,
 }
 

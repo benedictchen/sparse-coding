@@ -37,8 +37,8 @@ def make_metadata(cfg: TrainingConfig, D_shape, A_shape, extra=None):
     return meta
 
 
-# Comprehensive Configuration System for All FIXME Solutions
-# Users can pick and choose from all implemented penalty functions, solvers, and dictionary updaters
+# Modular Configuration System for Sparse Coding Components
+# Enables selection and combination of penalty functions, solvers, and dictionary update methods
 
 @dataclass
 class PenaltyConfig:
@@ -163,8 +163,8 @@ class DictUpdaterConfig:
 
 
 @dataclass
-class ComprehensiveSparseCodingConfig:
-    """Master configuration allowing users to mix and match ALL implemented solutions."""
+class SparseCodingConfig:
+    """Configuration for sparse coding algorithms with modular components."""
     penalty: PenaltyConfig = field(default_factory=PenaltyConfig)
     solver: SolverConfig = field(default_factory=SolverConfig)
     dict_updater: DictUpdaterConfig = field(default_factory=DictUpdaterConfig)
@@ -221,7 +221,7 @@ class ComprehensiveSparseCodingConfig:
             json.dump(self.to_dict(), f, indent=2)
     
     @classmethod
-    def load_json(cls, filepath: str) -> 'ComprehensiveSparseCodingConfig':
+    def load_json(cls, filepath: str) -> 'SparseCodingConfig':
         """Load configuration from JSON file."""
         with open(filepath, 'r') as f:
             data = json.load(f)
@@ -246,9 +246,9 @@ class ResearchAccuratePresets:
     """Research-accurate preset configurations from original papers."""
     
     @staticmethod
-    def olshausen_field_1996() -> ComprehensiveSparseCodingConfig:
+    def olshausen_field_1996() -> SparseCodingConfig:
         """Original Olshausen & Field (1996) configuration."""
-        return ComprehensiveSparseCodingConfig(
+        return SparseCodingConfig(
             penalty=PenaltyConfig('l1', {'lam': 0.1}),
             solver=SolverConfig('fista', {'max_iter': 1000, 'tol': 1e-6}),
             dict_updater=DictUpdaterConfig('grad_d', {'learning_rate': 0.01}),
@@ -258,9 +258,9 @@ class ResearchAccuratePresets:
         )
     
     @staticmethod
-    def ksvd_aharon_2006() -> ComprehensiveSparseCodingConfig:
+    def ksvd_aharon_2006() -> SparseCodingConfig:
         """K-SVD from Aharon et al. (2006)."""
-        return ComprehensiveSparseCodingConfig(
+        return SparseCodingConfig(
             penalty=PenaltyConfig('topk', {'k': 4}),
             solver=SolverConfig('omp', {'n_nonzero_coefs': 4}),
             dict_updater=DictUpdaterConfig('ksvd', {'preserve_dc': True}),
@@ -269,9 +269,9 @@ class ResearchAccuratePresets:
         )
     
     @staticmethod
-    def online_mairal_2010() -> ComprehensiveSparseCodingConfig:
+    def online_mairal_2010() -> SparseCodingConfig:
         """Online dictionary learning from Mairal et al. (2010)."""
-        return ComprehensiveSparseCodingConfig(
+        return SparseCodingConfig(
             penalty=PenaltyConfig('l1', {'lam': 0.15}),
             solver=SolverConfig('fista', {'max_iter': 500}),
             dict_updater=DictUpdaterConfig('online_sgd', {'learning_rate': 0.01, 'momentum': 0.9}),
@@ -280,9 +280,9 @@ class ResearchAccuratePresets:
         )
     
     @staticmethod
-    def elastic_net_zou_2005() -> ComprehensiveSparseCodingConfig:
+    def elastic_net_zou_2005() -> SparseCodingConfig:
         """Elastic Net from Zou & Hastie (2005)."""
-        return ComprehensiveSparseCodingConfig(
+        return SparseCodingConfig(
             penalty=PenaltyConfig('elastic_net', {'l1': 0.1, 'l2': 0.05}),
             solver=SolverConfig('fista', {'max_iter': 1000}),
             dict_updater=DictUpdaterConfig('mod', {'regularization': 1e-6}),
@@ -291,9 +291,9 @@ class ResearchAccuratePresets:
         )
     
     @staticmethod
-    def robust_cauchy() -> ComprehensiveSparseCodingConfig:
+    def robust_cauchy() -> SparseCodingConfig:
         """Robust sparse coding with Cauchy penalty."""
-        return ComprehensiveSparseCodingConfig(
+        return SparseCodingConfig(
             penalty=PenaltyConfig('cauchy', {'lam': 0.1, 'sigma': 1.0}),
             solver=SolverConfig('ncg', {'beta_method': 'polak-ribiere'}),
             dict_updater=DictUpdaterConfig('grad_d', {'learning_rate': 0.005}),
@@ -313,7 +313,7 @@ class ResearchAccuratePresets:
         ]
     
     @staticmethod
-    def get_preset(name: str) -> ComprehensiveSparseCodingConfig:
+    def get_preset(name: str) -> SparseCodingConfig:
         """Get preset configuration by name."""
         presets = {
             'olshausen_field_1996': ResearchAccuratePresets.olshausen_field_1996,
@@ -330,7 +330,7 @@ class ResearchAccuratePresets:
         return presets[name]()
 
 
-def print_configuration_summary(config: ComprehensiveSparseCodingConfig) -> None:
+def print_configuration_summary(config: SparseCodingConfig) -> None:
     """Print a detailed summary of the configuration with research context."""
     print("🔬 Sparse Coding Configuration Summary")
     print("=" * 50)

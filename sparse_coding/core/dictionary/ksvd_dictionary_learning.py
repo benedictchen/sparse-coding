@@ -21,10 +21,10 @@ from sklearn.utils.extmath import randomized_svd
 
 
 class KSVDDictionaryLearning:
-    """Research-accurate K-SVD with all algorithmic variants.
+    """Aharon et al. (2006) K-SVD dictionary learning algorithm.
     
-    Implements all K-SVD variants from the literature with configurable
-    SVD solvers and atom replacement strategies.
+    Updates dictionary atoms using SVD decomposition of error matrix
+    for each atom while keeping sparse codes fixed.
     """
     
     def __init__(self, 

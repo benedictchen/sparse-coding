@@ -20,10 +20,10 @@ from typing import Optional, Literal
 
 
 class OnlineDictionaryLearning:
-    """Research-accurate online dictionary learning with all adaptive variants.
+    """Mairal et al. (2009) online dictionary learning algorithm.
     
-    Implements multiple learning rate schedules and numerical solvers
-    from the online learning literature.
+    Updates dictionary incrementally using stochastic approximation
+    with exponentially weighted sufficient statistics.
     """
     
     def __init__(self, 

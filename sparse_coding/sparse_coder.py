@@ -91,8 +91,8 @@ class SparseCoder:
     Features:
     - Lambda annealing: anneal=(gamma, floor) for geometric decay
     - Homeostatic equalization: prevents dead atoms
-    - Enhanced NCG: Polak-Ribière conjugate gradient
-    - Dead atom reinitialization: improved detection and handling
+    - NCG: Polak-Ribière conjugate gradient
+    - Dead atom reinitialization with detection and handling
     """
     def __init__(self, n_atoms=144, lam=None, mode="l1", max_iter=200, tol=1e-6, seed=0, anneal=None):
         self.n_atoms = int(n_atoms)

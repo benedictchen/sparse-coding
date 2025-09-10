@@ -250,14 +250,14 @@ def plot_sparsity_statistics(codes: np.ndarray,
     return fig
 
 
-def create_comprehensive_report(dictionary: np.ndarray,
+def create_visualization_report(dictionary: np.ndarray,
                               codes: np.ndarray,
                               history: Dict[str, List[float]],
                               patch_size: Tuple[int, int],
                               original_patches: Optional[np.ndarray] = None,
                               save_path: Optional[str] = None) -> List[plt.Figure]:
     """
-    Create comprehensive visualization report
+    Create visualization report
     
     Args:
         dictionary: Learned dictionary

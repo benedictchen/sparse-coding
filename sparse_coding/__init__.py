@@ -4,9 +4,9 @@ from .__about__ import __version__
 from .sparse_coder import SparseCoder
 from .dictionary_learner import DictionaryLearner
 
-from .core.penalty_implementations import (
+from .core.penalties import (
     L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty,
-    PenaltyABC, PenaltyConfig, create_penalty
+    PenaltyProtocol
 )
 
 from .core.solver_implementations import (

@@ -25,10 +25,10 @@ from ..penalties.penalty_protocol import PenaltyProtocol
 
 
 class NonlinearConjugateGradient:
-    """Research-accurate Nonlinear Conjugate Gradient with all classical formulas.
+    """Nonlinear Conjugate Gradient for smooth optimization problems.
     
-    Implements Fletcher-Reeves, Polak-Ribière, Dai-Yuan, and Hestenes-Stiefel 
-    beta formulations with Wolfe line search conditions.
+    Minimizes differentiable objective functions using classical beta update
+    formulas from Fletcher-Reeves, Polak-Ribière, Dai-Yuan, and Hestenes-Stiefel.
     """
     
     def __init__(self, 
