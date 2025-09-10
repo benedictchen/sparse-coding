@@ -11,7 +11,8 @@ def _mod_update(D, X, A, eps=1e-6):
     At = A.T
     G = A @ At
     G.flat[::G.shape[0]+1] += eps
-    D_new = (X @ At) @ np.linalg.inv(G)
+    # Use solve instead of inv for numerical stability: D = X A^T G^-1 = (G^-1 (X A^T)^T)^T
+    D_new = np.linalg.solve(G, (X @ At).T).T
     return _normalize_columns(D_new)
 
 def _homeostatic_equalize(D, A, alpha=0.1):
@@ -45,10 +46,10 @@ def _reinit_dead_atoms(D, X, A, rng):
     return D
 
 def _paper_energy_grad(x, D, a, lam, sigma):
-    # E(a) = 0.5||x - D a||^2 - lam * sum log(1 + (a/sigma)^2)
+    # E(a) = 0.5||x - D a||^2 + lam * sum log(1 + (a/sigma)^2)
     r = x - D @ a
-    energy = 0.5 * float(r @ r) - lam * float(np.sum(np.log1p((a / sigma)**2)))
-    grad = -(D.T @ r) - lam * (2*a / (sigma**2 + a*a))
+    energy = 0.5 * float(r @ r) + lam * float(np.sum(np.log1p((a / sigma)**2)))
+    grad = -(D.T @ r) + lam * (2*a / (sigma**2 + a*a))
     return energy, grad
 
 def _ncg_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
@@ -93,7 +94,7 @@ class SparseCoder:
     - Enhanced NCG: Polak-Ribière conjugate gradient
     - Dead atom reinitialization: improved detection and handling
     """
-    def __init__(self, n_atoms=144, lam=None, mode="paper", max_iter=200, tol=1e-6, seed=0, anneal=None):
+    def __init__(self, n_atoms=144, lam=None, mode="l1", max_iter=200, tol=1e-6, seed=0, anneal=None):
         self.n_atoms = int(n_atoms)
         self.lam = lam
         self.mode = mode

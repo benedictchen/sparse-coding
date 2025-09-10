@@ -9,8 +9,13 @@ except Exception:  # pragma: no cover
 
 class SparseCoderEstimator(BaseEstimator, TransformerMixin):
     def __init__(self, n_atoms=144, mode="l1", max_iter=200, tol=1e-6, seed=0, lam=None):
-        self.n_atoms=n_atoms; self.mode=mode; self.max_iter=max_iter; self.tol=tol; self.seed=seed; self.lam=lam
-        self._coder=None
+        self.n_atoms = n_atoms
+        self.mode = mode
+        self.max_iter = max_iter
+        self.tol = tol
+        self.seed = seed
+        self.lam = lam
+        self._coder = None
 
     def fit(self, X, y=None, n_steps=20, lr=0.1):
         Xc = np.asarray(X, dtype=float).T

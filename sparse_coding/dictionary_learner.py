@@ -24,6 +24,11 @@ class DictionaryLearner:
     min_{D,α} ||X - Dα||_2^2 + λ||α||_1
     
     Uses alternating optimization between dictionary update and sparse coding.
+    
+    Modes:
+    - 'l1': Standard L1 sparse coding with FISTA
+    - 'paper': Olshausen & Field style with log priors and MOD updates  
+    - 'paper_gdD': O&F with gradient dictionary updates + homeostasis
     """
     
     def __init__(
@@ -34,6 +39,7 @@ class DictionaryLearner:
         learning_rate: float = 0.01,
         max_iterations: int = 1000,
         tolerance: float = 1e-6,
+        mode: str = "l1",
         random_seed: Optional[int] = None
     ):
         """
@@ -46,6 +52,7 @@ class DictionaryLearner:
             learning_rate: Dictionary update learning rate
             max_iterations: Maximum training iterations
             tolerance: Convergence tolerance
+            mode: Sparse coding mode ('l1', 'paper', 'paper_gdD' for O&F style)
             random_seed: Random seed for reproducibility
         """
         
@@ -56,6 +63,7 @@ class DictionaryLearner:
         self.learning_rate = learning_rate
         self.max_iterations = max_iterations
         self.tolerance = tolerance
+        self.mode = mode
         
         if random_seed is not None:
             np.random.seed(random_seed)
@@ -68,7 +76,7 @@ class DictionaryLearner:
         self.sparse_coder = SparseCoder(
             n_atoms=n_components,
             lam=sparsity_penalty,
-            mode="l1",
+            mode=mode,
             max_iter=1000,
             seed=random_seed or 0
         )
