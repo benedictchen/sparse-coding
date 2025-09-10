@@ -1,11 +1,11 @@
 import os, json, argparse, numpy as np, yaml
 from PIL import Image
 from .sparse_coder import SparseCoder
-from .whitening import zero_phase_whiten
-from .deterministic import set_deterministic
-from .jsonlog import log
-from .config import TrainingConfig, make_metadata
-from .stream import encode_stream
+from .data_preprocessing_whitening import zero_phase_whiten
+from .reproducible_sparse_coding import set_deterministic
+from .experimental_logging import log
+from .sparse_coding_configuration import TrainingConfig, make_metadata
+from .streaming_sparse_coding import encode_stream
 
 def _load_cfg(path):
     if not path: return {}

@@ -19,7 +19,7 @@ from .algorithms.solvers import (
     FISTASolver, ISTASolver, OMPSolver,
     SolverType, SolverConfig
 )
-from .algorithms.dict_updaters import (
+from .algorithms.dictionary_update_algorithms import (
     MODUpdater, GradientDictUpdater, KSVDUpdater,
     UpdaterType, UpdaterConfig
 )

@@ -12,7 +12,7 @@ from .core.interfaces import Learner, StreamingLearner, Penalty, InferenceSolver
 from .core.array import ArrayLike
 from .penalties import L1, L2, ElasticNet, CauchyPenalty, TopKConstraint, HuberPenalty, GroupLasso
 from .solvers import get_solver
-from .dict_updaters import get_dict_updater
+from .dictionary_update_algorithms import get_dict_updater
 
 
 class ComprehensiveDictionaryLearner:

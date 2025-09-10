@@ -12,7 +12,7 @@ Modules:
 
 from .penalties import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty, TopKPenalty
 from .solvers import FISTASolver, ISTASolver, OMPSolver  
-from .dict_updaters import MODUpdater, GradientDictUpdater, KSVDUpdater
+from .dictionary_update_algorithms import MODUpdater, GradientDictUpdater, KSVDUpdater
 
 __all__ = [
     # Penalty functions

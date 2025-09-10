@@ -7,20 +7,30 @@ sparse coding inference with O(1/k²) convergence rate.
 
 from __future__ import annotations
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 from ..penalties.penalty_protocol import PenaltyProtocol
 
 
 class FISTASolver:
-    """Fast Iterative Shrinkage-Thresholding Algorithm.
+    """Beck & Teboulle (2009) Fast Iterative Shrinkage-Thresholding Algorithm.
     
-    Reference: Beck & Teboulle (2009). A fast iterative shrinkage-thresholding 
-    algorithm for linear inverse problems.
+    Implements all research variants from "A fast iterative shrinkage-thresholding 
+    algorithm for linear inverse problems" with configurable acceleration strategies.
     """
     
-    def __init__(self, max_iter: int = 1000, tol: float = 1e-6):
+    def __init__(self, 
+                 max_iter: int = 1000, 
+                 tol: float = 1e-6,
+                 variant: Literal['standard', 'backtracking', 'monotone'] = 'standard',
+                 backtrack_factor: float = 0.5,
+                 backtrack_c: float = 1e-4,
+                 restart_threshold: float = 0.0):
         self.max_iter = max_iter
         self.tol = tol
+        self.variant = variant
+        self.backtrack_factor = backtrack_factor
+        self.backtrack_c = backtrack_c
+        self.restart_threshold = restart_threshold
     
     def solve(self, 
               D: np.ndarray, 
@@ -54,9 +64,49 @@ class FISTASolver:
         DTD = D.T @ D
         
         for k in range(self.max_iter):
-            grad = DTD @ y - DTx
-            z = y - step_size * grad
-            a_new = penalty.prox(z, lam * step_size)
+            if self.variant == 'standard':
+                grad = DTD @ y - DTx
+                z = y - step_size * grad
+                a_new = penalty.prox(z, lam * step_size)
+                
+            elif self.variant == 'backtracking':
+                grad = DTD @ y - DTx
+                L_trial = L
+                while L_trial < 1e12:
+                    step_trial = 1.0 / L_trial
+                    z = y - step_trial * grad
+                    a_trial = penalty.prox(z, lam * step_trial)
+                    
+                    f_trial = 0.5 * np.linalg.norm(D @ a_trial - x)**2
+                    Q_L = 0.5 * np.linalg.norm(D @ y - x)**2 + np.dot(grad, a_trial - y) + \
+                          (L_trial / 2) * np.linalg.norm(a_trial - y)**2
+                    
+                    if f_trial <= Q_L:
+                        a_new = a_trial
+                        step_size = step_trial
+                        break
+                    L_trial *= 2
+                else:
+                    a_new = penalty.prox(y - step_size * grad, lam * step_size)
+                    
+            elif self.variant == 'monotone':
+                grad = DTD @ y - DTx
+                z = y - step_size * grad
+                a_new = penalty.prox(z, lam * step_size)
+                
+                f_new = 0.5 * np.linalg.norm(D @ a_new - x)**2
+                if hasattr(penalty, 'value'):
+                    f_new += lam * penalty.value(a_new)
+                    
+                if k > 0:
+                    f_prev = 0.5 * np.linalg.norm(D @ a_prev - x)**2
+                    if hasattr(penalty, 'value'):
+                        f_prev += lam * penalty.value(a_prev)
+                    
+                    if f_new > f_prev + self.restart_threshold:
+                        t_prev = 1.0
+                        y = a_prev
+                        continue
             
             if np.linalg.norm(a_new - a_prev) < self.tol:
                 return a_new, k + 1

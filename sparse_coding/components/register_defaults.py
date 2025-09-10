@@ -11,7 +11,7 @@ def register_default_components():
     # Import components locally to avoid circular imports
     from .penalties import L1Penalty, L2Penalty, ElasticNetPenalty
     from .solvers import FISTASolver, ISTASolver
-    from .dict_updaters import MODUpdater, GradDUpdater
+    from .dictionary_update_algorithms import MODUpdater, GradDUpdater
     
     # Register penalties
     register("penalty", "l1")(L1Penalty)

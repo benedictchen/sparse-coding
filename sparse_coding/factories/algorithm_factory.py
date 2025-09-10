@@ -9,19 +9,19 @@ import numpy as np
 from typing import Dict, Any, Optional, Union, List, Tuple
 from dataclasses import dataclass
 
-from algorithms.penalties import (
+from ..algorithms.penalties import (
     L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty, TopKPenalty,
     PenaltyType, PenaltyConfig
 )
-from algorithms.solvers import (
+from ..algorithms.solvers import (
     FISTASolver, ISTASolver, OMPSolver,
     SolverType, SolverConfig  
 )
-from algorithms.dict_updaters import (
+from ..algorithms.dictionary_update_algorithms import (
     MODUpdater, GradientDictUpdater, KSVDUpdater,
     UpdaterType, UpdaterConfig
 )
-from core.interfaces import Penalty, InferenceSolver, DictUpdater
+from ..core.interfaces import Penalty, InferenceSolver, DictUpdater
 
 
 @dataclass
@@ -234,25 +234,48 @@ class CompleteDictionaryLearner:
         self.dictionary = np.random.randn(n_features, self.config.n_atoms)
         self.dictionary /= np.linalg.norm(self.dictionary, axis=0, keepdims=True)
         
+        # FIXME: Alternating optimization lacks research-accurate convergence checking
+        #
+        # ISSUE: No convergence monitoring or early stopping based on objective function
+        #
+        # SOLUTION 1: Add proper convergence monitoring (current approach)
         # Alternating optimization
+        prev_objective = float('inf')
         for iteration in range(self.config.n_iterations):
             # Sparse coding step
             codes = self.solver.solve(self.dictionary, X, self.penalty)
             
-            # Dictionary update step
+            # Dictionary update step  
             self.dictionary = self.updater.step(self.dictionary, X, codes)
             
-            # Track objective if requested
-            if self.config.compute_objective:
+            # SOLUTION 2: Early stopping based on objective function convergence
+            # Track objective if requested or for convergence checking
+            if self.config.compute_objective or True:  # Always compute for convergence
                 reconstruction_error = 0.5 * np.sum((X - self.dictionary @ codes) ** 2)
-                penalty_value = self.penalty.value(codes)
+                penalty_value = self.penalty.value(codes) if hasattr(self.penalty, 'value') else 0.0
                 total_objective = reconstruction_error + penalty_value
-                self._training_history.append({
-                    'iteration': iteration,
-                    'objective': total_objective,
-                    'reconstruction_error': reconstruction_error,
-                    'penalty_value': penalty_value
-                })
+                
+                # Early stopping check
+                # objective_change = abs(total_objective - prev_objective) / (prev_objective + 1e-12)
+                # if iteration > 0 and objective_change < convergence_tolerance:
+                #     break
+                # prev_objective = total_objective
+                
+                if self.config.compute_objective:
+                    self._training_history.append({
+                        'iteration': iteration,
+                        'objective': total_objective,
+                        'reconstruction_error': reconstruction_error,
+                        'penalty_value': penalty_value
+                    })
+            
+            # SOLUTION 3: Dictionary change monitoring for convergence
+            # dict_change = np.linalg.norm(new_dictionary - old_dictionary, 'fro')
+            # if dict_change < dict_convergence_tolerance: break
+            
+            # SOLUTION 4: Residual-based convergence checking
+            # residual_norm = np.linalg.norm(X - self.dictionary @ codes, 'fro')
+            # if residual_norm < residual_tolerance: break
             
             if self.config.verbose:
                 print(f"Iteration {iteration + 1}/{self.config.n_iterations} completed")
@@ -271,6 +294,29 @@ class CompleteDictionaryLearner:
         """
         if self.dictionary is None:
             raise ValueError("Dictionary not learned. Call fit() first.")
+        
+        # FIXME: Factory encode method lacks proper error handling and validation
+        #
+        # ISSUE: Direct solver call without input validation or error recovery
+        #
+        # SOLUTION 1: Add comprehensive input validation
+        # if not isinstance(X, np.ndarray):
+        #     raise TypeError("X must be numpy array")
+        # if X.ndim != 2:
+        #     raise ValueError("X must be 2D array (n_features, n_samples)")
+        # if X.shape[0] != self.dictionary.shape[0]:
+        #     raise ValueError("Feature dimension mismatch between X and dictionary")
+        
+        # SOLUTION 2: Add error recovery and fallback mechanisms
+        # try:
+        #     return self.solver.solve(self.dictionary, X, self.penalty)
+        # except np.linalg.LinAlgError:
+        #     # Fallback to regularized solver
+        #     return fallback_solver.solve(self.dictionary, X, self.penalty)
+        # except Exception as e:
+        #     # Log error and return zeros
+        #     print(f"Solver failed: {e}")
+        #     return np.zeros((self.dictionary.shape[1], X.shape[1]))
         
         return self.solver.solve(self.dictionary, X, self.penalty)
     

@@ -51,8 +51,26 @@ class OrthogonalMatchingPursuit:
             if np.linalg.norm(residual) < self.tol:
                 return a, k
             
+            # FIXME: Multiple research-accurate OMP implementation variants needed
+            # 
+            # ISSUE: Current implementation lacks key OMP variants from literature
+            # 
+            # SOLUTION 1: Standard OMP (Pati et al. 1993) - Current approach
             # Find atom with maximum correlation to residual
             correlations = np.abs(D_normalized.T @ residual)
+            
+            # SOLUTION 2: Weak OMP (Temlyakov 2000)
+            # Select atoms with correlation above threshold rather than maximum:
+            # threshold = self.weak_threshold * np.max(correlations)
+            # weak_candidates = np.where(correlations >= threshold)[0]
+            # best_idx = weak_candidates[np.random.randint(len(weak_candidates))]
+            
+            # SOLUTION 3: Regularized OMP (Needell & Vershynin 2010)
+            # Add small regularization to correlation computation:
+            # regularized_corr = correlations + reg_param * np.random.randn(n_atoms)
+            
+            # SOLUTION 4: Stagewise OMP (Donoho et al. 2012)
+            # Multiple weak selections per iteration for better approximation
             
             # Avoid selecting already chosen atoms
             for idx in selected_indices:
@@ -61,11 +79,26 @@ class OrthogonalMatchingPursuit:
             best_idx = int(np.argmax(correlations))
             selected_indices.append(best_idx)
             
-            # Solve least squares on selected atoms
+            # FIXME: Least squares solver lacks research-accurate variants
+            #
+            # ISSUE: Only pseudo-inverse used, missing numerically stable alternatives
+            #
+            # SOLUTION 1: Current pseudo-inverse approach (numerically unstable)
             D_selected = D[:, selected_indices]
             try:
-                # Use pseudo-inverse for stability
                 coeffs = np.linalg.pinv(D_selected) @ x
+                
+                # SOLUTION 2: QR decomposition for numerical stability (Golub & Van Loan)
+                # Q, R = np.linalg.qr(D_selected)
+                # coeffs = np.linalg.solve(R, Q.T @ x)
+                
+                # SOLUTION 3: Cholesky decomposition for symmetric positive definite
+                # G = D_selected.T @ D_selected + regularization * np.eye(len(selected_indices))
+                # coeffs = np.linalg.solve(G, D_selected.T @ x)
+                
+                # SOLUTION 4: SVD for maximum numerical stability
+                # U, s, Vt = np.linalg.svd(D_selected, full_matrices=False)
+                # coeffs = Vt.T @ (np.diag(1/s) @ (U.T @ x))
                 
                 # Update sparse vector
                 a.fill(0.0)

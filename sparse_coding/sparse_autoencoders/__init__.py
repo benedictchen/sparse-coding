@@ -10,9 +10,9 @@ from .feature_interface import (
     Features, FeatureExtractor, fit_features, encode_features, decode_features,
     compare_features, visualize_features
 )
-from .interpretability import (
-    FeatureStats, FeatureAnalyzer, create_feature_atlas, summarize_atlas
-)
+from .analysis import FeatureStats, FeatureAnalyzer
+from .visualization import create_feature_atlas, summarize_atlas
+from .detection import detect_polysemantic_features
 
 __all__ = [
     # Core SAE classes
@@ -26,5 +26,6 @@ __all__ = [
     'compare_features', 'visualize_features',
     
     # Interpretability tools
-    'FeatureStats', 'FeatureAnalyzer', 'create_feature_atlas', 'summarize_atlas'
+    'FeatureStats', 'FeatureAnalyzer', 'create_feature_atlas', 'summarize_atlas',
+    'detect_polysemantic_features'
 ]
