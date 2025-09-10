@@ -170,12 +170,17 @@ class FeatureExtractor:
         # Map common parameter names to SparseCoder interface
         fit_params = {}
         if 'max_iter' in kwargs:
-            fit_params['n_steps'] = kwargs.pop('max_iter')
+            fit_params['n_steps'] = kwargs['max_iter']
         if 'n_iterations' in kwargs:
-            fit_params['n_steps'] = kwargs.pop('n_iterations')
-        fit_params.update(kwargs)
+            fit_params['n_steps'] = kwargs['n_iterations']
+        if 'n_steps' in kwargs:
+            fit_params['n_steps'] = kwargs['n_steps']
+        if 'lr' in kwargs:
+            fit_params['lr'] = kwargs['lr']
+        if 'learning_rate' in kwargs:
+            fit_params['lr'] = kwargs['learning_rate']
         
-        # Filter out non-SparseCoder parameters from self.kwargs
+        # Filter out non-SparseCoder constructor parameters from self.kwargs
         valid_sparse_coder_params = {
             'mode', 'max_iter', 'tol', 'seed', 'anneal'
         }
@@ -189,7 +194,10 @@ class FeatureExtractor:
             **sparse_coder_kwargs
         )
         
-        learner.fit(X.T, **fit_params)  # SparseCoder expects (n_features, n_samples)
+        # Only pass valid fit parameters (n_steps, lr)
+        valid_fit_params = {k: v for k, v in fit_params.items() 
+                           if k in {'n_steps', 'lr'}}
+        learner.fit(X.T, **valid_fit_params)  # SparseCoder expects (n_features, n_samples)
         
         return Features(
             dictionary=learner.D,

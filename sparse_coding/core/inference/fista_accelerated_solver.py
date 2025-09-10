@@ -1,8 +1,13 @@
 """
 FISTA (Fast Iterative Shrinkage-Thresholding Algorithm) solver.
 
-Implements Beck & Teboulle (2009) accelerated proximal gradient method for 
-sparse coding inference with O(1/k²) convergence rate.
+Implements Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding 
+algorithm for linear inverse problems. SIAM Journal on Imaging Sciences, 2(1), 183-202.
+
+Provides all three variants from the original paper:
+- Algorithm 2: Standard FISTA with O(1/k²) convergence
+- Section 4: FISTA with backtracking for adaptive step size  
+- Algorithm 4: Monotone FISTA with restart for non-convex problems
 """
 
 from __future__ import annotations

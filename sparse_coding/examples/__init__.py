@@ -3,7 +3,7 @@ Validation and demonstration examples for sparse coding algorithms.
 
 This package contains comprehensive validation demos that test all
 penalty functions, solvers, and dictionary update methods with
-research-accurate implementations.
+research-based implementations.
 """
 
 from .algorithm_validation_demo import (

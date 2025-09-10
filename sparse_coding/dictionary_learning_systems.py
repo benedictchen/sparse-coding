@@ -2,7 +2,7 @@
 Comprehensive Dictionary Learning Implementations
 
 High-level learners that orchestrate inference solvers and dictionary updaters.
-Implements research-accurate dictionary learning algorithms with configuration options.
+Implements research-based dictionary learning algorithms with configuration options.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from .dictionary_update_algorithms import get_dict_updater
 class ComprehensiveDictionaryLearner:
     """Comprehensive dictionary learning with configurable components.
     
-    Provides a unified interface to all sparse coding algorithms with research-accurate
+    Provides a unified interface to all sparse coding algorithms with research-based
     implementations. Users can configure penalty functions, solvers, and updaters.
     
     References:

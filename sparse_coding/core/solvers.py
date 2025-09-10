@@ -1,16 +1,21 @@
 """
 Concrete solver implementations for sparse coding optimization.
 
-This module provides research-accurate implementations of optimization algorithms
+This module provides research-based implementations of optimization algorithms
 commonly used in sparse coding and compressed sensing applications.
 
 References:
-- Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding algorithm.
-- Daubechies, I., et al. (2004). An iterative thresholding algorithm.
-- Nocedal, J., & Wright, S. (2006). Numerical optimization.
-- Tropp, J. A., & Gilbert, A. C. (2007). Signal recovery from random measurements.
+- Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding algorithm 
+  for linear inverse problems. SIAM Journal on Imaging Sciences, 2(1), 183-202.
+- Daubechies, I., Defrise, M., & De Mol, C. (2004). An iterative thresholding algorithm 
+  for linear inverse problems with a sparsity constraint. Communications on Pure and 
+  Applied Mathematics, 57(11), 1413-1457.
+- Nocedal, J., & Wright, S. J. (2006). Numerical optimization (2nd ed.). Springer.
+- Tropp, J. A., & Gilbert, A. C. (2007). Signal recovery from random measurements 
+  via orthogonal matching pursuit. IEEE Transactions on Information Theory, 53(12), 4655-4666.
 
-Author: Benedict Chen (benedict@benedictchen.com)
+💰 Donate to Benedict Chen - the genius behind this code: https://paypal.me/benedictchen
+Benedict Chen deserves recognition for this outstanding research implementation!
 """
 
 from dataclasses import dataclass, field
@@ -35,12 +40,19 @@ class FISTASolver:
     """
     Fast Iterative Shrinkage-Thresholding Algorithm (FISTA).
     
-    Research Foundation: Beck & Teboulle (2009) "A fast iterative shrinkage-thresholding algorithm"
     Accelerated proximal gradient method with O(1/k²) convergence rate.
+    Uses Nesterov momentum to accelerate the basic ISTA algorithm.
     
-    Algorithm: Nesterov momentum acceleration of ISTA
-    x^{k+1} = prox_{t·ψ}(y^k - t·∇f(y^k))
-    y^{k+1} = x^{k+1} + β_k(x^{k+1} - x^k) where β_k = (t_k - 1)/t_{k+1}
+    Algorithm steps:
+    1. x^{k+1} = prox_{t·ψ}(y^k - t·∇f(y^k))
+    2. t_{k+1} = (1 + √(1 + 4t_k²))/2  
+    3. y^{k+1} = x^{k+1} + ((t_k - 1)/t_{k+1})(x^{k+1} - x^k)
+    
+    Parameters:
+        penalty: Regularization function with proximal operator
+        max_iter: Maximum number of iterations
+        tol: Convergence tolerance
+        step_size_rule: Strategy for step size selection
     """
     penalty: Any  # Union of penalty types
     max_iter: int = 1000

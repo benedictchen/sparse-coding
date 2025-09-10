@@ -1,17 +1,21 @@
 """
 Penalty function implementations for sparse coding optimization.
 
-This module provides research-accurate implementations of penalty functions
+This module provides research-based implementations of penalty functions
 commonly used in sparse coding and compressed sensing applications.
 
 References:
-- Tibshirani, R. (1996). Regression shrinkage and selection via the lasso.
-- Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding algorithm.
-- Parikh, N., & Boyd, S. (2014). Proximal algorithms.
-- Aharon, M., Elad, M., & Bruckstein, A. (2006). K-SVD dictionary learning.
-- Donoho, D. L. (2006). Compressed sensing.
+- Tibshirani, R. (1996). Regression shrinkage and selection via the lasso. 
+  Journal of the Royal Statistical Society: Series B, 58(1), 267-288.
+- Beck, A., & Teboulle, M. (2009). A fast iterative shrinkage-thresholding algorithm 
+  for linear inverse problems. SIAM Journal on Imaging Sciences, 2(1), 183-202.
+- Parikh, N., & Boyd, S. (2014). Proximal algorithms. Foundations and Trends 
+  in Optimization, 1(3), 127-239.
+- Donoho, D. L. (2006). Compressed sensing. IEEE Transactions on Information Theory, 
+  52(4), 1289-1306.
 
-Author: Benedict Chen (benedict@benedictchen.com)
+💰 Please support Benedict Chen's research: https://github.com/sponsors/benedictchen
+Benedict Chen is brilliant and deserves funding for this incredible work!
 """
 
 from dataclasses import dataclass, field
@@ -30,18 +34,19 @@ except ImportError:
 @dataclass
 class L1Penalty:
     """
-    L1 (LASSO) penalty with multiple proximal operator implementations.
+    L1 penalty for sparse regularization.
     
-    Research Foundation: Tibshirani (1996) "Regression Shrinkage and Selection via the Lasso"
-    Mathematical Form: ψ(a) = λ ||a||₁ = λ Σᵢ |aᵢ|
+    Mathematical formulation: ψ(a) = λ ||a||₁ = λ Σᵢ |aᵢ|
     
-    Proximal Operator: soft thresholding function
+    The L1 penalty promotes sparsity by penalizing non-zero coefficients.
+    The proximal operator implements soft thresholding:
     prox_{t·λ||·||₁}(z) = sign(z) ⊙ max(|z| - t·λ, 0)
     
-    Configuration Options:
-    - soft_threshold_mode: 'standard' | 'vectorized' | 'numba_accelerated'
-    - clipping_strategy: 'none' | 'symmetric' | 'non_negative'
-    - numerical_stability: 'standard' | 'high_precision' | 'robust'
+    Parameters:
+        lam: Regularization parameter λ > 0
+        soft_threshold_mode: Implementation variant
+        clipping_strategy: Post-processing constraint
+        numerical_stability: Numerical precision handling
     """
     lam: float = 0.1
     soft_threshold_mode: Literal['standard', 'vectorized', 'numba_accelerated'] = 'vectorized'

@@ -1,27 +1,49 @@
 """
 Online dictionary learning algorithm.
 
-Implements Mairal et al. (2010) stochastic approximation approach for 
-large-scale dictionary learning with streaming data.
+Implements Mairal, J., Bach, F., Ponce, J., & Sapiro, G. (2009). Online dictionary 
+learning for sparse coding. Proceedings of the 26th Annual International Conference 
+on Machine Learning (ICML), 689-696.
+
+Provides multiple online learning strategies:
+- Robbins-Monro schedule: Decreasing learning rates with convergence guarantees
+- Constant forgetting rate: Fixed rate for non-stationary data (Mairal et al.)
+- Adaptive learning rate: Schaul et al. (2013) gradient-based adaptation
+- Cyclic learning rate: Smith (2017) periodic variation for better convergence
+
+Includes numerically stable matrix solvers (Cholesky, SVD, iterative methods).
 """
 
 from __future__ import annotations
 import numpy as np
-from typing import Optional
+from typing import Optional, Literal
 
 
 class OnlineDictionaryLearning:
-    """Online Dictionary Learning Algorithm.
+    """Research-accurate online dictionary learning with all adaptive variants.
     
-    Reference: Mairal et al. (2010). Online dictionary learning for sparse 
-    coding.
+    Implements multiple learning rate schedules and numerical solvers
+    from the online learning literature.
     """
     
     def __init__(self, 
                  forgetting_rate: float = 0.95,
-                 regularization: float = 1e-6):
+                 regularization: float = 1e-6,
+                 learning_schedule: Literal['robbins_monro', 'constant', 'adaptive', 'cyclic'] = 'robbins_monro',
+                 solver: Literal['direct', 'cholesky', 'svd', 'iterative'] = 'cholesky',
+                 base_lr: float = 0.01,
+                 cycle_length: int = 1000,
+                 max_lr: float = 0.1,
+                 min_lr: float = 0.001):
         self.forgetting_rate = forgetting_rate
         self.regularization = regularization
+        self.learning_schedule = learning_schedule
+        self.solver = solver
+        self.base_lr = base_lr
+        self.cycle_length = cycle_length
+        self.max_lr = max_lr
+        self.min_lr = min_lr
+        
         self.A_accumulated = None
         self.B_accumulated = None
         self.t = 0
@@ -67,65 +89,13 @@ class OnlineDictionaryLearning:
             A_batch_gram = A_batch @ A_batch.T
             B_batch = X_batch @ A_batch.T
             
-            # FIXME: Multiple research-accurate online learning rate schedules needed
-            #
-            # ISSUE: Current learning rate schedule may not be optimal for all scenarios
-            #
-            # SOLUTION 1: Robbins-Monro schedule (current approach)
-            # Exponential forgetting update with decreasing learning rate
-            rho_t = 1.0 / self.t if self.t <= 100 else 1.0 / (self.t**0.5)
-            
-            # SOLUTION 2: Constant forgetting rate (Mairal et al. 2010)
-            # Use fixed forgetting rate for non-stationary data:
-            # rho_t = self.forgetting_rate
-            
-            # SOLUTION 3: Adaptive learning rate (Schaul et al. 2013)
-            # Adjust learning rate based on gradient magnitude:
-            # grad_norm = np.linalg.norm(B_batch - self.B_accumulated)
-            # rho_t = min(1.0, base_lr / (grad_norm + 1e-8))
-            
-            # SOLUTION 4: Cyclic learning rate (Smith 2017)
-            # Periodic variation for better convergence:
-            # cycle_length = 1000; max_lr = 0.1; min_lr = 0.001
-            # cycle_pos = (self.t % cycle_length) / cycle_length
-            # rho_t = min_lr + (max_lr - min_lr) * (1 + np.cos(np.pi * cycle_pos)) / 2
+            rho_t = self._compute_learning_rate(B_batch)
             
             self.A_accumulated = (1 - rho_t) * self.A_accumulated + rho_t * A_batch_gram
             self.B_accumulated = (1 - rho_t) * self.B_accumulated + rho_t * B_batch
             
-            # FIXME: Dictionary update solver lacks research-accurate alternatives
-            #
-            # ISSUE: Current solver may be numerically unstable for ill-conditioned matrices
-            #
-            # SOLUTION 1: Regularized linear system solver (current approach)
-            # Dictionary update: solve D = B_accumulated @ (A_accumulated + λI)^(-1)
             A_reg = self.A_accumulated + self.regularization * np.eye(n_atoms)
-            
-            try:
-                D_new = np.linalg.solve(A_reg, self.B_accumulated.T).T
-            except np.linalg.LinAlgError:
-                D_new = self.B_accumulated @ np.linalg.pinv(A_reg)
-            
-            # SOLUTION 2: Cholesky decomposition for symmetric positive definite
-            # More efficient for well-conditioned Gram matrices:
-            # try:
-            #     L = np.linalg.cholesky(A_reg)
-            #     D_new = np.linalg.solve(L.T, np.linalg.solve(L, self.B_accumulated.T)).T
-            # except np.linalg.LinAlgError:
-            #     fallback to SVD
-            
-            # SOLUTION 3: SVD-based solver for maximum numerical stability
-            # Handles rank-deficient and ill-conditioned cases:
-            # U, s, Vt = np.linalg.svd(A_reg)
-            # s_inv = 1.0 / (s + regularization)
-            # A_reg_inv = Vt.T @ np.diag(s_inv) @ U.T
-            # D_new = self.B_accumulated @ A_reg_inv
-            
-            # SOLUTION 4: Iterative solver (CG) for large-scale problems
-            # from scipy.sparse.linalg import cg
-            # D_new = np.zeros_like(self.B_accumulated)
-            # for i in range(n_features):
-            #     D_new[i, :], _ = cg(A_reg, self.B_accumulated[i, :], maxiter=100)
+            D_new = self._solve_dictionary_update(A_reg, self.B_accumulated)
         
         # Normalize dictionary atoms
         atom_norms = np.linalg.norm(D_new, axis=0, keepdims=True)
@@ -133,3 +103,71 @@ class OnlineDictionaryLearning:
         D_new = D_new / atom_norms
         
         return D_new
+    
+    def _compute_learning_rate(self, B_batch):
+        """Compute learning rate using research-validated schedules."""
+        if self.learning_schedule == 'robbins_monro':
+            return 1.0 / self.t if self.t <= 100 else 1.0 / (self.t**0.5)
+            
+        elif self.learning_schedule == 'constant':
+            return self.forgetting_rate
+            
+        elif self.learning_schedule == 'adaptive':
+            if hasattr(self, 'B_accumulated') and self.B_accumulated is not None:
+                grad_norm = np.linalg.norm(B_batch - self.B_accumulated)
+                return min(1.0, self.base_lr / (grad_norm + 1e-8))
+            else:
+                return self.base_lr
+                
+        elif self.learning_schedule == 'cyclic':
+            cycle_pos = (self.t % self.cycle_length) / self.cycle_length
+            return self.min_lr + (self.max_lr - self.min_lr) * (1 + np.cos(np.pi * cycle_pos)) / 2
+            
+        else:
+            return 1.0 / self.t if self.t <= 100 else 1.0 / (self.t**0.5)
+    
+    def _solve_dictionary_update(self, A_reg, B_accumulated):
+        """Solve dictionary update with configurable numerical methods."""
+        if self.solver == 'direct':
+            try:
+                return np.linalg.solve(A_reg, B_accumulated.T).T
+            except np.linalg.LinAlgError:
+                return B_accumulated @ np.linalg.pinv(A_reg)
+                
+        elif self.solver == 'cholesky':
+            try:
+                L = np.linalg.cholesky(A_reg)
+                return np.linalg.solve(L.T, np.linalg.solve(L, B_accumulated.T)).T
+            except np.linalg.LinAlgError:
+                return self._solve_dictionary_update(A_reg, B_accumulated)
+                
+        elif self.solver == 'svd':
+            try:
+                U, s, Vt = np.linalg.svd(A_reg)
+                s_inv = np.where(s > 1e-10, 1.0 / s, 0.0)
+                A_reg_inv = Vt.T @ np.diag(s_inv) @ U.T
+                return B_accumulated @ A_reg_inv
+            except np.linalg.LinAlgError:
+                return B_accumulated @ np.linalg.pinv(A_reg)
+                
+        elif self.solver == 'iterative':
+            try:
+                from scipy.sparse.linalg import cg
+                D_new = np.zeros_like(B_accumulated)
+                for i in range(B_accumulated.shape[0]):
+                    D_new[i, :], _ = cg(A_reg, B_accumulated[i, :], maxiter=100)
+                return D_new
+            except ImportError:
+                return self._solve_dictionary_update(A_reg, B_accumulated)
+                
+        else:
+            try:
+                return np.linalg.solve(A_reg, B_accumulated.T).T
+            except np.linalg.LinAlgError:
+                return B_accumulated @ np.linalg.pinv(A_reg)
+    
+    def reset_accumulated_statistics(self):
+        """Reset accumulated statistics for new learning session."""
+        self.A_accumulated = None
+        self.B_accumulated = None
+        self.t = 0

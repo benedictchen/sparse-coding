@@ -15,7 +15,7 @@ import sys
 # Add package to path for development
 sys.path.insert(0, str(Path(__file__).parent))
 
-from sparse_coding.sae import (
+from sparse_coding.sparse_autoencoders import (
     fit_features, encode_features, decode_features, compare_features,
     FeatureExtractor, create_feature_atlas, summarize_atlas
 )

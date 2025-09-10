@@ -2,7 +2,7 @@
 """
 Enhanced Sparse Coding Features Demonstration
 
-Showcases the new research-accurate features incorporated from comparison analysis:
+Showcases the new research-based features incorporated from comparison analysis:
 - Lambda annealing for progressive sparsity
 - paper_gdD mode with gradient dictionary updates and homeostasis  
 - Enhanced NCG with Polak-Ribière conjugate gradient
@@ -287,7 +287,7 @@ def main():
     print(f"\n✅ Demonstration complete! Results saved to: {output_dir}")
     print("\n🎯 Key Findings:")
     print("• Lambda annealing improves sparsity-reconstruction trade-off")
-    print("• paper_gdD mode provides more research-accurate dictionary learning")  
+    print("• paper_gdD mode provides more research-based dictionary learning")  
     print("• Homeostatic equalization reduces atom usage variability")
     print("• Enhanced NCG improves convergence properties")
     

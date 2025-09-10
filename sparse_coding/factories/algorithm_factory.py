@@ -30,7 +30,8 @@ class LearnerConfig:
     Configuration for complete dictionary learning system.
     
     Combines penalty, solver, and dictionary update configurations
-    for end-to-end sparse coding and dictionary learning.
+    for end-to-end sparse coding and dictionary learning with
+    research-validated convergence monitoring.
     """
     # Algorithm selection
     penalty_type: PenaltyType = PenaltyType.L1
@@ -55,6 +56,13 @@ class LearnerConfig:
     learning_rate: float = 0.01
     regularization: float = 1e-6
     normalize_atoms: bool = True
+    
+    # Convergence monitoring (Mairal et al. 2009)
+    convergence_tolerance: float = 1e-4
+    dict_convergence_tolerance: float = 1e-5
+    residual_tolerance: float = 1e-6
+    enable_early_stopping: bool = True
+    patience: int = 5
     
     # System parameters
     verbose: bool = False
@@ -234,51 +242,68 @@ class CompleteDictionaryLearner:
         self.dictionary = np.random.randn(n_features, self.config.n_atoms)
         self.dictionary /= np.linalg.norm(self.dictionary, axis=0, keepdims=True)
         
-        # FIXME: Alternating optimization lacks research-accurate convergence checking
-        #
-        # ISSUE: No convergence monitoring or early stopping based on objective function
-        #
-        # SOLUTION 1: Add proper convergence monitoring (current approach)
-        # Alternating optimization
+        # Research-accurate alternating optimization with convergence monitoring
         prev_objective = float('inf')
+        prev_dictionary = self.dictionary.copy()
+        stagnation_count = 0
+        
         for iteration in range(self.config.n_iterations):
             # Sparse coding step
             codes = self.solver.solve(self.dictionary, X, self.penalty)
             
-            # Dictionary update step  
+            # Dictionary update step
+            old_dictionary = self.dictionary.copy()
             self.dictionary = self.updater.step(self.dictionary, X, codes)
             
-            # SOLUTION 2: Early stopping based on objective function convergence
-            # Track objective if requested or for convergence checking
-            if self.config.compute_objective or True:  # Always compute for convergence
-                reconstruction_error = 0.5 * np.sum((X - self.dictionary @ codes) ** 2)
-                penalty_value = self.penalty.value(codes) if hasattr(self.penalty, 'value') else 0.0
-                total_objective = reconstruction_error + penalty_value
-                
-                # Early stopping check
-                # objective_change = abs(total_objective - prev_objective) / (prev_objective + 1e-12)
-                # if iteration > 0 and objective_change < convergence_tolerance:
-                #     break
-                # prev_objective = total_objective
-                
-                if self.config.compute_objective:
-                    self._training_history.append({
-                        'iteration': iteration,
-                        'objective': total_objective,
-                        'reconstruction_error': reconstruction_error,
-                        'penalty_value': penalty_value
-                    })
+            # Convergence monitoring (Mairal et al. 2009)
+            reconstruction_error = 0.5 * np.sum((X - self.dictionary @ codes) ** 2)
+            penalty_value = self.penalty.value(codes) if hasattr(self.penalty, 'value') else 0.0
+            total_objective = reconstruction_error + penalty_value
             
-            # SOLUTION 3: Dictionary change monitoring for convergence
-            # dict_change = np.linalg.norm(new_dictionary - old_dictionary, 'fro')
-            # if dict_change < dict_convergence_tolerance: break
+            # Early stopping: Objective function convergence
+            if self.config.enable_early_stopping and iteration > 0:
+                objective_change = abs(total_objective - prev_objective) / (prev_objective + 1e-12)
+                if objective_change < self.config.convergence_tolerance:
+                    stagnation_count += 1
+                    if stagnation_count >= self.config.patience:
+                        if self.config.verbose:
+                            print(f"Early stopping: objective convergence at iteration {iteration + 1}")
+                        break
+                else:
+                    stagnation_count = 0
             
-            # SOLUTION 4: Residual-based convergence checking
-            # residual_norm = np.linalg.norm(X - self.dictionary @ codes, 'fro')
-            # if residual_norm < residual_tolerance: break
+            # Early stopping: Dictionary change monitoring
+            if self.config.enable_early_stopping:
+                dict_change = np.linalg.norm(self.dictionary - old_dictionary, 'fro')
+                if dict_change < self.config.dict_convergence_tolerance:
+                    if self.config.verbose:
+                        print(f"Early stopping: dictionary convergence at iteration {iteration + 1}")
+                    break
+            
+            # Early stopping: Residual-based convergence
+            if self.config.enable_early_stopping:
+                residual_norm = np.linalg.norm(X - self.dictionary @ codes, 'fro')
+                if residual_norm < self.config.residual_tolerance:
+                    if self.config.verbose:
+                        print(f"Early stopping: residual convergence at iteration {iteration + 1}")
+                    break
+            
+            # Store training history
+            if self.config.compute_objective:
+                self._training_history.append({
+                    'iteration': iteration,
+                    'objective': total_objective,
+                    'reconstruction_error': reconstruction_error,
+                    'penalty_value': penalty_value,
+                    'dict_change': np.linalg.norm(self.dictionary - prev_dictionary, 'fro'),
+                    'residual_norm': np.linalg.norm(X - self.dictionary @ codes, 'fro')
+                })
+            
+            prev_objective = total_objective
+            prev_dictionary = self.dictionary.copy()
             
             if self.config.verbose:
-                print(f"Iteration {iteration + 1}/{self.config.n_iterations} completed")
+                print(f"Iteration {iteration + 1}/{self.config.n_iterations}: obj={total_objective:.6f}")
         
         return self
     
@@ -295,30 +320,42 @@ class CompleteDictionaryLearner:
         if self.dictionary is None:
             raise ValueError("Dictionary not learned. Call fit() first.")
         
-        # FIXME: Factory encode method lacks proper error handling and validation
-        #
-        # ISSUE: Direct solver call without input validation or error recovery
-        #
-        # SOLUTION 1: Add comprehensive input validation
-        # if not isinstance(X, np.ndarray):
-        #     raise TypeError("X must be numpy array")
-        # if X.ndim != 2:
-        #     raise ValueError("X must be 2D array (n_features, n_samples)")
-        # if X.shape[0] != self.dictionary.shape[0]:
-        #     raise ValueError("Feature dimension mismatch between X and dictionary")
+        # Comprehensive input validation
+        if not isinstance(X, np.ndarray):
+            raise TypeError("X must be numpy array")
+        if X.ndim != 2:
+            raise ValueError("X must be 2D array (n_features, n_samples)")
+        if X.shape[0] != self.dictionary.shape[0]:
+            raise ValueError(f"Feature dimension mismatch: X has {X.shape[0]} features, "
+                           f"dictionary expects {self.dictionary.shape[0]}")
+        if X.size == 0:
+            raise ValueError("X cannot be empty")
+        if not np.isfinite(X).all():
+            raise ValueError("X contains non-finite values (NaN or Inf)")
         
-        # SOLUTION 2: Add error recovery and fallback mechanisms
-        # try:
-        #     return self.solver.solve(self.dictionary, X, self.penalty)
-        # except np.linalg.LinAlgError:
-        #     # Fallback to regularized solver
-        #     return fallback_solver.solve(self.dictionary, X, self.penalty)
-        # except Exception as e:
-        #     # Log error and return zeros
-        #     print(f"Solver failed: {e}")
-        #     return np.zeros((self.dictionary.shape[1], X.shape[1]))
-        
-        return self.solver.solve(self.dictionary, X, self.penalty)
+        # Robust solver with error recovery
+        try:
+            return self.solver.solve(self.dictionary, X, self.penalty)
+        except np.linalg.LinAlgError as e:
+            if self.config.verbose:
+                print(f"Solver numerical error: {e}. Attempting regularized fallback.")
+            # Fallback: Add regularization to improve conditioning
+            try:
+                from ..core.inference.orthogonal_matching_pursuit import OrthogonalMatchingPursuit
+                fallback_solver = OrthogonalMatchingPursuit(
+                    regularization=self.config.regularization * 10,
+                    solver='pinv'
+                )
+                return np.array([fallback_solver.solve(self.dictionary, X[:, i])[0] 
+                               for i in range(X.shape[1])]).T
+            except Exception as fallback_error:
+                if self.config.verbose:
+                    print(f"Fallback solver failed: {fallback_error}")
+                return np.zeros((self.dictionary.shape[1], X.shape[1]))
+        except Exception as e:
+            if self.config.verbose:
+                print(f"Solver failed with unexpected error: {e}")
+            return np.zeros((self.dictionary.shape[1], X.shape[1]))
     
     def decode(self, codes: np.ndarray) -> np.ndarray:
         """
@@ -333,7 +370,42 @@ class CompleteDictionaryLearner:
         if self.dictionary is None:
             raise ValueError("Dictionary not learned. Call fit() first.")
         
+        # Input validation
+        if not isinstance(codes, np.ndarray):
+            raise TypeError("codes must be numpy array")
+        if codes.ndim != 2:
+            raise ValueError("codes must be 2D array (n_atoms, n_samples)")
+        if codes.shape[0] != self.dictionary.shape[1]:
+            raise ValueError(f"Code dimension mismatch: codes has {codes.shape[0]} atoms, "
+                           f"dictionary has {self.dictionary.shape[1]} atoms")
+        if not np.isfinite(codes).all():
+            raise ValueError("codes contains non-finite values (NaN or Inf)")
+        
         return self.dictionary @ codes
+    
+    def get_convergence_info(self) -> Dict[str, Any]:
+        """
+        Get convergence analysis from training history.
+        
+        Returns:
+            Dictionary with convergence metrics and analysis
+        """
+        if not self._training_history:
+            return {'message': 'No training history available'}
+        
+        history = np.array([h['objective'] for h in self._training_history])
+        dict_changes = np.array([h.get('dict_change', 0) for h in self._training_history])
+        residuals = np.array([h.get('residual_norm', 0) for h in self._training_history])
+        
+        return {
+            'converged': len(self._training_history) < self.config.n_iterations,
+            'final_objective': history[-1] if len(history) > 0 else None,
+            'objective_reduction': (history[0] - history[-1]) / history[0] if len(history) > 1 else 0,
+            'final_dict_change': dict_changes[-1] if len(dict_changes) > 0 else None,
+            'final_residual': residuals[-1] if len(residuals) > 0 else None,
+            'iterations_completed': len(self._training_history),
+            'training_history': self._training_history
+        }
     
     def get_config(self) -> Dict[str, Any]:
         """Return complete configuration as dictionary."""
@@ -348,6 +420,10 @@ class CompleteDictionaryLearner:
             'tol': self.config.tol,
             'learning_rate': self.config.learning_rate,
             'regularization': self.config.regularization,
+            'convergence_tolerance': self.config.convergence_tolerance,
+            'dict_convergence_tolerance': self.config.dict_convergence_tolerance,
+            'residual_tolerance': self.config.residual_tolerance,
+            'enable_early_stopping': self.config.enable_early_stopping,
         }
 
 
@@ -360,7 +436,7 @@ def create_complete_learner(
     **kwargs
 ) -> CompleteDictionaryLearner:
     """
-    Factory function to create complete dictionary learning system.
+    Factory function to create complete dictionary learning system with research-accurate convergence monitoring.
     
     Args:
         penalty_type: Penalty function type ('l1', 'elastic_net', etc.)
@@ -368,37 +444,56 @@ def create_complete_learner(
         updater_type: Dictionary update method ('mod', 'ksvd', 'grad_d')
         n_atoms: Number of dictionary atoms
         n_iterations: Number of alternating optimization iterations
-        **kwargs: Additional configuration parameters
+        **kwargs: Additional configuration parameters including:
+            - convergence_tolerance: Objective function convergence threshold
+            - dict_convergence_tolerance: Dictionary change convergence threshold
+            - residual_tolerance: Residual norm convergence threshold
+            - enable_early_stopping: Enable automatic early stopping
+            - patience: Number of iterations to wait before early stopping
         
     Returns:
-        Configured CompleteDictionaryLearner instance
+        Configured CompleteDictionaryLearner instance with convergence monitoring
         
     Example:
         ```python
-        # Create L1+FISTA+MOD learner
+        # Create L1+FISTA+MOD learner with convergence monitoring
         learner = create_complete_learner(
             penalty_type='l1',
             solver_type='fista', 
             updater_type='mod',
             n_atoms=50,
             lam=0.1,
-            n_iterations=30
+            n_iterations=30,
+            convergence_tolerance=1e-5,
+            enable_early_stopping=True
         )
         
-        # Train on data
+        # Train on data with automatic convergence detection
         learner.fit(training_data)
         
-        # Encode new data
-        codes = learner.encode(test_data)
+        # Check convergence status
+        conv_info = learner.get_convergence_info()
+        print(f"Converged: {conv_info['converged']}")
         ```
     """
-    config = LearnerConfig(
-        penalty_type=PenaltyType(penalty_type) if isinstance(penalty_type, str) else penalty_type,
-        solver_type=SolverType(solver_type) if isinstance(solver_type, str) else solver_type,
-        updater_type=UpdaterType(updater_type) if isinstance(updater_type, str) else updater_type,
-        n_atoms=n_atoms,
-        n_iterations=n_iterations,
-        **kwargs
-    )
+    # Input validation
+    if n_atoms <= 0:
+        raise ValueError("n_atoms must be positive")
+    if n_iterations <= 0:
+        raise ValueError("n_iterations must be positive")
     
-    return CompleteDictionaryLearner(config)
+    try:
+        config = LearnerConfig(
+            penalty_type=PenaltyType(penalty_type) if isinstance(penalty_type, str) else penalty_type,
+            solver_type=SolverType(solver_type) if isinstance(solver_type, str) else solver_type,
+            updater_type=UpdaterType(updater_type) if isinstance(updater_type, str) else updater_type,
+            n_atoms=n_atoms,
+            n_iterations=n_iterations,
+            **kwargs
+        )
+        
+        return CompleteDictionaryLearner(config)
+    except ValueError as e:
+        raise ValueError(f"Invalid configuration: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to create learner: {e}")

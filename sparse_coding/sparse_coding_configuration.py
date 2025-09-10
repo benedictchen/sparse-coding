@@ -42,7 +42,7 @@ def make_metadata(cfg: TrainingConfig, D_shape, A_shape, extra=None):
 
 @dataclass
 class PenaltyConfig:
-    """Configuration for penalty functions with research-accurate defaults."""
+    """Configuration for penalty functions with research-based defaults."""
     name: str = 'l1'
     params: Dict[str, Any] = field(default_factory=dict)
     
@@ -79,7 +79,7 @@ class PenaltyConfig:
     }
     
     def __post_init__(self):
-        """Apply research-accurate defaults with citations."""
+        """Apply research-based defaults with citations."""
         if not self.params and self.name in self.RESEARCH_DEFAULTS:
             config = self.RESEARCH_DEFAULTS[self.name]
             self.params = {k: v for k, v in config.items() if k != 'citation'}
@@ -117,7 +117,7 @@ class SolverConfig:
     }
     
     def __post_init__(self):
-        """Apply research-accurate defaults."""
+        """Apply research-based defaults."""
         if not self.params and self.name in self.RESEARCH_DEFAULTS:
             config = self.RESEARCH_DEFAULTS[self.name]
             self.params = {k: v for k, v in config.items() if k != 'citation'}
@@ -155,7 +155,7 @@ class DictUpdaterConfig:
     }
     
     def __post_init__(self):
-        """Apply research-accurate defaults."""
+        """Apply research-based defaults."""
         if not self.params and self.name in self.RESEARCH_DEFAULTS:
             config = self.RESEARCH_DEFAULTS[self.name]
             self.params = {k: v for k, v in config.items() if k != 'citation'}

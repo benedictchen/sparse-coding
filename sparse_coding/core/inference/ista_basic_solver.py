@@ -1,8 +1,15 @@
 """
 ISTA (Iterative Shrinkage-Thresholding Algorithm) solver.
 
-Implements Daubechies et al. (2004) proximal gradient method for sparse coding
-inference with O(1/k) convergence rate.
+Implements Daubechies, I., Defrise, M., & De Mol, C. (2004). An iterative thresholding 
+algorithm for linear inverse problems with a sparsity constraint. Communications on Pure 
+and Applied Mathematics, 57(11), 1413-1457.
+
+Provides multiple ISTA variants:
+- Basic ISTA: Original algorithm with O(1/k) convergence
+- Backtracking ISTA: Adaptive step size with line search  
+- Accelerated ISTA: Nesterov acceleration for O(1/k²) rate
+- Monotone ISTA: Restart-based version for non-convex problems
 """
 
 from __future__ import annotations

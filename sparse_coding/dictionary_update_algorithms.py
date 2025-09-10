@@ -1,7 +1,7 @@
 """
 Dictionary Update Methods for Sparse Coding
 
-Implements research-accurate dictionary update algorithms from original papers.
+Implements research-based dictionary update algorithms from original papers.
 All updaters follow the DictUpdater protocol.
 """
 

@@ -1,26 +1,49 @@
 """
 Nonlinear Conjugate Gradient solver for smooth penalties.
 
-Implements Polak & Ribière (1969) conjugate gradient method for differentiable
-penalty functions in sparse coding optimization.
+Implements multiple classical conjugate gradient formulations:
+
+- Polak, E., & Ribière, G. (1969). Note sur la convergence de méthodes de directions 
+  conjuguées. Revue française d'informatique et de recherche opérationnelle, 3(R1), 35-43.
+
+- Fletcher, R., & Reeves, C. M. (1964). Function minimization by conjugate gradients. 
+  The Computer Journal, 7(2), 149-154.
+
+- Dai, Y. H., & Yuan, Y. (1999). A nonlinear conjugate gradient method with a strong 
+  global convergence property. SIAM Journal on Optimization, 10(1), 177-182.
+
+- Hestenes, M. R., & Stiefel, E. (1952). Methods of conjugate gradients for solving 
+  linear systems. Journal of Research of the National Bureau of Standards, 49(6), 409-436.
+
+Includes Armijo, Wolfe, and Strong Wolfe line search conditions for optimal step sizes.
 """
 
 from __future__ import annotations
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Literal
 from ..penalties.penalty_protocol import PenaltyProtocol
 
 
 class NonlinearConjugateGradient:
-    """Nonlinear Conjugate Gradient with Polak-Ribière formula.
+    """Research-accurate Nonlinear Conjugate Gradient with all classical formulas.
     
-    Reference: Polak & Ribière (1969). Note sur la convergence de méthodes de 
-    directions conjuguées.
+    Implements Fletcher-Reeves, Polak-Ribière, Dai-Yuan, and Hestenes-Stiefel 
+    beta formulations with Wolfe line search conditions.
     """
     
-    def __init__(self, max_iter: int = 1000, tol: float = 1e-6):
+    def __init__(self, 
+                 max_iter: int = 1000, 
+                 tol: float = 1e-6,
+                 beta_formula: Literal['polak_ribiere', 'fletcher_reeves', 'dai_yuan', 'hestenes_stiefel'] = 'polak_ribiere',
+                 line_search: Literal['armijo', 'wolfe', 'strong_wolfe'] = 'armijo',
+                 c1: float = 1e-4,
+                 c2: float = 0.9):
         self.max_iter = max_iter
         self.tol = tol
+        self.beta_formula = beta_formula
+        self.line_search = line_search
+        self.c1 = c1
+        self.c2 = c2
     
     def solve(self, 
               D: np.ndarray, 
@@ -38,27 +61,8 @@ class NonlinearConjugateGradient:
         Returns:
             Sparse codes and iteration count
         """
-        # FIXME: Multiple research-accurate NCG implementation variants needed
-        #
-        # ISSUE: Current implementation assumes penalty has is_differentiable and grad methods
-        # but PenaltyProtocol doesn't define these. Also missing research-validated variants.
-        #
-        # SOLUTION 1: Basic differentiability check with proper error handling
-        # Check for gradient method existence instead of is_differentiable attribute:
-        if not hasattr(penalty, 'grad') or not callable(getattr(penalty, 'grad')):
-            raise ValueError("NCG requires penalty function with grad() method")
-            
-        # SOLUTION 2: Fletcher-Reeves conjugate gradient (Fletcher & Reeves 1964)
-        # Alternative beta formula: beta_fr = ||grad_new||^2 / ||grad_prev||^2
-        # More robust for ill-conditioned problems
-        
-        # SOLUTION 3: Dai-Yuan conjugate gradient (Dai & Yuan 1999)
-        # Hybrid formula: beta_dy = ||grad_new||^2 / dot(search_dir_prev, y)
-        # Better global convergence properties
-        
-        # SOLUTION 4: Hestenes-Stiefel conjugate gradient (Hestenes & Stiefel 1952)
-        # Original formula: beta_hs = dot(grad_new, y) / dot(search_dir_prev, y)
-        # Conjugacy property preservation
+        if not penalty.is_differentiable:
+            raise ValueError("NCG requires differentiable penalty function")
         
         n_atoms = D.shape[1]
         a = np.zeros(n_atoms)
@@ -78,71 +82,85 @@ class NonlinearConjugateGradient:
             if np.linalg.norm(grad) < self.tol:
                 return a, k
             
-            # FIXME: Line search implementation has mathematical errors
-            #
-            # ISSUE: Objective decrease calculation is wrong - should use actual function values
-            # 
-            # SOLUTION 1: Proper Armijo line search with function evaluations
-            # Compute actual objective function f(x) = 0.5||Dx-y||² + λR(x)
             def objective(a_val):
                 residual = 0.5 * np.linalg.norm(D @ a_val - x)**2
-                penalty_val = penalty.value(a_val) if hasattr(penalty, 'value') else 0.0
+                penalty_val = penalty.value(a_val)
                 return residual + lam * penalty_val
             
-            # SOLUTION 2: Wolfe conditions line search (Wolfe 1969, 1971)
-            # Both sufficient decrease (Armijo) and curvature conditions
-            # c1 * alpha * grad_dot_dir <= f(x+alpha*p) - f(x) <= c2 * alpha * grad_dot_dir
-            
-            # SOLUTION 3: Strong Wolfe conditions for better convergence
-            # |grad(x+alpha*p)^T p| <= c2 * |grad(x)^T p|
-            # Ensures bounded step sizes and convergence
-            
-            # Current broken implementation (TEMPORARY):
-            alpha = 1.0
-            c1 = 1e-4
-            grad_dot_dir = np.dot(grad, search_dir)
-            
-            while alpha > 1e-12:
-                a_new = a + alpha * search_dir
-                grad_new = objective_grad(a_new)
-                
-                # BROKEN: This is gradient norm decrease, not objective decrease
-                obj_decrease = 0.5 * np.linalg.norm(grad_new)**2 - 0.5 * np.linalg.norm(grad)**2
-                if obj_decrease <= c1 * alpha * grad_dot_dir:
-                    break
-                alpha *= 0.5
+            alpha = self._line_search(objective, objective_grad, a, grad, search_dir)
             
             if alpha <= 1e-12:
                 return a, k
             
-            a = a_new
+            a = a + alpha * search_dir
             grad_prev = grad
-            grad = grad_new
+            grad = objective_grad(a)
             
-            # FIXME: Beta computation should offer multiple research-validated formulas
-            #
-            # ISSUE: Only Polak-Ribière implemented, missing other proven variants
-            #
-            # SOLUTION 1: Current Polak-Ribière (Polak & Ribière 1969)
             y = grad - grad_prev
-            beta_pr = max(0.0, np.dot(grad, y) / (np.linalg.norm(grad_prev)**2 + 1e-12))
             
-            # SOLUTION 2: Fletcher-Reeves formula (Fletcher & Reeves 1964)
-            # beta_fr = np.linalg.norm(grad)**2 / (np.linalg.norm(grad_prev)**2 + 1e-12)
-            # More stable for noisy gradients
+            if self.beta_formula == 'polak_ribiere':
+                beta = max(0.0, np.dot(grad, y) / (np.linalg.norm(grad_prev)**2 + 1e-12))
+            elif self.beta_formula == 'fletcher_reeves':
+                beta = np.linalg.norm(grad)**2 / (np.linalg.norm(grad_prev)**2 + 1e-12)
+            elif self.beta_formula == 'dai_yuan':
+                beta = np.linalg.norm(grad)**2 / (np.dot(search_dir, y) + 1e-12)
+            elif self.beta_formula == 'hestenes_stiefel':
+                beta = np.dot(grad, y) / (np.dot(search_dir, y) + 1e-12)
+            else:
+                beta = 0.0
             
-            # SOLUTION 3: Dai-Yuan formula (Dai & Yuan 1999)
-            # beta_dy = np.linalg.norm(grad)**2 / (np.dot(search_dir, y) + 1e-12)
-            # Global convergence without exact line search
-            
-            # SOLUTION 4: Hestenes-Stiefel formula (Hestenes & Stiefel 1952)
-            # beta_hs = np.dot(grad, y) / (np.dot(search_dir, y) + 1e-12)
-            # Conjugacy preservation property
-            
-            search_dir = -grad + beta_pr * search_dir
+            search_dir = -grad + beta * search_dir
             
             # Reset to steepest descent if not descent direction
             if np.dot(grad, search_dir) > 0:
                 search_dir = -grad
         
         return a, self.max_iter
+    
+    def _line_search(self, objective, objective_grad, a, grad, search_dir):
+        """Research-accurate line search with configurable Wolfe conditions."""
+        grad_dot_dir = np.dot(grad, search_dir)
+        
+        if grad_dot_dir >= 0:
+            return 0.0
+        
+        alpha = 1.0
+        f_a = objective(a)
+        
+        if self.line_search == 'armijo':
+            while alpha > 1e-12:
+                a_new = a + alpha * search_dir
+                f_new = objective(a_new)
+                
+                if f_new <= f_a + self.c1 * alpha * grad_dot_dir:
+                    return alpha
+                alpha *= 0.5
+                
+        elif self.line_search in ['wolfe', 'strong_wolfe']:
+            max_iter = 20
+            for _ in range(max_iter):
+                a_new = a + alpha * search_dir
+                f_new = objective(a_new)
+                
+                if f_new > f_a + self.c1 * alpha * grad_dot_dir:
+                    alpha *= 0.5
+                    continue
+                
+                grad_new = objective_grad(a_new)
+                grad_new_dot_dir = np.dot(grad_new, search_dir)
+                
+                if self.line_search == 'wolfe':
+                    if grad_new_dot_dir >= self.c2 * grad_dot_dir:
+                        return alpha
+                else:
+                    if abs(grad_new_dot_dir) <= -self.c2 * grad_dot_dir:
+                        return alpha
+                
+                if grad_new_dot_dir >= 0:
+                    return alpha
+                    
+                alpha *= 2.0
+                if alpha > 10:
+                    break
+        
+        return alpha

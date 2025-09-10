@@ -1,7 +1,7 @@
 """
 Sparse Coding Inference Solvers
 
-Implements research-accurate algorithms for solving:
+Implements research-based algorithms for solving:
 argmin_a [1/2||X - D·a||² + penalty(a)]
 
 All solvers follow the InferenceSolver protocol and implement algorithms

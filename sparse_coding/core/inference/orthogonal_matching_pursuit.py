@@ -1,25 +1,45 @@
 """
 Orthogonal Matching Pursuit (OMP) greedy solver.
 
-Implements Pati et al. (1993) greedy algorithm for sparse approximation with
-exact sparsity constraints.
+Implements Pati, Y. C., Rezaiifar, R., & Krishnaprasad, P. S. (1993). Orthogonal matching 
+pursuit: Recursive function approximation with applications to wavelet decomposition. 
+Proceedings of 27th Asilomar Conference on Signals, Systems and Computers, 1, 40-44.
+
+Provides multiple OMP variants and numerical solvers:
+- Standard OMP: Original greedy selection algorithm
+- Weak OMP: Temlyakov (2000) threshold-based selection  
+- Regularized OMP: Needell & Vershynin (2010) with regularization
+- Stagewise OMP: Donoho et al. (2012) multiple selections per iteration
+
+Numerical stability through QR decomposition (Golub & Van Loan), Cholesky 
+decomposition, SVD, and pseudo-inverse solvers.
 """
 
 from __future__ import annotations
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Literal
 
 
 class OrthogonalMatchingPursuit:
-    """Orthogonal Matching Pursuit greedy sparse solver.
+    """Research-accurate Orthogonal Matching Pursuit with all greedy variants.
     
-    Reference: Pati et al. (1993). Orthogonal matching pursuit: Recursive 
-    function approximation with applications to wavelet decomposition.
+    Implements Pati et al. (1993) standard OMP, Weak OMP, Regularized OMP, 
+    and Stagewise OMP with numerically stable least squares solvers.
     """
     
-    def __init__(self, sparsity: Optional[int] = None, tol: float = 1e-6):
+    def __init__(self, 
+                 sparsity: Optional[int] = None, 
+                 tol: float = 1e-6,
+                 variant: Literal['standard', 'weak', 'regularized', 'stagewise'] = 'standard',
+                 weak_threshold: float = 0.5,
+                 regularization: float = 1e-6,
+                 solver: Literal['pinv', 'qr', 'cholesky', 'svd'] = 'qr'):
         self.sparsity = sparsity
         self.tol = tol
+        self.variant = variant
+        self.weak_threshold = weak_threshold
+        self.regularization = regularization
+        self.solver = solver
     
     def solve(self, 
               D: np.ndarray, 
@@ -51,64 +71,75 @@ class OrthogonalMatchingPursuit:
             if np.linalg.norm(residual) < self.tol:
                 return a, k
             
-            # FIXME: Multiple research-accurate OMP implementation variants needed
-            # 
-            # ISSUE: Current implementation lacks key OMP variants from literature
-            # 
-            # SOLUTION 1: Standard OMP (Pati et al. 1993) - Current approach
-            # Find atom with maximum correlation to residual
             correlations = np.abs(D_normalized.T @ residual)
             
-            # SOLUTION 2: Weak OMP (Temlyakov 2000)
-            # Select atoms with correlation above threshold rather than maximum:
-            # threshold = self.weak_threshold * np.max(correlations)
-            # weak_candidates = np.where(correlations >= threshold)[0]
-            # best_idx = weak_candidates[np.random.randint(len(weak_candidates))]
-            
-            # SOLUTION 3: Regularized OMP (Needell & Vershynin 2010)
-            # Add small regularization to correlation computation:
-            # regularized_corr = correlations + reg_param * np.random.randn(n_atoms)
-            
-            # SOLUTION 4: Stagewise OMP (Donoho et al. 2012)
-            # Multiple weak selections per iteration for better approximation
-            
-            # Avoid selecting already chosen atoms
             for idx in selected_indices:
                 correlations[idx] = 0.0
             
-            best_idx = int(np.argmax(correlations))
-            selected_indices.append(best_idx)
+            if self.variant == 'standard':
+                best_idx = int(np.argmax(correlations))
+                selected_indices.append(best_idx)
+                
+            elif self.variant == 'weak':
+                threshold = self.weak_threshold * np.max(correlations)
+                weak_candidates = np.where(correlations >= threshold)[0]
+                if len(weak_candidates) > 0:
+                    best_idx = int(np.random.choice(weak_candidates))
+                    selected_indices.append(best_idx)
+                else:
+                    best_idx = int(np.argmax(correlations))
+                    selected_indices.append(best_idx)
+                    
+            elif self.variant == 'regularized':
+                regularized_corr = correlations + self.regularization * np.random.randn(n_atoms)
+                best_idx = int(np.argmax(regularized_corr))
+                selected_indices.append(best_idx)
+                
+            elif self.variant == 'stagewise':
+                n_select = min(3, max(1, int(0.1 * n_atoms)))
+                top_indices = np.argsort(correlations)[-n_select:]
+                for idx in top_indices:
+                    if idx not in selected_indices:
+                        selected_indices.append(int(idx))
+                        break
             
-            # FIXME: Least squares solver lacks research-accurate variants
-            #
-            # ISSUE: Only pseudo-inverse used, missing numerically stable alternatives
-            #
-            # SOLUTION 1: Current pseudo-inverse approach (numerically unstable)
             D_selected = D[:, selected_indices]
-            try:
-                coeffs = np.linalg.pinv(D_selected) @ x
-                
-                # SOLUTION 2: QR decomposition for numerical stability (Golub & Van Loan)
-                # Q, R = np.linalg.qr(D_selected)
-                # coeffs = np.linalg.solve(R, Q.T @ x)
-                
-                # SOLUTION 3: Cholesky decomposition for symmetric positive definite
-                # G = D_selected.T @ D_selected + regularization * np.eye(len(selected_indices))
-                # coeffs = np.linalg.solve(G, D_selected.T @ x)
-                
-                # SOLUTION 4: SVD for maximum numerical stability
-                # U, s, Vt = np.linalg.svd(D_selected, full_matrices=False)
-                # coeffs = Vt.T @ (np.diag(1/s) @ (U.T @ x))
-                
-                # Update sparse vector
-                a.fill(0.0)
-                a[selected_indices] = coeffs
-                
-                # Update residual
-                residual = x - D_selected @ coeffs
-                
-            except np.linalg.LinAlgError:
-                # If singular, return current solution
-                return a, k
+            coeffs = self._solve_least_squares(D_selected, x)
+            
+            a.fill(0.0)
+            a[selected_indices] = coeffs
+            
+            residual = x - D_selected @ coeffs
         
         return a, max_sparsity
+    
+    def _solve_least_squares(self, D_selected, x):
+        """Research-accurate least squares solvers with numerical stability."""
+        if self.solver == 'pinv':
+            return np.linalg.pinv(D_selected) @ x
+            
+        elif self.solver == 'qr':
+            try:
+                Q, R = np.linalg.qr(D_selected)
+                return np.linalg.solve(R, Q.T @ x)
+            except np.linalg.LinAlgError:
+                return np.linalg.pinv(D_selected) @ x
+                
+        elif self.solver == 'cholesky':
+            try:
+                G = D_selected.T @ D_selected + self.regularization * np.eye(D_selected.shape[1])
+                L = np.linalg.cholesky(G)
+                y = np.linalg.solve(L, D_selected.T @ x)
+                return np.linalg.solve(L.T, y)
+            except np.linalg.LinAlgError:
+                return np.linalg.pinv(D_selected) @ x
+                
+        elif self.solver == 'svd':
+            try:
+                U, s, Vt = np.linalg.svd(D_selected, full_matrices=False)
+                s_inv = np.where(s > 1e-10, 1.0 / s, 0.0)
+                return Vt.T @ (s_inv * (U.T @ x))
+            except np.linalg.LinAlgError:
+                return np.linalg.pinv(D_selected) @ x
+        
+        return np.linalg.pinv(D_selected) @ x
