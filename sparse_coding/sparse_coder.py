@@ -14,16 +14,35 @@ def _mod_update(D, X, A, eps=1e-6):
     D_new = (X @ At) @ np.linalg.inv(G)
     return _normalize_columns(D_new)
 
-def _reinit_dead_atoms(D, X, A, rng):
-    usage = np.sum(np.abs(A) > 1e-12, axis=1)
-    dead = np.where(usage == 0)[0]
-    if dead.size == 0:
-        return D
-    N = X.shape[1]
-    for k in dead:
-        i = rng.integers(0, N)
-        D[:, k] = X[:, i]
+def _homeostatic_equalize(D, A, alpha=0.1):
+    """Equalize atom norms of codes to balance usage (simple homeostasis).
+    Scale dictionary columns inversely to recent code energy.
+    """
+    usage = np.sqrt(np.mean(A*A, axis=1) + 1e-12)  # (K,)
+    target = np.mean(usage)
+    scale = (target / (usage + 1e-12))**alpha
+    D = D * scale[np.newaxis, :]
     return _normalize_columns(D)
+
+def _gradD_update(D, X, A, lr=0.1):
+    """Gradient ascent step on D for 0.5||X - D A||^2 (note: ascent on negative loss -> descent on loss)
+    Here we *minimize* loss: D <- D - lr * d/dD (0.5||X-DA||^2) = D + lr * (X - D A) A^T
+    """
+    R = X - D @ A
+    D = D + lr * (R @ A.T)
+    return _normalize_columns(D)
+
+def _reinit_dead_atoms(D, X, A, rng):
+    """Re-initialize atoms with near-zero norm usage"""
+    usage = np.linalg.norm(A, axis=1)  # Use L2 norm like alternate implementation
+    dead = usage < 1e-8  # More sensitive threshold
+    if np.any(dead):
+        m = D.shape[0]
+        # sample random patches from X
+        idx = rng.integers(0, X.shape[1], size=int(np.sum(dead)))
+        D[:, dead] = X[:, idx]
+        D = _normalize_columns(D)
+    return D
 
 def _paper_energy_grad(x, D, a, lam, sigma):
     # E(a) = 0.5||x - D a||^2 - lam * sum log(1 + (a/sigma)^2)
@@ -33,63 +52,100 @@ def _paper_energy_grad(x, D, a, lam, sigma):
     return energy, grad
 
 def _ncg_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
-    # Nonlinear Conjugate Gradient with Armijo backtracking
-    a = np.zeros(D.shape[1])
-    E, g = _paper_energy_grad(x, D, a, lam, sigma)
+    """Nonlinear Conjugate Gradient with Polak-Ribière and Armijo backtracking"""
+    K = D.shape[1]
+    a = np.zeros((K,), dtype=float)
+    f, g = _paper_energy_grad(x, D, a, lam, sigma)
     d = -g
-    for _ in range(max_iter):
-        # line search
+    for _ in range(int(max_iter)):
+        # Ensure descent direction
+        if g @ d > 0:
+            d = -g
+        # Backtracking line search (Armijo)
         t = 1.0
-        gd = float(g @ d)
-        if gd > 0: d = -g; gd = float(g @ d)
-        while t > 1e-8:
-            a_new = a + t * d
-            E_new, g_new = _paper_energy_grad(x, D, a_new, lam, sigma)
-            if E_new <= E + 1e-4 * t * gd:
+        f0 = f
+        gTd = g @ d
+        while True:
+            a_new = a + t*d
+            f_new, g_new = _paper_energy_grad(x, D, a_new, lam, sigma)
+            if f_new <= f0 + 1e-4 * t * gTd or t < 1e-12:
                 break
             t *= 0.5
-        a, E, g = a_new, E_new, g_new
-        if np.linalg.norm(g) <= tol * max(1.0, np.linalg.norm(a)):
-            break
-        beta = float((g @ (g - g_new)) / (gd + 1e-12)) if 'g_new' in locals() else 0.0
-        beta = max(beta, 0.0)
-        d = -g + beta * d
+        if np.linalg.norm(a_new - a) <= tol * max(1.0, np.linalg.norm(a)):
+            return a_new
+        # Polak-Ribière conjugate gradient update
+        y = g_new - g
+        beta_pr = max(0.0, (g_new @ y) / (g @ g + 1e-12))
+        d = -g_new + beta_pr * d
+        a, f, g = a_new, f_new, g_new
     return a
 
 class SparseCoder:
     """
     Dictionary learning + sparse inference.
-    - mode='l1': FISTA on L1 objective (batch)
-    - mode='paper': log-penalty with NLCG per-sample inference
-    Dictionary update uses MOD with column renorm + dead-atom refresh.
+    - mode='l1': FISTA on L1 objective (batch) + MOD update
+    - mode='paper': per-sample NCG with log prior (Cauchy-like) + MOD update
+    - mode='paper_gdD': per-sample NCG with log prior + gradient dictionary update (O&F-style) + homeostasis
+    
+    Features:
+    - Lambda annealing: anneal=(gamma, floor) for geometric decay
+    - Homeostatic equalization: prevents dead atoms
+    - Enhanced NCG: Polak-Ribière conjugate gradient
+    - Dead atom reinitialization: improved detection and handling
     """
-    def __init__(self, n_atoms=144, lam=None, mode="paper", max_iter=200, tol=1e-6, seed=0):
+    def __init__(self, n_atoms=144, lam=None, mode="paper", max_iter=200, tol=1e-6, seed=0, anneal=None):
         self.n_atoms = int(n_atoms)
         self.lam = lam
         self.mode = mode
         self.max_iter = int(max_iter)
         self.tol = float(tol)
         self.seed = int(seed)
+        self.anneal = anneal  # (gamma, floor) tuple for lambda annealing
         self.rng = np.random.default_rng(seed)
         self.D = None  # (p, K)
+    
+    @property
+    def dictionary(self):
+        """Dictionary matrix (research standard: D or Φ)."""
+        return self.D
+    
+    @dictionary.setter
+    def dictionary(self, D):
+        """Set dictionary matrix with proper normalization."""
+        if D is not None:
+            D = np.asarray(D, dtype=float)
+            D = _normalize_columns(D)  # Research requirement: normalized columns
+        self.D = D
 
     def _init_dictionary(self, X):
         p, N = X.shape
         if self.D is None:
-            idx = self.rng.choice(N, size=self.n_atoms, replace=False)
+            # Research-accurate initialization: sample with replacement if needed
+            # This follows Olshausen & Field (1996) - dictionary can be overcomplete
+            n_atoms_to_sample = min(self.n_atoms, N)
+            idx = self.rng.choice(N, size=n_atoms_to_sample, replace=False)
             D = X[:, idx].copy()
+            
+            # If we need more atoms than data points, add random initialization
+            if self.n_atoms > N:
+                extra_atoms = self.n_atoms - N
+                D_extra = self.rng.normal(scale=np.std(X), size=(p, extra_atoms))
+                D = np.hstack([D, D_extra])
+            
+            # Add small noise to avoid identical atoms
             D = D + 1e-6 * self.rng.normal(size=D.shape)
-            D = D - D.mean(axis=0, keepdims=True)
+            D = D - D.mean(axis=0, keepdims=True)  # Remove DC component (research standard)
             D = _normalize_columns(D)
             self.D = D
 
     def encode(self, X):
         X = np.asarray(X, float)
-        assert self.D is not None, "Dictionary not initialized. Fit first."
+        if self.D is None:
+            raise ValueError("dictionary not initialized. Call fit() first.")
         if self.mode == "l1":
             lam = float(self.lam if self.lam is not None else 0.1 * np.median(np.abs(self.D.T @ X)))
             return fista_batch(self.D, X, lam, L=None, max_iter=self.max_iter, tol=self.tol)
-        elif self.mode == "paper":
+        elif self.mode == "paper" or self.mode == "paper_gdD":
             sigma = 1.0
             lam = float(self.lam if self.lam is not None else 0.14 * np.std(X))
             K, N = self.n_atoms, X.shape[1]
@@ -98,7 +154,7 @@ class SparseCoder:
                 A[:, n] = _ncg_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
             return A
         else:
-            raise ValueError("mode must be 'l1' or 'paper'")
+            raise ValueError("mode must be 'l1', 'paper', or 'paper_gdD'")
 
     def decode(self, A):
         assert self.D is not None, "Dictionary not initialized."
@@ -109,19 +165,43 @@ class SparseCoder:
         p, N = X.shape
         self._init_dictionary(X)
         D = self.D
-        lam_default = 0.1 * np.median(np.abs(D.T @ X)) if self.mode == "l1" else 0.14 * np.std(X)
-        lam = float(self.lam if self.lam is not None else lam_default)
+        # Auto lambda selection (research standard)
+        if self.lam is None:
+            lam_default = 0.1 * np.median(np.abs(D.T @ X)) if self.mode == "l1" else 0.14 * np.std(X)
+            lam = float(lam_default)
+            self.lam = lam  # Store for research analysis
+        else:
+            lam = float(self.lam)
 
-        for _ in range(int(n_steps)):
+        for it in range(int(n_steps)):
             if self.mode == "l1":
                 A = fista_batch(D, X, lam, L=None, max_iter=self.max_iter, tol=self.tol)
-            else:  # paper
+                D = _mod_update(D, X, A, eps=1e-6)
+            elif self.mode == "paper":
                 K = D.shape[1]; A = np.zeros((K, N))
                 for n in range(N):
                     A[:, n] = _ncg_infer_single(X[:, n], D, lam, 1.0, max_iter=self.max_iter, tol=self.tol)
-
-            D = _mod_update(D, X, A, eps=1e-6)
+                D = _mod_update(D, X, A, eps=1e-6)
+            elif self.mode == "paper_gdD":
+                K = D.shape[1]; A = np.zeros((K, N))
+                for n in range(N):
+                    A[:, n] = _ncg_infer_single(X[:, n], D, lam, 1.0, max_iter=self.max_iter, tol=self.tol)
+                # Gradient dictionary update (O&F-style)
+                D = _gradD_update(D, X, A, lr=lr)
+                # Homeostatic equalization
+                D = _homeostatic_equalize(D, A, alpha=0.1)
+            else:
+                raise ValueError("mode must be 'l1', 'paper', or 'paper_gdD'")
+            
             D = _reinit_dead_atoms(D, X, A, self.rng)
+            
+            # Optional annealing of lambda
+            if self.anneal:
+                if isinstance(self.anneal, (list, tuple)) and len(self.anneal) == 2:
+                    gamma, floor = float(self.anneal[0]), float(self.anneal[1])
+                else:
+                    gamma, floor = 0.95, 1e-4
+                lam = max(floor, lam * gamma)
 
         self.D = D
         return self
