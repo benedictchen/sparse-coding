@@ -307,24 +307,69 @@ class TestDictionaryLearningIntegration:
         
         codes, _ = solver.solve(D, x, penalty, lam=0.1)
         
-        # Check residual
-        residual = D.T @ (D @ codes - x)
+        # Rigorous KKT conditions validation for L1-regularized least squares
+        # 
+        # The optimization problem: min_a (1/2)||Da - x||² + λ||a||₁
+        # 
+        # KKT conditions:
+        # 1. Stationarity: D^T(Da - x) + λ∂||a||₁ = 0
+        # 2. For L1 penalty: ∂||a||₁ = {sign(a_i) if a_i ≠ 0, [-1,1] if a_i = 0}
+        #
+        # This means:
+        # - Active components (a_i ≠ 0): D^T(Da - x)_i = -λ sign(a_i)
+        # - Inactive components (a_i = 0): |D^T(Da - x)_i| ≤ λ
         
-        # For active components: |residual| should equal lambda
-        # For inactive components: |residual| should be <= lambda
-        active_mask = np.abs(codes) > 1e-8
+        residual = D.T @ (D @ codes - x)
+        lambda_val = 0.1
+        tol = 1e-4  # Numerical tolerance for KKT conditions (more realistic for iterative solvers)
+        
+        # Classify components based on activity
+        active_mask = np.abs(codes) > 1e-10  # Use stricter threshold for activity
         inactive_mask = ~active_mask
         
+        # Validate KKT conditions for active components
         if np.any(active_mask):
-            active_residuals = np.abs(residual[active_mask])
-            # Allow some numerical tolerance
-            assert np.all(active_residuals <= 0.1 + 1e-6), \
-                f"KKT conditions violated for active components: {active_residuals}"
+            active_codes = codes[active_mask]
+            active_residuals = residual[active_mask]
+            
+            # For active components: residual should equal -λ * sign(coefficient)
+            expected_residuals = -lambda_val * np.sign(active_codes)
+            residual_errors = np.abs(active_residuals - expected_residuals)
+            
+            max_active_error = np.max(residual_errors)
+            assert max_active_error <= tol, \
+                f"KKT stationarity violated for active components: max_error={max_active_error:.2e} > {tol:.2e}\n" \
+                f"Active residuals: {active_residuals}\n" \
+                f"Expected: {expected_residuals}"
                 
+        # Validate KKT conditions for inactive components
         if np.any(inactive_mask):
             inactive_residuals = np.abs(residual[inactive_mask])
-            assert np.all(inactive_residuals <= 0.1 + 1e-6), \
-                f"KKT conditions violated for inactive components: {inactive_residuals}"
+            max_inactive_residual = np.max(inactive_residuals)
+            
+            assert max_inactive_residual <= lambda_val + tol, \
+                f"KKT subdifferential violated for inactive components: max_residual={max_inactive_residual:.2e} > λ+tol={lambda_val + tol:.2e}\n" \
+                f"Inactive residuals: {inactive_residuals}"
+                
+        # Additional validation: Check complementary slackness
+        # For L1 penalty: a_i ≠ 0 ⟹ |∇f(a)_i| = λ (implicit in stationarity check above)
+        
+        # Validate that the solution satisfies first-order optimality
+        # The gradient of the smooth part should be in the subdifferential of the non-smooth part
+        gradient_smooth = residual  # ∇(1/2||Da - x||²) = D^T(Da - x)
+        
+        for i in range(len(codes)):
+            if active_mask[i]:
+                # For active components, subdifferential is just the sign
+                subdiff_val = lambda_val * np.sign(codes[i])
+                optimality_error = abs(gradient_smooth[i] + subdiff_val)
+                assert optimality_error <= tol, \
+                    f"First-order optimality violated at index {i}: error={optimality_error:.2e}"
+            else:
+                # For inactive components, check subdifferential inclusion
+                subdiff_bound = lambda_val
+                assert abs(gradient_smooth[i]) <= subdiff_bound + tol, \
+                    f"Subdifferential inclusion violated at index {i}: |grad|={abs(gradient_smooth[i]):.2e} > λ={subdiff_bound:.2e}"
 
 
 def test_numerical_stability():

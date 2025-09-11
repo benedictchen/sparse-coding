@@ -9,6 +9,7 @@ Implements multiple algorithms for solving sparse optimization problems:
 """
 
 import numpy as np
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Union, Dict, Any, Optional, Callable, Tuple
@@ -391,50 +392,90 @@ class SolverRegistry:
         self._register_defaults()
     
     def _register_defaults(self):
-        """Register default solvers."""
-        self.register('fista', FistaSolver())
-        self.register('ista', IstaSolver())
-        self.register('omp', OmpSolver())  
-        self.register('ncg', NcgSolver())
+        """Register default solver factories (not instances to avoid shared state)."""
+        # Register factory functions, not instances - fixes shared state bug
+        self.register('fista', FistaSolver)
+        self.register('ista', IstaSolver) 
+        self.register('omp', OmpSolver)
+        self.register('ncg', NcgSolver)
         
         # Auto-selection rules based on penalty properties
         self._auto_selection_rules = {
             (True, False): 'fista',   # prox_friendly=True, differentiable=False (L1, ElasticNet)
             (True, True): 'fista',    # prox_friendly=True, differentiable=True (L2) 
             (False, True): 'ncg',     # prox_friendly=False, differentiable=True (Cauchy)
-            (False, False): 'fista'   # fallback
+            (False, False): 'ncg'     # Fixed: non-prox/non-diff → NCG, not FISTA
         }
     
-    def register(self, name: str, solver: InferenceSolver):
-        """Register solver instance."""
-        self._registry[name] = solver
+    def register(self, name: str, solver_factory: Union[InferenceSolver, type]):
+        """Register solver factory or class (not instances to avoid shared state)."""
+        self._registry[name] = solver_factory
     
-    def get_solver(self, algorithm: str) -> InferenceSolver:
-        """Get solver by name."""
+    def get_solver(self, algorithm: str, **kwargs) -> InferenceSolver:
+        """Get solver instance by name (instantiated fresh to avoid shared state)."""
         if algorithm not in self._registry:
             available = list(self._registry.keys())
             raise KeyError(f"Solver '{algorithm}' not found. Available: {available}")
-        return self._registry[algorithm]
+        
+        factory = self._registry[algorithm]
+        
+        # If it's a class, instantiate it; if it's already an instance, return it
+        if inspect.isclass(factory):
+            try:
+                return factory(**kwargs)
+            except TypeError as e:
+                # Provide helpful error message for parameter mismatches
+                sig = inspect.signature(factory.__init__)
+                params = list(sig.parameters.keys())[1:]  # Skip 'self'
+                raise TypeError(f"Invalid parameters for {algorithm}: {e}. "
+                              f"Expected parameters: {params}")
+        else:
+            # Already an instance (legacy support)
+            return factory
     
-    def auto_select_solver(self, penalty: Penalty) -> InferenceSolver:
+    def auto_select_solver(self, penalty: Penalty, **kwargs) -> InferenceSolver:
         """Automatically select best solver for penalty type."""
         key = (penalty.is_prox_friendly, penalty.is_differentiable)
-        algorithm = self._auto_selection_rules.get(key, 'fista')
-        return self.get_solver(algorithm)
+        algorithm = self._auto_selection_rules.get(key, 'ncg')  # Default to NCG for safety
+        return self.get_solver(algorithm, **kwargs)
     
     def solve(self, D: ArrayLike, X: ArrayLike, penalty: Penalty, 
               algorithm: str = 'auto', **kwargs) -> ArrayLike:
         """Solve using registry-managed solver."""
-        if algorithm == 'auto':
-            solver = self.auto_select_solver(penalty)
-        else:
-            solver = self.get_solver(algorithm)
+        # Separate solver creation kwargs from solve kwargs
+        solver_kwargs = {k: v for k, v in kwargs.items() 
+                        if k in ['max_iter', 'tol', 'verbose', 'adaptive_restart']}
+        solve_kwargs = {k: v for k, v in kwargs.items() if k not in solver_kwargs}
         
-        return solver.solve(D, X, penalty, **kwargs)
+        if algorithm == 'auto':
+            solver = self.auto_select_solver(penalty, **solver_kwargs)
+        else:
+            solver = self.get_solver(algorithm, **solver_kwargs)
+        
+        return solver.solve(D, X, penalty, **solve_kwargs)
 
 
 # Global registry instance
 SOLVER_REGISTRY = SolverRegistry()
+
+# Unified API: Export both registry and convenience access
+def get_solver(algorithm: str, **kwargs):
+    """Unified solver access - single source of truth for all solver creation."""
+    return SOLVER_REGISTRY.get_solver(algorithm, **kwargs)
+
+def solve(D, X, penalty, algorithm: str = 'auto', **kwargs):
+    """Unified solve function - single entry point for all sparse coding."""
+    return SOLVER_REGISTRY.solve(D, X, penalty, algorithm, **kwargs)
+
+def list_solvers():
+    """List all available solvers in the registry.""" 
+    return list(SOLVER_REGISTRY._registry.keys())
+
+# Legacy compatibility: provide both naming conventions
+FISTASolver = FistaSolver  # algorithms.solvers naming
+ISTASolver = IstaSolver    # algorithms.solvers naming  
+OMPSolver = OmpSolver      # algorithms.solvers naming
+NCGSolver = NcgSolver      # algorithms.solvers naming
 
 
 # Configuration system for overlapping solutions  

@@ -17,8 +17,8 @@ from sparse_coding.core.penalties.implementations import (
 from sparse_coding.algorithms.solvers import (
     FISTASolver, ISTASolver, OMPSolver
 )
-from sparse_coding.algorithms.dictionary_update_algorithms import (
-    MODUpdater, GradientDictUpdater, KSVDUpdater
+from sparse_coding.core.dict_updater_implementations import (
+    ModUpdater as MODUpdater, GradientUpdater as GradientDictUpdater, KsvdUpdater as KSVDUpdater
 )
 from sparse_coding.factories.algorithm_factory import (
     create_penalty, create_solver, create_dict_updater, create_learner,

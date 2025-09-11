@@ -588,19 +588,23 @@ class FeatureAnalyzer:
         x_discrete = backend.clip(x_discrete, 0, n_bins - 1)
         y_discrete = backend.clip(y_discrete, 0, n_bins - 1)
         
-        # Use vectorized 2D histogram for better performance
+        # Use efficient vectorized 2D histogram computation
         import numpy as np
-        if hasattr(np, 'histogram2d'):
-            # Convert to numpy for histogram2d, then back to backend
-            x_np = np.asarray(x_norm)
-            y_np = np.asarray(y_norm)
-            joint_hist_np, _, _ = np.histogram2d(x_np, y_np, bins=n_bins, range=[[0, 1], [0, 1]])
-            joint_hist = as_same(joint_hist_np, x)
+        
+        # Always use vectorized computation - convert to NumPy only once
+        x_np = np.asarray(x_norm)
+        y_np = np.asarray(y_norm)
+        joint_hist_np, _, _ = np.histogram2d(x_np, y_np, bins=n_bins, range=[[0, 1], [0, 1]])
+        
+        # Convert back to original backend if needed
+        if backend.__name__ != 'numpy':
+            try:
+                joint_hist = as_same(joint_hist_np, x)
+            except Exception:
+                # If conversion fails, keep as NumPy (will work with subsequent operations)
+                joint_hist = joint_hist_np
         else:
-            # Fallback to manual computation if needed
-            joint_hist = backend.zeros((n_bins, n_bins))
-            for i in range(n_samples):
-                joint_hist[x_discrete[i], y_discrete[i]] += 1
+            joint_hist = joint_hist_np
         
         # Add small epsilon only where needed to avoid log(0)
         joint_hist = joint_hist + 1e-12
@@ -615,18 +619,43 @@ class FeatureAnalyzer:
         x_prob = x_hist / total
         y_prob = y_hist / total
         
-        # Vectorized mutual information computation
+        # Vectorized mutual information computation with bias correction
         # MI = sum(P(x,y) * log(P(x,y) / (P(x) * P(y))))
         outer_prod = backend.outer(x_prob, y_prob)
-        # Avoid log(0) with maximum
-        ratio = backend.maximum(joint_prob / backend.maximum(outer_prod, 1e-12), 1e-12)
-        mi = backend.sum(joint_prob * backend.log(ratio))
         
-        # Return unclamped MI for diagnostic purposes
-        # Small negative values indicate numerical precision issues, not mathematical errors
+        # Use numerically stable computation with proper epsilon handling
+        # Only compute MI for non-zero joint probabilities to avoid bias
+        nonzero_mask = joint_prob > 1e-12
+        
+        if backend.__name__ == 'numpy':
+            # Use NumPy's advanced indexing for efficiency
+            nonzero_joint = joint_prob[nonzero_mask]
+            nonzero_outer = outer_prod[nonzero_mask]
+            
+            # Compute MI only on non-zero entries (unbiased estimator)
+            if len(nonzero_joint) > 0:
+                ratio = nonzero_joint / nonzero_outer
+                mi_contributions = nonzero_joint * np.log(ratio)
+                mi = np.sum(mi_contributions)
+            else:
+                mi = 0.0
+        else:
+            # Fallback for other backends
+            ratio = backend.where(nonzero_mask, 
+                                joint_prob / backend.maximum(outer_prod, 1e-12), 
+                                0.0)
+            log_ratio = backend.where(nonzero_mask, 
+                                    backend.log(backend.maximum(ratio, 1e-12)), 
+                                    0.0)
+            mi = backend.sum(joint_prob * log_ratio)
+        
         mi_value = float(mi)
-        if mi_value < -1e-10:  # Warn if significantly negative
-            warnings.warn(f"Negative MI detected: {mi_value:.2e}. This may indicate numerical instability.")
+        
+        # Apply bias correction for small samples (Miller-Madow correction)
+        n_nonzero_bins = float(backend.sum(nonzero_mask))
+        if n_samples > 0 and n_nonzero_bins > 0:
+            bias_correction = (n_nonzero_bins - 1) / (2.0 * n_samples)
+            mi_value = max(0.0, mi_value - bias_correction)  # Ensures non-negative MI
         
         return mi_value
 

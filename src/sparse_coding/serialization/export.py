@@ -79,7 +79,7 @@ def export_to_onnx(
     
     try:
         # Create ONNX graph manually (simplified approach)
-        from onnx import helper, TensorProto, mapping
+        from onnx import helper, TensorProto
         
         # Define input
         input_tensor = helper.make_tensor_value_info(

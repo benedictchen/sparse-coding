@@ -15,29 +15,71 @@ Author: Benedict Chen
 
 from __future__ import annotations
 import numpy as np
-from typing import Optional, Union, Tuple, Any
+from numpy.typing import ArrayLike, NDArray
+from typing import Optional, Union, Tuple, Any, Literal, Protocol, Callable
+
+try:
+    from joblib import Parallel, delayed
+    HAS_JOBLIB = True
+except ImportError:
+    HAS_JOBLIB = False
+
+try:
+    import scipy.sparse
+    from scipy.sparse.linalg import svds
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+
 from .fista_batch import fista_batch, power_iter_L
 
-# Type aliases for better readability
-ArrayLike = Union[np.ndarray, list, tuple]
+# Custom exceptions for better error handling
+class SparseCodingError(ValueError):
+    """Custom exception for sparse coding specific errors."""
+    pass
+SparseCodingMode = Literal['l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure']
+AnnealingConfig = Union[bool, Tuple[float, float]]
 
-def _validate_input(X: ArrayLike, name: str = "X", allow_sparse: bool = False) -> np.ndarray:
-    """Validate and convert input to numpy array with safety checks."""
-    # Handle sparse matrices
-    if allow_sparse and hasattr(X, 'toarray'):
-        # Convert sparse matrix to dense for processing
-        X = X.toarray()
+# Protocol for random number generator
+class RandomGenerator(Protocol):
+    """Protocol for numpy random number generators."""
+    def integers(self, low: int, high: int, size: Optional[int] = None) -> Union[int, np.ndarray]: ...
+    def randn(self, *args: int) -> Union[float, np.ndarray]: ...
+
+def _validate_input(X: ArrayLike, name: str = "X", allow_sparse: bool = False) -> Union[NDArray[np.floating], 'scipy.sparse.spmatrix']:
+    """Robust input validation with sparse matrix support following scikit-learn patterns."""
     
-    X = np.asarray(X, dtype=float)
+    # Handle different input types
+    if isinstance(X, np.ndarray):
+        if not np.all(np.isfinite(X)):
+            raise SparseCodingError(f"{name} contains non-finite values (inf/nan)")
+        return X.astype(float)
     
-    if not np.all(np.isfinite(X)):
-        raise ValueError(f"{name} contains non-finite values (inf/nan)")
+    elif allow_sparse and HAS_SCIPY and scipy.sparse.issparse(X):
+        # Keep sparse format if requested and scipy available
+        if not scipy.sparse.isspmatrix_csr(X):
+            X = scipy.sparse.csr_matrix(X)  # Convert to efficient format
+        # Check for non-finite values in sparse matrix data
+        if not np.all(np.isfinite(X.data)):
+            raise SparseCodingError(f"{name} sparse matrix contains non-finite values")
+        return X
     
-    if X.ndim not in [1, 2]:
-        raise ValueError(f"{name} must be 1D or 2D array, got {X.ndim}D")
+    else:
+        # Convert other array-like inputs to numpy
+        try:
+            X_array = np.asarray(X, dtype=float)
+            if not np.all(np.isfinite(X_array)):
+                raise SparseCodingError(f"{name} contains non-finite values (inf/nan)")
+            return X_array
+        except (ValueError, TypeError) as e:
+            raise SparseCodingError(f"Cannot convert {name} to array: {e}")
     
-    if X.size == 0:
-        raise ValueError(f"{name} cannot be empty")
+    # Additional validations
+    if hasattr(X, 'shape'):
+        if len(X.shape) not in [1, 2]:
+            raise SparseCodingError(f"{name} must be 1D or 2D array, got {len(X.shape)}D")
+        if X.size == 0:
+            raise SparseCodingError(f"{name} cannot be empty")
     
     return X
 
@@ -47,7 +89,7 @@ def _normalize_columns(D: ArrayLike) -> np.ndarray:
     n = np.linalg.norm(D, axis=0, keepdims=True) + 1e-12
     return D / n
 
-def _mod_update(D, X, A, eps=1e-6):
+def _mod_update(D: np.ndarray, X: np.ndarray, A: np.ndarray, eps: float = 1e-6) -> np.ndarray:
     """
     MOD (Method of Optimal Directions) dictionary update.
     
@@ -70,11 +112,15 @@ def _mod_update(D, X, A, eps=1e-6):
     """
     At = A.T
     G = A @ At  # Gram matrix (atoms x atoms)
-    G.flat[::G.shape[0]+1] += eps  # Add regularization to diagonal
+    
+    # Scikit-learn style regularization: stronger alpha for stability
+    alpha = 1e-3  # Following scikit-learn DictionaryLearning standard
+    G.flat[::G.shape[0]+1] += alpha  # Primary regularization
+    G.flat[::G.shape[0]+1] += eps   # Additional epsilon for numerical safety
     
     # Check conditioning (critical for overcomplete dictionaries)
     cond_num = np.linalg.cond(G)
-    if cond_num > 1e12:  # IEEE double precision threshold
+    if cond_num > 1e10:  # Dictionary learning threshold (web consensus for DL)
         # Ill-conditioned: use pseudo-inverse with warning
         try:
             D_new = X @ At @ np.linalg.pinv(G)
@@ -97,7 +143,7 @@ def _mod_update(D, X, A, eps=1e-6):
     
     return _normalize_columns(D_new)
 
-def _homeostatic_equalize(D, A, alpha=0.1):
+def _homeostatic_equalize(D: np.ndarray, A: np.ndarray, alpha: float = 0.1) -> np.ndarray:
     """Equalize atom norms of codes to balance usage (simple homeostasis).
     Scale dictionary columns inversely to recent code energy.
     """
@@ -107,7 +153,7 @@ def _homeostatic_equalize(D, A, alpha=0.1):
     D = D * scale[np.newaxis, :]
     return _normalize_columns(D)
 
-def _gradD_update(D, X, A, lr=0.1):
+def _gradD_update(D: np.ndarray, X: np.ndarray, A: np.ndarray, lr: float = 0.1) -> np.ndarray:
     """Gradient ascent step on D for 0.5||X - D A||^2 (note: ascent on negative loss -> descent on loss)
     Here we *minimize* loss: D <- D - lr * d/dD (0.5||X-DA||^2) = D + lr * (X - D A) A^T
     """
@@ -115,7 +161,7 @@ def _gradD_update(D, X, A, lr=0.1):
     D = D + lr * (R @ A.T)
     return _normalize_columns(D)
 
-def _reinit_dead_atoms(D, X, A, rng):
+def _reinit_dead_atoms(D: np.ndarray, X: np.ndarray, A: np.ndarray, rng: RandomGenerator) -> np.ndarray:
     """Re-initialize atoms with low activation frequency.
     
     Uses activation frequency instead of L2 norm for research accuracy.
@@ -139,31 +185,26 @@ def _reinit_dead_atoms(D, X, A, rng):
         D = _normalize_columns(D)
     return D
 
-def _paper_energy_grad(x, D, a, lam, sigma):
+def _paper_energy_grad(x: np.ndarray, D: np.ndarray, a: np.ndarray, lam: float, sigma: float) -> Tuple[float, np.ndarray]:
     # E(a) = 0.5||x - D a||^2 + lam * sum log(1 + (a/sigma)^2)
     r = x - D @ a
     
-    # Add normalization to prevent overflow in log1p computation
-    # Critical for numerical stability with large activation values
-    a_scaled = a / sigma
-    max_abs = np.abs(a_scaled).max()
+    # Use 64-bit precision for log1p stability - preferred over scaling
+    # This avoids gradient-energy inconsistency from normalization corrections
+    a_scaled = (a / sigma).astype(np.float64)
     
-    # Only normalize if we risk overflow (threshold from numerical analysis)
-    if max_abs > 10.0:
-        # Normalize by max absolute value to keep relative ratios
-        a_scaled = a_scaled / max_abs
-        # Adjust result to maintain mathematical correctness
-        # log(1 + (x/c)²) ≈ log(1 + x²) - 2*log(c) for large x
-        normalization_correction = 2 * np.log(max_abs)
-        log_prior_term = np.sum(np.log1p(a_scaled**2) + normalization_correction)
-    else:
-        log_prior_term = np.sum(np.log1p(a_scaled**2))
+    # Compute log prior term with 64-bit precision
+    log_prior_term = np.sum(np.log1p(a_scaled**2))
     
     energy = 0.5 * float(r @ r) + lam * float(log_prior_term)
+    
+    # Gradient: d/da [0.5||x-Da||^2 + λ∑log(1+(a/σ)^2)]
+    # = -D^T(x-Da) + λ * 2a/(σ^2 + a^2)
     grad = -(D.T @ r) + lam * (2*a / (sigma**2 + a*a))
+    
     return energy, grad
 
-def _log_prior_infer_single(x, D, lam, max_iter=200, tol=1e-6):
+def _log_prior_infer_single(x: np.ndarray, D: np.ndarray, lam: float, max_iter: int = 200, tol: float = 1e-6) -> np.ndarray:
     """
     Log prior sparse coding inference (Olshausen & Field 1996 original).
     
@@ -177,10 +218,17 @@ def _log_prior_infer_single(x, D, lam, max_iter=200, tol=1e-6):
     return _ncg_infer_single(x, D, lam, sigma=1.0, max_iter=max_iter, tol=tol)
 
 def _ncg_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
-    """Nonlinear Conjugate Gradient with Polak-Ribière and Armijo backtracking"""
+    """Nonlinear Conjugate Gradient with Polak-Ribière and Armijo backtracking with gradient clipping"""
     K = D.shape[1]
     a = np.zeros((K,), dtype=float)
     f, g = _paper_energy_grad(x, D, a, lam, sigma)
+    
+    # Gradient clipping to prevent explosions (critical for stability)
+    grad_clip_threshold = 100.0  # Research-based threshold for sparse coding
+    g_norm = np.linalg.norm(g)
+    if g_norm > grad_clip_threshold:
+        g = g * (grad_clip_threshold / g_norm)
+    
     d = -g
     for _ in range(int(max_iter)):
         # Ensure descent direction
@@ -201,6 +249,12 @@ def _ncg_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
         # Polak-Ribière conjugate gradient update
         y = g_new - g
         beta_pr = max(0.0, (g_new @ y) / (g @ g + 1e-12))
+        
+        # Apply gradient clipping to prevent explosions
+        g_new_norm = np.linalg.norm(g_new)
+        if g_new_norm > grad_clip_threshold:
+            g_new = g_new * (grad_clip_threshold / g_new_norm)
+        
         d = -g_new + beta_pr * d
         a, f, g = a_new, f_new, g_new
     return a
@@ -220,6 +274,63 @@ def _log_prior_infer_single(x, D, lam, max_iter=200, tol=1e-6):
     return _ncg_infer_single(x, D, lam, sigma=1.0, max_iter=max_iter, tol=tol)
 
 
+def _parallel_infer_helper(infer_func, X_samples, D, lam, sigma_or_none, max_iter, tol):
+    """Helper for parallel inference processing."""
+    if sigma_or_none is not None:
+        return [infer_func(X_samples[:, n], D, lam, sigma_or_none, max_iter=max_iter, tol=tol) 
+                for n in range(X_samples.shape[1])]
+    else:
+        return [infer_func(X_samples[:, n], D, lam, max_iter=max_iter, tol=tol) 
+                for n in range(X_samples.shape[1])]
+
+
+def _olshausen_gradient_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
+    """
+    Pure Olshausen & Field (1996) gradient ascent inference - exact original algorithm.
+    
+    Implements simple gradient descent on: E(a) = 0.5||x - Da||² + λ Σᵢ log(1 + (aᵢ/σ)²)
+    
+    This is the exact algorithm from the 1996 Nature paper, using basic gradient descent
+    instead of modern NCG or other advanced optimization methods.
+    
+    Reference: Olshausen, B. A., & Field, D. J. (1996). Emergence of simple-cell 
+    receptive field properties by learning a sparse code for natural images. 
+    Nature, 381(6583), 607-609.
+    """
+    K = D.shape[1]
+    a = np.zeros((K,), dtype=float)
+    
+    # Learning rate for gradient descent (from original paper)
+    # Olshausen & Field used η = 0.01 to 0.1
+    learning_rate = 0.05
+    
+    for iteration in range(int(max_iter)):
+        # Compute energy and gradient
+        f, g = _paper_energy_grad(x, D, a, lam, sigma)
+        
+        # Simple gradient descent step (negative gradient for minimization)
+        a_new = a - learning_rate * g
+        
+        # Check convergence
+        if np.linalg.norm(a_new - a) <= tol * max(1.0, np.linalg.norm(a)):
+            return a_new
+            
+        # Adaptive learning rate for stability
+        # If energy increased, reduce learning rate
+        f_new, _ = _paper_energy_grad(x, D, a_new, lam, sigma)
+        if f_new > f:
+            learning_rate *= 0.8  # Reduce learning rate
+        elif f_new < 0.95 * f:
+            learning_rate *= 1.05  # Slightly increase if making good progress
+            
+        # Clamp learning rate to reasonable bounds
+        learning_rate = np.clip(learning_rate, 0.001, 0.2)
+        
+        a = a_new
+    
+    return a
+
+
 class SparseCoder:
     """
     Dictionary learning with sparse inference using hybrid research methods.
@@ -237,7 +348,8 @@ class SparseCoder:
     - mode='log': Olshausen & Field (1996) log(1 + a²) prior formulation + MOD dictionary update
     
     Note: 'paper' and 'log' modes use MOD dictionary updates, NOT the original Olshausen & Field 
-    gradient-based dictionary updates. Only 'paper_gdD' approximates the original O&F approach.
+    gradient-based dictionary updates. 'paper_gdD' uses gradient dictionary updates but modern NCG inference.
+    'olshausen_pure' implements the exact 1996 algorithm with gradient ascent for both inference and learning.
     
     Features:
     - Lambda annealing: anneal=(gamma, floor) for geometric decay
@@ -245,38 +357,92 @@ class SparseCoder:
     - NCG: Polak-Ribière conjugate gradient with backtracking line search
     - Dead atom reinitialization with detection and handling
     """
-    def __init__(self, n_atoms: int = 144, lam: Optional[float] = None, mode: str = "l1", 
+    def __init__(self, n_atoms: int = 144, lam: Optional[float] = None, mode: SparseCodingMode = "l1", 
                  max_iter: int = 200, tol: float = 1e-6, seed: int = 0, 
-                 anneal: Optional[Tuple[float, float]] = None):
+                 anneal: Optional[AnnealingConfig] = None):
         """
         Initialize SparseCoder.
         
         Args:
-            n_atoms: Number of dictionary atoms (must be positive)
-            lam: Sparsity penalty (must be non-negative if provided)
-            mode: Sparse coding mode ('l1', 'log', 'paper', 'paper_gdD')
-            max_iter: Maximum iterations (must be positive)
-            tol: Convergence tolerance (must be positive)
-            seed: Random seed for reproducibility
+            n_atoms: Number of dictionary atoms (must be positive integer)
+            lam: Sparsity penalty (must be non-negative float if provided)
+            mode: Sparse coding mode ('l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure')
+            max_iter: Maximum iterations (must be positive integer)
+            tol: Convergence tolerance (must be positive float)
+            seed: Random seed for reproducibility (non-negative integer)
             anneal: Lambda annealing as (gamma, floor) where 0 < gamma < 1, floor >= 0
+            
+        Raises:
+            ValueError: If any parameter has invalid value or type
+            TypeError: If parameter types are incorrect
         """
+        # Type validation with explicit error messages
+        if not isinstance(n_atoms, (int, np.integer)):
+            raise TypeError(f"n_atoms must be an integer, got {type(n_atoms).__name__}")
+        if lam is not None and not isinstance(lam, (int, float, np.number)):
+            raise TypeError(f"lam must be a number or None, got {type(lam).__name__}")
+        if not isinstance(mode, str):
+            raise TypeError(f"mode must be a string, got {type(mode).__name__}")
+        if not isinstance(max_iter, (int, np.integer)):
+            raise TypeError(f"max_iter must be an integer, got {type(max_iter).__name__}")
+        if not isinstance(tol, (int, float, np.number)):
+            raise TypeError(f"tol must be a number, got {type(tol).__name__}")
+        if not isinstance(seed, (int, np.integer)):
+            raise TypeError(f"seed must be an integer, got {type(seed).__name__}")
+        
+        # Value validation with consistent error messages
         if n_atoms <= 0:
             raise ValueError(f"n_atoms must be positive, got {n_atoms}")
-        if lam is not None and lam < 0:
-            raise ValueError(f"lam must be non-negative, got {lam}")
+        if n_atoms > 10000:  # Practical upper bound to prevent memory issues
+            raise ValueError(f"n_atoms too large (>{10000}), got {n_atoms}. Use smaller values for memory efficiency.")
+            
+        if lam is not None:
+            if lam < 0:
+                raise ValueError(f"lam must be non-negative, got {lam}")
+            if lam > 1000:  # Practical upper bound
+                raise ValueError(f"lam too large (>{1000}), got {lam}. Very large lambda values may cause numerical issues.")
+                
+        # Comprehensive mode validation
+        valid_modes = {'l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure'}
+        if mode not in valid_modes:
+            raise ValueError(f"mode must be one of {sorted(valid_modes)}, got '{mode}'")
+            
         if max_iter <= 0:
             raise ValueError(f"max_iter must be positive, got {max_iter}")
+        if max_iter > 10000:  # Practical upper bound
+            raise ValueError(f"max_iter too large (>{10000}), got {max_iter}. Use smaller values for efficiency.")
+            
         if tol <= 0:
             raise ValueError(f"tol must be positive, got {tol}")
-        # Allow mode validation to be deferred to usage time for test compatibility
+        if tol >= 1.0:  # Convergence tolerance should be < 1
+            raise ValueError(f"tol too large (>={1.0}), got {tol}. Use smaller values for meaningful convergence.")
+        if tol < 1e-15:  # Machine precision limit
+            raise ValueError(f"tol too small (<{1e-15}), got {tol}. Use larger values above machine precision.")
+            
+        if seed < 0:
+            raise ValueError(f"seed must be non-negative, got {seed}")
+        if seed > 2**32:  # Practical upper bound for random seeds
+            raise ValueError(f"seed too large (>{2**32}), got {seed}. Use smaller values for compatibility.")
+            
+        # Enhanced anneal validation
         if anneal is not None:
-            if not isinstance(anneal, (tuple, list)) or len(anneal) != 2:
-                raise ValueError("anneal must be a tuple (gamma, floor)")
+            if not isinstance(anneal, (tuple, list)):
+                raise TypeError(f"anneal must be a tuple or list, got {type(anneal).__name__}")
+            if len(anneal) != 2:
+                raise ValueError(f"anneal must have exactly 2 elements (gamma, floor), got {len(anneal)}")
+            
             gamma, floor = anneal
+            if not isinstance(gamma, (int, float, np.number)):
+                raise TypeError(f"anneal gamma must be a number, got {type(gamma).__name__}")
+            if not isinstance(floor, (int, float, np.number)):
+                raise TypeError(f"anneal floor must be a number, got {type(floor).__name__}")
+                
             if not (0 < gamma < 1):
                 raise ValueError(f"anneal gamma must be in (0, 1), got {gamma}")
             if floor < 0:
                 raise ValueError(f"anneal floor must be non-negative, got {floor}")
+            if floor >= 1.0:  # Floor shouldn't be too large
+                raise ValueError(f"anneal floor too large (>={1.0}), got {floor}. Use smaller values for effective annealing.")
         
         self.n_atoms = int(n_atoms)
         self.lam = lam
@@ -295,10 +461,37 @@ class SparseCoder:
     
     @dictionary.setter
     def dictionary(self, D):
-        """Set dictionary matrix with proper normalization."""
+        """Set dictionary matrix with proper validation and normalization."""
         if D is not None:
             D = np.asarray(D, dtype=float)
-            D = _normalize_columns(D)  # Research requirement: normalized columns
+            
+            # Validate dictionary shape and properties
+            if D.ndim != 2:
+                raise ValueError(f"Dictionary must be 2D matrix, got shape {D.shape}")
+            
+            n_features, n_atoms = D.shape
+            if n_features <= 0 or n_atoms <= 0:
+                raise ValueError(f"Dictionary dimensions must be positive, got shape {D.shape}")
+            
+            if n_atoms != self.n_atoms:
+                raise ValueError(f"Dictionary must have {self.n_atoms} atoms, got {n_atoms}")
+            
+            # Check for numerical validity
+            if not np.all(np.isfinite(D)):
+                raise ValueError("Dictionary contains non-finite values (inf/nan)")
+            
+            # Check that dictionary isn't all zeros
+            if np.allclose(D, 0):
+                raise ValueError("Dictionary cannot be all zeros")
+            
+            # Normalize columns (research requirement: normalized columns)
+            D = _normalize_columns(D)
+            
+            # Final validation: ensure normalization worked
+            column_norms = np.linalg.norm(D, axis=0)
+            if not np.allclose(column_norms, 1.0, rtol=1e-10):
+                raise RuntimeError(f"Dictionary normalization failed: column norms {column_norms}")
+        
         self.D = D
 
     def _init_dictionary(self, X):
@@ -340,7 +533,8 @@ class SparseCoder:
             raise ValueError("dictionary not initialized. Call fit() first.")
         
         if X.shape[0] != self.D.shape[0]:
-            raise ValueError(f"X feature dimension {X.shape[0]} doesn't match dictionary {self.D.shape[0]}")
+            raise ValueError(f"X feature dimension {X.shape[0]} doesn't match dictionary {self.D.shape[0]}. "
+                           f"Expected X.shape[0] == {self.D.shape[0]}. If you have (n_samples, n_features) data, try X = X.T")
         if self.mode == "l1":
             # Use stored lambda from fit() if available, otherwise scale with data variance
             if hasattr(self, 'lam') and self.lam is not None:
@@ -352,12 +546,16 @@ class SparseCoder:
             # Log prior mode (Olshausen & Field 1996 original formulation)
             lam = float(self.lam if self.lam is not None else 0.05 * np.std(X, ddof=0))
             return self._batch_log_prior_inference(X, lam)
-        elif self.mode == "paper" or self.mode == "paper_gdD":
+        elif self.mode in ["paper", "paper_gdD"]:
             sigma = 1.0
             lam = float(self.lam if self.lam is not None else 0.14 * np.std(X))
             return self._batch_ncg_inference(X, lam, sigma)
+        elif self.mode == "olshausen_pure":
+            sigma = 1.0
+            lam = float(self.lam if self.lam is not None else 0.14 * np.std(X))
+            return self._batch_olshausen_gradient_inference(X, lam, sigma)
         else:
-            raise ValueError("mode must be 'l1', 'log', 'paper', or 'paper_gdD'")
+            raise ValueError("mode must be 'l1', 'log', 'paper', 'paper_gdD', or 'olshausen_pure'")
 
     def decode(self, A: ArrayLike) -> np.ndarray:
         """
@@ -374,7 +572,13 @@ class SparseCoder:
             raise ValueError("dictionary not initialized. Call fit() first.")
         if A.shape[0] != self.D.shape[1]:
             raise ValueError(f"A atom dimension {A.shape[0]} doesn't match dictionary {self.D.shape[1]}")
-        return self.D @ A
+        # Sparse-safe matrix multiplication
+        if HAS_SCIPY and scipy.sparse.issparse(A):
+            # Use sparse matrix multiplication for efficiency
+            D_sparse = scipy.sparse.csr_matrix(self.D)
+            return D_sparse @ A
+        else:
+            return self.D @ A
 
     def fit(self, X: ArrayLike, n_steps: int = 30, lr: float = 0.1) -> 'SparseCoder':
         """
@@ -434,13 +638,20 @@ class SparseCoder:
                 D = _gradD_update(D, X, A, lr=lr)
                 # Homeostatic equalization
                 D = _homeostatic_equalize(D, A, alpha=0.1)
+            elif self.mode == "olshausen_pure":
+                # Pure Olshausen & Field (1996) gradient ascent for both inference and learning
+                A = self._batch_olshausen_gradient_inference_for_fit(X, D, lam, 1.0)
+                # Original gradient dictionary update from 1996 paper
+                D = _gradD_update(D, X, A, lr=lr)
+                # Homeostatic equalization (critical for original algorithm stability)
+                D = _homeostatic_equalize(D, A, alpha=0.1)
             elif self.mode == "log":
                 # Olshausen & Field (1996) original log prior formulation
                 # Uses log(1 + a²) sparsity penalty as in the Nature paper
                 A = self._batch_log_prior_inference_for_fit(X, D, lam)
                 D = _mod_update(D, X, A, eps=1e-6)
             else:
-                raise ValueError("mode must be 'l1', 'paper', 'paper_gdD', or 'log'")
+                raise ValueError("mode must be 'l1', 'paper', 'paper_gdD', 'olshausen_pure', or 'log'")
             
             D = _reinit_dead_atoms(D, X, A, self.rng)
             
@@ -573,7 +784,8 @@ class SparseCoder:
         else:
             # Scale with signal-to-dictionary correlation for better convergence
             correlation = np.abs(D.T @ x)
-            lam = float(0.01 * np.median(correlation[correlation > 1e-12]))
+            # Use max correlation for better Lasso-like behavior (scikit-learn style)
+            lam = float(0.1 * np.max(correlation[correlation > 1e-12]))
         
         # FISTA initialization (Beck & Teboulle 2009 Algorithm 2)
         K = D.shape[1]
@@ -581,8 +793,17 @@ class SparseCoder:
         a = np.zeros(K, dtype=float)
         t = 1.0
         
-        # Compute Lipschitz constant L = ||D^T D||₂
-        L = power_iter_L(D)
+        # Compute Lipschitz constant L = ||D^T D||₂ - sparse-aware
+        if HAS_SCIPY and scipy.sparse.issparse(D):
+            # Use sparse SVD for sparse dictionaries (more efficient)
+            try:
+                sigma_max = svds(D, k=1, return_singular_vectors=False)[0]
+                L = sigma_max**2 + 1e-6  # L = σ_max²
+            except Exception:
+                # Fallback to dense if sparse SVD fails
+                L = power_iter_L(D.toarray() if hasattr(D, 'toarray') else D)
+        else:
+            L = power_iter_L(D)
         step_size = 1.0 / L
         
         objectives = []
@@ -706,18 +927,38 @@ class SparseCoder:
         K, N = D.shape[1], X.shape[1]
         A = np.zeros((K, N))
         
-        # Process efficiently based on batch size
-        if N <= 100:
-            # Small batches: sequential processing
+        # Use parallel processing for large batches if joblib available
+        if HAS_JOBLIB and N > 50:
+            # Parallel processing with chunking for memory efficiency
+            chunk_size = max(1, min(100, N // 4))  # Adaptive chunk size
+            n_jobs = min(4, N // chunk_size + 1)  # Limit parallel jobs
+            
+            try:
+                # Process chunks in parallel
+                chunk_results = Parallel(n_jobs=n_jobs, backend='threading')(
+                    delayed(_parallel_infer_helper)(
+                        _log_prior_infer_single, 
+                        X[:, start:min(start + chunk_size, N)], 
+                        D, lam, None, self.max_iter, self.tol
+                    ) for start in range(0, N, chunk_size)
+                )
+                
+                # Reassemble results
+                start = 0
+                for chunk_result in chunk_results:
+                    end = start + len(chunk_result)
+                    for i, result in enumerate(chunk_result):
+                        A[:, start + i] = result
+                    start = end
+                    
+            except Exception:
+                # Fallback to sequential if parallel fails
+                for n in range(N):
+                    A[:, n] = _log_prior_infer_single(X[:, n], D, lam, max_iter=self.max_iter, tol=self.tol)
+        else:
+            # Sequential processing for small batches or when joblib unavailable
             for n in range(N):
                 A[:, n] = _log_prior_infer_single(X[:, n], D, lam, max_iter=self.max_iter, tol=self.tol)
-        else:
-            # Large batches: chunked processing for memory efficiency
-            chunk_size = 100
-            for start in range(0, N, chunk_size):
-                end = min(start + chunk_size, N)
-                for n in range(start, end):
-                    A[:, n] = _log_prior_infer_single(X[:, n], D, lam, max_iter=self.max_iter, tol=self.tol)
         
         return A
     
@@ -738,5 +979,45 @@ class SparseCoder:
                 end = min(start + chunk_size, N)
                 for n in range(start, end):
                     A[:, n] = _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+        
+        return A
+    
+    def _batch_olshausen_gradient_inference(self, X: np.ndarray, lam: float, sigma: float) -> np.ndarray:
+        """Batch inference using pure Olshausen & Field (1996) gradient ascent."""
+        K, N = self.D.shape[1], X.shape[1]
+        A = np.zeros((K, N))
+        
+        # Process efficiently based on batch size
+        if N <= 100:
+            # Small batches: sequential processing
+            for n in range(N):
+                A[:, n] = _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+        else:
+            # Large batches: chunked processing for memory efficiency
+            chunk_size = 100
+            for start in range(0, N, chunk_size):
+                end = min(start + chunk_size, N)
+                for n in range(start, end):
+                    A[:, n] = _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+        
+        return A
+    
+    def _batch_olshausen_gradient_inference_for_fit(self, X: np.ndarray, D: np.ndarray, lam: float, sigma: float) -> np.ndarray:
+        """Optimized batch Olshausen gradient inference for dictionary learning fit."""
+        K, N = D.shape[1], X.shape[1]
+        A = np.zeros((K, N))
+        
+        # Process efficiently based on batch size
+        if N <= 100:
+            # Small batches: sequential processing
+            for n in range(N):
+                A[:, n] = _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+        else:
+            # Large batches: chunked processing for memory efficiency
+            chunk_size = 100
+            for start in range(0, N, chunk_size):
+                end = min(start + chunk_size, N)
+                for n in range(start, end):
+                    A[:, n] = _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         
         return A

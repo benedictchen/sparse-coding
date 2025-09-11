@@ -382,7 +382,7 @@ class TopKConstraint:
     
     @property
     def is_prox_friendly(self) -> bool:
-        return True
+        return False  # TopK is non-convex, should route to NCG not FISTA
     
     @property
     def is_differentiable(self) -> bool:
@@ -815,11 +815,95 @@ class SCADPenalty:
         return False  # Non-differentiable at a=0 and a=λ
 
 
+@dataclass
+class HuberPenalty:
+    """
+    Huber penalty for robust sparse coding.
+    
+    Combines L1 and L2 penalties: L1 for large values (sparsity), L2 for small values (smoothness).
+    Penalty: ψ(a) = λ * Σ h_δ(a_i) where h_δ(t) = {0.5*t² if |t| ≤ δ, δ(|t| - 0.5*δ) if |t| > δ}
+    
+    Research Foundation:
+    - Huber, P. J. (1964). Robust estimation of a location parameter.
+    - Used in robust statistics and compressed sensing for outlier resistance.
+    
+    Args:
+        lam: Regularization strength (λ > 0)
+        delta: Huber threshold parameter (δ > 0)
+    """
+    lam: float = 0.1
+    delta: float = 1.0
+    is_prox_friendly: bool = True
+    is_differentiable: bool = True
+    
+    def __post_init__(self):
+        if self.lam <= 0:
+            raise ValueError(f"Regularization strength must be positive, got {self.lam}")
+        if self.delta <= 0:
+            raise ValueError(f"Delta parameter must be positive, got {self.delta}")
+    
+    def value(self, a: ArrayLike) -> float:
+        """Huber penalty value."""
+        a = np.asarray(a)
+        abs_a = np.abs(a)
+        
+        # Huber function: 0.5*t² for |t| ≤ δ, δ(|t| - 0.5*δ) for |t| > δ
+        huber_vals = np.where(abs_a <= self.delta,
+                              0.5 * a**2,
+                              self.delta * (abs_a - 0.5 * self.delta))
+        
+        return self.lam * np.sum(huber_vals)
+    
+    def prox(self, a: ArrayLike, t: float) -> ArrayLike:
+        """
+        Proximal operator for Huber penalty.
+        
+        prox_{t*ψ}(a) has closed-form solution for Huber penalty.
+        """
+        a = np.asarray(a, dtype=float)
+        
+        # Proximal operator threshold
+        tau = t * self.lam
+        
+        # For Huber penalty: prox is soft thresholding with modified threshold
+        # If δ ≥ τ: standard soft thresholding
+        # If δ < τ: modified soft thresholding
+        
+        if self.delta >= tau:
+            # Standard soft thresholding
+            return np.sign(a) * np.maximum(np.abs(a) - tau, 0.0)
+        else:
+            # Modified soft thresholding for Huber
+            abs_a = np.abs(a)
+            sign_a = np.sign(a)
+            
+            # Three regions based on |a|
+            result = np.zeros_like(a)
+            
+            # Region 1: |a| ≤ τ → 0
+            mask1 = abs_a <= tau
+            result[mask1] = 0.0
+            
+            # Region 2: τ < |a| ≤ τ + δ → soft threshold then scale
+            mask2 = (abs_a > tau) & (abs_a <= tau + self.delta)
+            if np.any(mask2):
+                shrunk = abs_a[mask2] - tau
+                scale = shrunk / (1 + tau/self.delta)
+                result[mask2] = sign_a[mask2] * scale
+            
+            # Region 3: |a| > τ + δ → different formula
+            mask3 = abs_a > tau + self.delta
+            if np.any(mask3):
+                result[mask3] = sign_a[mask3] * (abs_a[mask3] - tau/(1 + tau/self.delta))
+            
+            return result
+
+
 # Factory function
 
 def create_penalty(penalty_type: str, **kwargs) -> Union[
     L1Penalty, L2Penalty, ElasticNetPenalty, TopKConstraint, CauchyPenalty,
-    LogSumPenalty, GroupLassoPenalty, SCADPenalty
+    LogSumPenalty, GroupLassoPenalty, SCADPenalty, HuberPenalty
 ]:
     """
     Factory function for creating penalties with configuration options.
@@ -858,6 +942,7 @@ def create_penalty(penalty_type: str, **kwargs) -> Union[
         'log_sum': LogSumPenalty,
         'group_lasso': GroupLassoPenalty,
         'scad': SCADPenalty,
+        'huber': HuberPenalty,
     }
     
     if penalty_type not in penalty_map:

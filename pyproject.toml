@@ -5,11 +5,35 @@ build-backend = "hatchling.build"
 [project]
 name = "sparse-coding"
 version = "2.5.0"
-description = "Research-accurate implementation of sparse coding algorithms"
+description = "Production-ready sparse coding & dictionary learning: FISTA, Olshausen-Field, MOD algorithms with mathematical stability"
 readme = "README.md"
 license = {text = "AGPL-3.0-or-later OR Commercial"}
 authors = [{name = "Benedict Chen", email = "benedict@benedictchen.com"}]
 requires-python = ">=3.9"
+keywords = [
+    "sparse-coding", "dictionary-learning", "FISTA", "ISTA", "olshausen-field",
+    "feature-learning", "compressed-sensing", "L1-regularization", "optimization",
+    "computer-vision", "signal-processing", "machine-learning", "unsupervised-learning",
+    "representation-learning", "MOD-algorithm", "proximal-gradient", "Beck-Teboulle",
+    "nonlinear-conjugate-gradient", "image-denoising", "audio-processing",
+    "medical-imaging", "anomaly-detection", "dimensionality-reduction"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research", 
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Mathematics", 
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10", 
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent"
+]
 dependencies = [
     "numpy>=1.21.0",
     "scipy>=1.7.0", 

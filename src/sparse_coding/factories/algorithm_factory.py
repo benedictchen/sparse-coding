@@ -16,8 +16,8 @@ from ..core.penalties import (
 from ..algorithms.solvers import (
     FISTASolver, ISTASolver, OMPSolver
 )
-from ..algorithms.dictionary_update_algorithms import (
-    MODUpdater, GradientDictUpdater, KSVDUpdater
+from ..core.dict_updater_implementations import (
+    ModUpdater as MODUpdater, GradientUpdater as GradientDictUpdater, KsvdUpdater as KSVDUpdater
 )
 from ..core.interfaces import Penalty, InferenceSolver, DictUpdater
 

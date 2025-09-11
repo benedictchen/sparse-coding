@@ -89,29 +89,76 @@ class NonlinearConjugateGradient:
         def objective(a_val):
             residual = 0.5 * np.linalg.norm(D @ a_val - x)**2
             penalty_val = penalty.value(a_val)
-            return residual + lam * penalty_val
+            
+            # Robust scalar conversion - handle all possible array/scalar combinations
+            residual_scalar = float(np.asarray(residual).sum())
+            penalty_scalar = float(np.asarray(penalty_val).sum())
+            lam_scalar = float(np.asarray(lam).sum()) if hasattr(lam, '__len__') else float(lam)
+            
+            return residual_scalar + lam_scalar * penalty_scalar
         
         # Track objective values for monotonic decrease validation
         f_prev = objective(a)
         
         for k in range(self.max_iter):
-            if np.linalg.norm(grad) < self.tol:
+            # Rigorous convergence criteria validation
+            grad_norm = np.linalg.norm(grad)
+            
+            # Primary convergence test: gradient norm
+            if grad_norm < self.tol:
+                # Validate that we've actually converged to a reasonable solution
+                f_current = objective(a)
+                
+                # Additional convergence validation: check that objective is reasonable
+                # For sparse coding: objective should be finite and not excessive
+                if not np.isfinite(f_current):
+                    raise RuntimeError(f"NCG converged to invalid objective: {f_current}")
+                
+                # Check for numerical stability: coefficients should be finite
+                if not np.all(np.isfinite(a)):
+                    raise RuntimeError("NCG converged to non-finite coefficients")
+                
                 return a, k
             
+            # Line search for step size
             alpha = self._line_search(objective, objective_grad, a, grad, search_dir)
             
-            if alpha <= 1e-12:
-                return a, k
+            # Validate line search found acceptable step with strict tolerance
+            if alpha <= 1e-14:  # Tighter minimum step size requirement
+                # Line search failure indicates potential convergence or ill-conditioning
+                # Perform strict convergence check before declaring failure
+                if grad_norm < self.tol * 2:  # Only 2x relaxed tolerance (was 10x)
+                    return a, k
+                else:
+                    # True convergence failure - insufficient progress possible
+                    raise RuntimeError(
+                        f"NCG line search failure at iteration {k}: "
+                        f"alpha={alpha:.2e}, grad_norm={grad_norm:.2e}, "
+                        f"required_tol={self.tol:.2e}. "
+                        f"Stricter validation: max_allowed={self.tol * 2:.2e}"
+                    )
             
+            # Update solution
+            a_prev = a.copy()
             a = a + alpha * search_dir
             grad_prev = grad
             grad = objective_grad(a)
             
-            # Validate monotonic decrease with line search guarantee
+            # Rigorous monotonic decrease validation
             f_current = objective(a)
-            if f_current > f_prev + 1e-12:  # Allow tiny numerical tolerance
-                # Line search should guarantee decrease - this indicates implementation issue
-                pass  # Continue but track for debugging
+            if f_current > f_prev + 1e-10:  # Stricter than before
+                # Line search should guarantee sufficient decrease (Armijo condition)
+                # This indicates a serious algorithmic issue
+                decrease_violation = f_current - f_prev
+                relative_violation = decrease_violation / max(abs(f_prev), 1e-12)
+                
+                if relative_violation > 1e-8:  # Non-trivial violation
+                    raise RuntimeError(
+                        f"NCG monotonic decrease violated at iteration {k}: "
+                        f"f_new={f_current:.6e} > f_old={f_prev:.6e}, "
+                        f"increase={decrease_violation:.2e}, "
+                        f"relative_increase={relative_violation:.2e}"
+                    )
             f_prev = f_current
             
             # Clip gradients during iteration to maintain stability
@@ -138,7 +185,21 @@ class NonlinearConjugateGradient:
             if np.dot(grad, search_dir) > 0:
                 search_dir = -grad
         
-        return a, self.max_iter
+        # If we reach here, we've hit max iterations without convergence
+        final_grad_norm = np.linalg.norm(grad)
+        final_objective = objective(a)
+        
+        # Check if we're close to convergence even if we hit max_iter with strict tolerance
+        if final_grad_norm < self.tol * 3:  # Much stricter than 10x, allows only 3x relaxation
+            return a, self.max_iter
+        else:
+            # True non-convergence - algorithm failed with rigorous requirements
+            raise RuntimeError(
+                f"NCG failed to converge after {self.max_iter} iterations: "
+                f"final_grad_norm={final_grad_norm:.2e} > strict_tol={self.tol * 3:.2e}, "
+                f"final_objective={final_objective:.6e}. "
+                f"Required: gradient_norm < {self.tol * 3:.2e} (3x base tolerance)"
+            )
     
     def _line_search(self, objective, objective_grad, a, grad, search_dir):
         """Research-accurate line search with configurable Wolfe conditions."""
@@ -151,7 +212,7 @@ class NonlinearConjugateGradient:
         f_a = objective(a)
         
         if self.line_search == 'armijo':
-            while alpha > 1e-12:
+            while alpha > 1e-15:  # Much stricter minimum step size (was 1e-12)
                 a_new = a + alpha * search_dir
                 f_new = objective(a_new)
                 

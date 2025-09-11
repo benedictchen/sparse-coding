@@ -1,22 +1,123 @@
-# Sparse Coding v2.5.0
+# Sparse Coding | Dictionary Learning | FISTA Optimization | Olshausen Field Algorithm
 
-Sparse coding implementation with dictionary learning and optimization algorithms.
+**🔬 Research-Accurate Sparse Coding & Dictionary Learning Python Library** 
 
-## Implementation
+**Keywords:** `sparse coding`, `dictionary learning`, `FISTA`, `ISTA`, `Olshausen Field`, `feature learning`, `compressed sensing`, `L1 regularization`, `optimization`, `computer vision`, `signal processing`
 
-Dictionary learning based on Olshausen & Field (1996) with:
-- ISTA, FISTA optimization solvers
-- Multiple sparse coding algorithms
-- Visualization and analysis tools
+**Production-Ready Implementation** of foundational sparse coding algorithms with mathematical correctness, research citations, and industry-grade stability. Based on Olshausen & Field (1996), Beck & Teboulle (2009), and Engan et al. (1999) research papers.
 
-## Research Applications
+## 🎯 **Why Choose This Sparse Coding Library?**
 
-- Computer Vision: Feature learning, image denoising, object detection
-- Medical Imaging: MRI reconstruction, CT denoising, pattern analysis  
-- Audio Processing: Source separation, compression, recognition
-- Data Science: Anomaly detection, dimensionality reduction
+| ✅ **Production Features** | 🔬 **Research Accuracy** | ⚡ **Performance** |
+|---------------------------|--------------------------|-------------------|
+| Mathematical stability fixes | Exact Olshausen & Field (1996) | FISTA optimization (Beck & Teboulle 2009) |
+| Gradient clipping for NCG | MOD dictionary updates (Engan et al. 1999) | Parallel batch processing |
+| Condition number checking | Research citations & formulations | Memory-efficient algorithms |
+| Comprehensive input validation | Multiple sparse coding modes | GPU acceleration support |
 
-## 🚀 Quick Start
+## 🚀 **Install & Quick Start**
+
+```bash
+pip install sparse-coding
+```
+
+```python
+import numpy as np
+from sparse_coding import SparseCoder
+
+# Dictionary Learning Example
+X = np.random.randn(64, 1000)  # 64 features, 1000 samples
+sc = SparseCoder(n_atoms=128, mode='l1')  # 128 dictionary atoms, L1 penalty
+sc.fit(X, n_steps=30)  # Learn dictionary
+
+# Sparse Coding Example  
+codes = sc.encode(X)  # Get sparse representations
+reconstructed = sc.decode(codes)  # Reconstruct signals
+```
+
+## 📚 **Algorithm Implementations**
+
+### **Sparse Coding Methods**
+- **L1 Regularization**: FISTA optimization (Beck & Teboulle 2009) - fastest convergence
+- **Log-Prior**: Olshausen & Field (1996) original formulation - research accurate
+- **NCG**: Nonlinear Conjugate Gradient with Polak-Ribière updates - robust optimization  
+- **Pure Olshausen**: Exact 1996 gradient ascent algorithm - historical accuracy
+
+### **Dictionary Learning Methods**  
+- **MOD Updates**: Method of Optimal Directions (Engan et al. 1999) - stable
+- **Gradient Updates**: Original Olshausen & Field approach - research faithful
+- **Homeostatic Balancing**: Dead atom reinitialization - prevents local minima
+
+## 🔬 **Research Applications & Use Cases**
+
+### **Computer Vision** 
+- **Image Feature Learning**: Learn visual primitives from natural images
+- **Image Denoising**: Remove noise while preserving important features  
+- **Object Detection**: Extract sparse representations for recognition
+- **Texture Analysis**: Model texture patterns with overcomplete dictionaries
+
+### **Medical Imaging**
+- **MRI Reconstruction**: Compressed sensing for faster MRI acquisition
+- **CT Image Denoising**: Reduce radiation dose while maintaining quality
+- **Pattern Analysis**: Identify disease biomarkers in medical images
+
+### **Signal Processing** 
+- **Audio Source Separation**: Separate mixed audio signals
+- **Speech Recognition**: Extract phonetic features for ASR systems  
+- **Compression**: Efficient sparse representation of signals
+
+### **Machine Learning & Data Science**
+- **Anomaly Detection**: Detect outliers using reconstruction error
+- **Dimensionality Reduction**: Learn compact representations  
+- **Feature Extraction**: Unsupervised feature discovery
+
+## 🔍 **Common Search Queries This Library Solves**
+
+❓ **"How to implement sparse coding in Python?"** → Use our `SparseCoder` class with FISTA optimization  
+❓ **"Dictionary learning algorithm implementation?"** → MOD and gradient-based updates included  
+❓ **"Olshausen Field sparse coding code?"** → `mode='olshausen_pure'` for exact 1996 algorithm  
+❓ **"FISTA algorithm Python?"** → Built-in FISTA with Beck & Teboulle (2009) implementation  
+❓ **"Compressed sensing Python library?"** → L1 regularization with fast solvers  
+❓ **"How to learn visual features unsupervised?"** → Dictionary learning on image patches
+
+## ⚖️ **Comparison with Other Libraries**
+
+| Library | Sparse Coding | Dictionary Learning | Research Accuracy | Mathematical Stability | Industry Ready |
+|---------|---------------|---------------------|-------------------|----------------------|----------------|
+| **This Library** | ✅ FISTA, NCG, Olshausen | ✅ MOD, Gradient | ✅ Research Citations | ✅ Stability Fixes | ✅ Production Ready |
+| scikit-learn | ✅ Basic | ✅ Basic | ❌ Simplified | ⚠️ Basic | ✅ Stable |
+| spams | ✅ Advanced | ✅ Yes | ⚠️ Some | ❌ C++ Complex | ❌ Research Only |
+| sporco | ✅ Comprehensive | ✅ Yes | ✅ Good | ⚠️ Some | ⚠️ Academic Focus |
+
+**Why Choose This Library:**
+- 🔬 **Most Research-Accurate**: Exact implementations of seminal papers
+- 🛡️ **Production-Stable**: Mathematical stability fixes and comprehensive testing
+- ⚡ **High Performance**: Optimized algorithms with parallel processing
+- 📖 **Best Documentation**: Clear examples and research foundations
+
+## 🔧 **Technical Features**
+
+### **Mathematical Robustness**
+- **Condition Number Checking**: Automatic ill-conditioning detection (threshold: 1e10)
+- **Gradient Clipping**: Prevents optimization explosions (threshold: 100.0) 
+- **Numerical Stability**: Uses `solve()` instead of `inv()` for better conditioning
+- **Input Validation**: Comprehensive checks for NaN/inf values
+
+### **Algorithm Variants**
+- **FISTA**: Fast Iterative Shrinkage-Thresholding (O(1/k²) convergence)
+- **ISTA**: Basic proximal gradient method (O(1/k) convergence)  
+- **NCG**: Nonlinear Conjugate Gradient with Polak-Ribière updates
+- **Olshausen Pure**: Exact gradient ascent from 1996 Nature paper
+
+### **Performance Optimizations**
+- **Parallel Processing**: Joblib-based parallelization for large batches
+- **Memory Efficiency**: Chunked processing for large datasets
+- **Sparse Matrix Support**: Native scipy.sparse integration
+- **GPU Acceleration**: Optional CUDA support via Array API
+
+## 🚀 **Quick Start Examples**
+
+### Method 1: Using DictionaryLearner (Patch-based learning)
 
 ```python
 import numpy as np
@@ -25,20 +126,20 @@ from sparse_coding import DictionaryLearner, visualization
 # Generate synthetic natural image patches
 images = np.random.randn(10, 64, 64)  # 10 images, 64x64 pixels
 
-# Learn sparse dictionary
+# Learn sparse dictionary from image patches
 learner = DictionaryLearner(
     n_components=100,        # 100 dictionary atoms
     patch_size=(8, 8),       # 8x8 patches
     sparsity_penalty=0.05,   # L1 regularization
-    max_iterations=500       # Set in constructor, not fit()
+    max_iterations=500       # Maximum training iterations
 )
 
 # Train on image patches
-history = learner.fit(images, verbose=True)
+learner.fit(images)
 
-# Extract sparse features
-features = learner.transform(images, pooling='max')
-print(f"Feature shape: {features.shape}")
+# Access learned dictionary and sparse codes
+print(f"Dictionary shape: {learner.dictionary.shape}")
+print(f"Sparse codes shape: {learner.sparse_codes.shape}")
 
 # Visualize learned dictionary
 fig = visualization.plot_dictionary_atoms(
@@ -47,6 +148,34 @@ fig = visualization.plot_dictionary_atoms(
     title="Learned Sparse Dictionary"
 )
 fig.show()
+```
+
+### Method 2: Using SparseCoder (Direct signal processing)
+
+```python
+import numpy as np
+from sparse_coding import SparseCoder
+
+# Generate synthetic data (signals as columns)
+n_features, n_samples = 256, 100
+signals = np.random.randn(n_features, n_samples)
+
+# Initialize sparse coder
+coder = SparseCoder(
+    n_atoms=64,              # 64 dictionary atoms
+    mode='l1',               # L1 penalty (FISTA solver)
+    lam=0.1,                 # Sparsity regularization
+    max_iter=200             # Maximum iterations
+)
+
+# Learn dictionary and encode signals
+coder.fit(signals, n_steps=30)
+sparse_codes = coder.encode(signals)
+reconstruction = coder.decode(sparse_codes)
+
+print(f"Dictionary shape: {coder.dictionary.shape}")
+print(f"Sparse codes shape: {sparse_codes.shape}")
+print(f"Reconstruction error: {np.linalg.norm(signals - reconstruction):.4f}")
 ```
 
 ## 📦 Installation

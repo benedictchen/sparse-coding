@@ -92,23 +92,45 @@ def as_same(x: ArrayLike, like: ArrayLike) -> ArrayLike:
     try:
         like_type = type(like)
         
-        # PyTorch conversions
+        # PyTorch conversions with device preservation
         if "torch" in like_type.__module__:
             import torch
-            if hasattr(x, "numpy"):  # CuPy, JAX arrays
-                return torch.from_numpy(x.numpy())
-            elif hasattr(x, "detach"):  # Already torch
-                return x
+            target_device = getattr(like, 'device', torch.device('cpu'))
+            
+            if hasattr(x, "detach"):  # Already torch
+                return x.to(target_device)
+            elif hasattr(x, "get"):  # CuPy array
+                # CuPy → PyTorch preserving device
+                if target_device.type == 'cuda' and hasattr(x, 'device'):
+                    x_numpy = x.get()  # CPU copy for conversion
+                    torch_tensor = torch.from_numpy(x_numpy)
+                    return torch_tensor.to(target_device)  # Move to target GPU
+                else:
+                    return torch.from_numpy(x.get())
+            elif "jax" in type(x).__module__:  # JAX array
+                # JAX → PyTorch preserving device
+                x_numpy = np.asarray(x)  # JAX to NumPy
+                torch_tensor = torch.from_numpy(x_numpy)
+                return torch_tensor.to(target_device)
             else:  # NumPy
-                return torch.from_numpy(x)
+                torch_tensor = torch.from_numpy(x)
+                return torch_tensor.to(target_device)
         
-        # CuPy conversions  
+        # CuPy conversions with device preservation
         elif "cupy" in like_type.__module__:
             import cupy as cp
             if hasattr(x, "get"):  # Already CuPy
                 return x
-            else:
-                return cp.asarray(x)
+            elif hasattr(x, "detach"):  # PyTorch tensor
+                # PyTorch → CuPy preserving GPU device
+                if x.device.type == 'cuda':
+                    x_numpy = x.detach().cpu().numpy()  # Move to CPU first
+                    return cp.asarray(x_numpy)  # CuPy will put on current GPU
+                else:
+                    return cp.asarray(x.detach().numpy())
+            else:  # NumPy or JAX
+                x_numpy = np.asarray(x)  # Ensure NumPy array
+                return cp.asarray(x_numpy)
         
         # JAX conversions
         elif "jax" in like_type.__module__:
@@ -197,11 +219,14 @@ def to_device(arr: ArrayLike, device: Optional[str] = None) -> ArrayLike:
                     if gpu_devices:
                         device_idx = 0
                         if ":" in device:
-                            device_idx = int(device.split(":")[-1])
+                            try:
+                                device_idx = int(device.split(":")[-1])
+                            except (ValueError, IndexError) as e:
+                                raise ValueError(f"Invalid device specification '{device}'. Use format 'cuda:N' where N is device index")
                         if device_idx < len(gpu_devices):
                             return jax.device_put(arr, gpu_devices[device_idx])
                         else:
-                            raise ValueError(f"JAX GPU device {device_idx} not available. Available: {len(gpu_devices)}")
+                            raise ValueError(f"JAX GPU device {device_idx} not available. Available devices: 0-{len(gpu_devices)-1}")
                     else:
                         raise ValueError("No JAX GPU devices available")
                 else:
@@ -278,14 +303,55 @@ def norm(x: ArrayLike, axis: Optional[Union[int, tuple]] = None, keepdims: bool 
 
 
 def solve(a: ArrayLike, b: ArrayLike) -> ArrayLike:
-    """Backend-agnostic linear system solve."""
+    """
+    Backend-agnostic linear system solve with safety checks.
+    
+    Solves the linear system ax = b for x.
+    
+    Args:
+        a: Coefficient matrix (n, n)
+        b: Right-hand side vector/matrix (n,) or (n, k)
+        
+    Returns:
+        Solution x with same backend as input 'a'
+        
+    Raises:
+        LinAlgError: If matrix is singular or poorly conditioned
+        ValueError: If dimensions are incompatible
+    """
+    import numpy as np
     backend = xp(a)
+    
+    # Input validation
+    a_arr, b_arr = np.asarray(a), np.asarray(b)
+    if a_arr.ndim != 2 or a_arr.shape[0] != a_arr.shape[1]:
+        raise ValueError(f"Matrix 'a' must be square, got shape {a_arr.shape}")
+    if b_arr.shape[0] != a_arr.shape[0]:
+        raise ValueError(f"Incompatible dimensions: a={a_arr.shape}, b={b_arr.shape}")
+    
+    # Check for degenerate cases
+    if a_arr.shape[0] == 0:
+        raise ValueError("Cannot solve system with empty matrix")
+    
     if hasattr(backend, 'linalg') and hasattr(backend.linalg, 'solve'):
-        return backend.linalg.solve(a, b)
+        try:
+            return backend.linalg.solve(a, b)
+        except Exception as e:
+            # Fallback to NumPy if backend solve fails
+            result = np.linalg.solve(a_arr, b_arr)
+            # Try to convert back to original backend
+            try:
+                return as_same(result, a)
+            except Exception:
+                return result
     else:
-        # Safety fallback: convert explicitly to NumPy without empty array dance
-        import numpy as np
-        return np.linalg.solve(np.asarray(a), np.asarray(b))
+        # Direct NumPy fallback with proper error handling
+        result = np.linalg.solve(a_arr, b_arr)
+        # Try to convert back to original backend 
+        try:
+            return as_same(result, a)
+        except Exception:
+            return result
 
 
 def svd(x: ArrayLike, full_matrices: bool = True) -> tuple:
@@ -295,6 +361,12 @@ def svd(x: ArrayLike, full_matrices: bool = True) -> tuple:
         return backend.linalg.svd(x, full_matrices=full_matrices)
     else:
         import numpy as np
-        x_np = as_same(x, np.array([]))
+        # Safe conversion: use np.asarray instead of empty array reference
+        x_np = np.asarray(x)
         u, s, vh = np.linalg.svd(x_np, full_matrices=full_matrices)
-        return as_same(u, x), as_same(s, x), as_same(vh, x)
+        # Convert back to original backend if possible
+        try:
+            return as_same(u, x), as_same(s, x), as_same(vh, x)
+        except Exception:
+            # Fallback: return as NumPy arrays if conversion fails
+            return u, s, vh

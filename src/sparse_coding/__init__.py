@@ -8,16 +8,23 @@ from .dictionary_learner import DictionaryLearner
 
 from .core.penalties import (
     L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty,
-    TopKConstraint, LogSumPenalty, GroupLassoPenalty, SCADPenalty,
+    TopKConstraint, LogSumPenalty, GroupLassoPenalty, SCADPenalty, HuberPenalty,
     PenaltyProtocol, create_penalty
 )
 
 from .sparse_coding_configuration import PenaltyConfig
 
+# UNIFIED SOLVER INTERFACE - Single source of truth for all solver access
 from .core.solver_implementations import (
+    # Main registry and access functions
+    SOLVER_REGISTRY, get_solver, solve, list_solvers,
+    
+    # Individual solver classes (both naming conventions for compatibility)
     FistaSolver, IstaSolver, OmpSolver, NcgSolver,
-    SolverFactory, SolverRegistry, SOLVER_REGISTRY,
-    SolverConfig, create_solver
+    FISTASolver, ISTASolver, OMPSolver, NCGSolver,
+    
+    # Configuration and factory
+    SolverFactory, SolverRegistry, SolverConfig, create_solver
 )
 
 from .core.dict_updater_implementations import (

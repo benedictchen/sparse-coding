@@ -8,13 +8,13 @@ sparse coding formulations, following Tibshirani (1996) LASSO framework.
 from .penalty_protocol import PenaltyProtocol
 from .implementations import (
     L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty,
-    TopKConstraint, LogSumPenalty, GroupLassoPenalty, SCADPenalty,
+    TopKConstraint, LogSumPenalty, GroupLassoPenalty, SCADPenalty, HuberPenalty,
     create_penalty
 )
 from ...sparse_coding_configuration import PenaltyConfig
 
 __all__ = [
     'PenaltyProtocol', 'L1Penalty', 'L2Penalty', 'ElasticNetPenalty', 'CauchyPenalty',
-    'TopKConstraint', 'LogSumPenalty', 'GroupLassoPenalty', 'SCADPenalty',
+    'TopKConstraint', 'LogSumPenalty', 'GroupLassoPenalty', 'SCADPenalty', 'HuberPenalty',
     'create_penalty', 'PenaltyConfig'
 ]

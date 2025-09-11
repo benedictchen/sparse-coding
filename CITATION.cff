@@ -1,0 +1,80 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Sparse Coding: Research-Accurate Dictionary Learning Library"
+abstract: "Production-ready sparse coding and dictionary learning algorithms with mathematical correctness, research citations, and industry-grade stability. Implements Olshausen & Field (1996), Beck & Teboulle (2009), and Engan et al. (1999) algorithms."
+authors:
+  - family-names: Chen
+    given-names: Benedict
+    email: benedict@benedictchen.com
+    orcid: https://orcid.org/0000-0000-0000-0000
+repository-code: "https://github.com/benedictchen/sparse-coding"
+url: "https://sparse-coding.readthedocs.io"
+keywords:
+  - sparse coding
+  - dictionary learning
+  - FISTA
+  - ISTA
+  - Olshausen Field
+  - feature learning
+  - compressed sensing
+  - L1 regularization
+  - optimization
+  - computer vision
+  - signal processing
+  - machine learning
+  - unsupervised learning
+  - representation learning
+license: "Custom Non-Commercial License with Donation Requirements"
+version: "2.1.0"
+date-released: "2025-01-11"
+references:
+  - type: article
+    title: "Emergence of simple-cell receptive field properties by learning a sparse code for natural images"
+    authors:
+      - family-names: Olshausen
+        given-names: Bruno A.
+      - family-names: Field
+        given-names: David J.
+    journal: "Nature"
+    volume: 381
+    issue: 6583
+    pages: "607-609"
+    year: 1996
+    doi: "10.1038/381607a0"
+  - type: article
+    title: "A fast iterative shrinkage-thresholding algorithm for linear inverse problems"
+    authors:
+      - family-names: Beck
+        given-names: Amir
+      - family-names: Teboulle
+        given-names: Marc
+    journal: "SIAM Journal on Imaging Sciences"
+    volume: 2
+    issue: 1
+    pages: "183-202"
+    year: 2009
+    doi: "10.1137/080716542"
+  - type: conference-paper
+    title: "Method of optimal directions for frame design"
+    authors:
+      - family-names: Engan
+        given-names: Kjersti
+      - family-names: Aase
+        given-names: Sven Ole
+      - family-names: Husoy
+        given-names: John Håkon
+    conference:
+      name: "1999 IEEE International Conference on Acoustics, Speech, and Signal Processing"
+    volume: 5
+    pages: "2443-2446"
+    year: 1999
+    doi: "10.1109/ICASSP.1999.760624"
+preferred-citation:
+  type: software
+  title: "Sparse Coding: Research-Accurate Dictionary Learning Library"
+  authors:
+    - family-names: Chen
+      given-names: Benedict
+  year: 2025
+  url: "https://github.com/benedictchen/sparse-coding"

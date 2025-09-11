@@ -1,0 +1,121 @@
+site_name: Sparse Coding - Dictionary Learning Library
+site_url: https://sparse-coding.readthedocs.io
+site_description: Production-ready sparse coding and dictionary learning algorithms with mathematical correctness and research accuracy
+site_author: Benedict Chen
+repo_url: https://github.com/benedictchen/sparse-coding
+repo_name: benedictchen/sparse-coding
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 Benedict Chen
+
+theme:
+  name: material
+  features:
+    - navigation.instant  # SPA-like navigation
+    - navigation.tracking # URL fragments in navigation
+    - navigation.tabs     # Top-level tabs
+    - navigation.sections # Navigation sections
+    - navigation.expand   # Expand all sections
+    - navigation.indexes  # Section index pages
+    - toc.follow         # Follow table of contents
+    - search.suggest     # Search suggestions
+    - search.highlight   # Highlight search terms
+    - content.code.copy  # Copy code blocks
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+# SEO and Analytics
+extra:
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX  # Replace with actual GA4 property
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/benedictchen/sparse-coding
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/sparse-coding/
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Examples: getting-started/examples.md
+  - API Reference:
+    - SparseCoder: api/sparse-coder.md
+    - Algorithms: api/algorithms.md
+    - Utilities: api/utilities.md
+  - User Guide:
+    - Dictionary Learning: user-guide/dictionary-learning.md
+    - Sparse Coding Methods: user-guide/sparse-coding.md
+    - Performance Optimization: user-guide/performance.md
+  - Research:
+    - Mathematical Foundations: research/foundations.md
+    - Algorithm Comparison: research/comparison.md
+    - Benchmarks: research/benchmarks.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+# Extensions
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+# Plugins for SEO and search
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            members_order: source
+            group_by_category: true
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+          remove_comments: true
+      cache_safe: true
+
+# Watch for changes
+watch:
+  - src/sparse_coding
