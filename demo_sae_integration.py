@@ -57,12 +57,13 @@ def demo_unified_interface():
     # Generate data
     X, D_true, A_true = generate_demo_data(n_samples=500, n_features=32, n_true_atoms=16)
     
-    # Split into train/test
+    # Split into train/test  
+    # Note: sparse_autoencoders interface expects (n_samples, n_features) sklearn-style
     X_train, X_test = X[:400], X[400:]
     
     print(f"\n📊 Data shapes:")
-    print(f"   Training: {X_train.shape}")
-    print(f"   Test: {X_test.shape}")
+    print(f"   Training: {X_train.shape} (samples×features)")
+    print(f"   Test: {X_test.shape} (samples×features)")
     
     # Method 1: Classical Dictionary Learning
     print(f"\n🔍 Method 1: Classical Dictionary Learning")

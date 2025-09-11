@@ -87,10 +87,10 @@ def create_proximal_sparse_coder(dictionary: np.ndarray,
         >>> optimizer = create_proximal_sparse_coder(D, penalty_type='l1', penalty_params={'lam': 0.1})
         >>> result = optimizer.fista(signal)
     """
-    from .proximal_gradient_optimization import create_proximal_sparse_coder
-    return create_proximal_sparse_coder(dictionary, penalty_type, penalty_params, **kwargs)
+    from .proximal_gradient_optimization import create_proximal_sparse_coder as _create_proximal
+    return _create_proximal(dictionary, penalty_type, penalty_params, **kwargs)
 
-# Alias for API consistency  
+# No unnecessary aliases - clean API
 
 # Monitoring and logging - import the real implementations
 from .sparse_coding_monitoring import TB, CSVDump, DashboardLogger

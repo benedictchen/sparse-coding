@@ -36,14 +36,16 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.21.0",
-    "scipy>=1.7.0", 
+    "scipy>=1.7.0",
     "scikit-learn>=1.0.0",
-    "joblib>=1.2.0",
-    "matplotlib>=3.5.0",
-    "tensorboard>=2.8.0"
+    "joblib>=1.2.0"
 ]
 
 [project.optional-dependencies]
+viz = [
+    "matplotlib>=3.5.0",
+    "tensorboard>=2.8.0"
+]
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

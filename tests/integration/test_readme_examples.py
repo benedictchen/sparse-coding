@@ -12,7 +12,7 @@ import os
 import shutil
 from pathlib import Path
 
-from sparse_coding import DictionaryLearner, create_advanced_sparse_coder, DashboardLogger, visualization
+from sparse_coding import DictionaryLearner, create_proximal_sparse_coder, DashboardLogger, visualization
 
 
 class TestREADMEExamples:
@@ -78,7 +78,7 @@ class TestREADMEExamples:
         signal = np.random.randn(64, 1)
 
         # Create optimizer with different methods
-        optimizer = create_advanced_sparse_coder(
+        optimizer = create_proximal_sparse_coder(
             dictionary, 
             penalty_type='l1',  # 'l1', 'elastic_net', 'non_negative_l1'
             penalty_params={'lam': 0.1}
@@ -203,7 +203,7 @@ class TestREADMEExamples:
         dictionary /= np.linalg.norm(dictionary, axis=0, keepdims=True)
         signal = np.random.randn(32, 1)
 
-        optimizer = create_advanced_sparse_coder(
+        optimizer = create_proximal_sparse_coder(
             dictionary, 
             penalty_type='l1',
             penalty_params={'lam': 0.1}

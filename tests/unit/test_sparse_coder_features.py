@@ -43,8 +43,7 @@ class TestLambdaAnnealing:
             seed=42
         )
         
-        # Fit and verify annealing happens internally
-        # (We can't directly observe lambda during fit, but we can test the math)
+        # Fit and verify annealing happens internally (expose lam history when available)
         gamma, floor = 0.8, 1e-3
         lam = initial_lam
         
@@ -57,6 +56,13 @@ class TestLambdaAnnealing:
         assert expected_lambdas[-1] == floor  # Should definitely be at floor after 50 steps
         assert expected_lambdas[1] < expected_lambdas[0]  # Should decay
         assert np.all(np.diff(expected_lambdas[:-1]) <= 0)  # Monotonic decrease
+        
+        # Optional internal validation if implementation exposes history
+        if hasattr(coder, "lam_history_"):
+            hist = np.asarray(coder.lam_history_)
+            assert hist.ndim == 1 and hist.size > 0
+            assert np.all(np.diff(hist) <= 1e-12)
+            assert hist[-1] >= floor - 1e-12
     
     def test_annealing_improves_sparsity(self, synthetic_data):
         """Test that annealing generally improves sparsity."""

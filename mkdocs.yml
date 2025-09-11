@@ -40,7 +40,7 @@ theme:
 extra:
   analytics:
     provider: google
-    property: G-XXXXXXXXXX  # Replace with actual GA4 property
+    property: ""  # Set via CI or mkdocs-material env var; leave empty by default
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/benedictchen/sparse-coding

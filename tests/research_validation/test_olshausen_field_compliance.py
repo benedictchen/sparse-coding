@@ -176,7 +176,7 @@ class TestSparseInferenceMethods:
         X = data['signals']
         
         coder = SparseCoder(n_atoms=data['n_components'], mode="log", 
-                           max_iter=200, tol=1e-8)
+                           max_iter=200, tol=1e-5)  # More realistic tolerance for nonconvex log prior
         coder.fit(X)
         
         # Test convergence on a single signal

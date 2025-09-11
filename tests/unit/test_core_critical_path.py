@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 from hypothesis import given, strategies as st
 
-from sparse_coding import SparseCoder, create_sparse_coder
+from sparse_coding import SparseCoder, create_proximal_sparse_coder
 from sparse_coding.fista_batch import fista_batch, soft_thresh, power_iter_L
 from sparse_coding.core.penalties.implementations import L1Penalty, L2Penalty, ElasticNetPenalty
 from sparse_coding.core.solver_implementations import FistaSolver, IstaSolver
@@ -189,12 +189,12 @@ class TestSolverImplementations:
         for solver_name in expected_solvers:
             assert solver_name in solvers
             
-    def test_create_sparse_coder_factory(self):
-        """Test factory function works."""
+    def test_create_proximal_sparse_coder_factory(self):
+        """Test proximal factory function works."""
         D = np.random.randn(32, 16)
         D /= np.linalg.norm(D, axis=0)
         
-        optimizer = create_sparse_coder(D, penalty_type='l1', penalty_params={'lam': 0.1})
+        optimizer = create_proximal_sparse_coder(D, penalty_type='l1', penalty_params={'lam': 0.1})
         assert optimizer is not None
         assert hasattr(optimizer, 'fista')
 
