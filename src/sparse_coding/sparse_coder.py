@@ -16,7 +16,7 @@ Author: Benedict Chen
 from __future__ import annotations
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing import Optional, Union, Tuple, Any, Literal, Protocol, Callable
+from typing import Optional, Union, Tuple, Any, Literal, Protocol, Callable, Dict
 
 from joblib import Parallel, delayed
 import scipy.sparse
@@ -861,7 +861,7 @@ class SparseCoder:
         t = 1.0
         
         # Compute Lipschitz constant L = ||D^T D||₂ - sparse-aware
-        if HAS_SCIPY and scipy.sparse.issparse(D):
+        if scipy.sparse.issparse(D):
             # Use sparse SVD for sparse dictionaries (more efficient)
             try:
                 sigma_max = svds(D, k=1, return_singular_vectors=False)[0]
@@ -1041,7 +1041,6 @@ class SparseCoder:
                 A[:, n] = _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
             # Large batches: parallel processing with threading backend
-            from joblib import Parallel, delayed
             
             def process_signal(n):
                 return n, _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
@@ -1213,7 +1212,6 @@ class SparseCoder:
                 A[:, n] = _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
             # Large batches: parallel processing with threading backend
-            from joblib import Parallel, delayed
             
             def process_signal(n):
                 return n, _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
@@ -1241,7 +1239,6 @@ class SparseCoder:
                 A[:, n] = _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
             # Large batches: parallel processing with threading backend
-            from joblib import Parallel, delayed
             
             def process_signal(n):
                 return n, _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
