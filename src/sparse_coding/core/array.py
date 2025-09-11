@@ -329,6 +329,12 @@ def solve(a: ArrayLike, b: ArrayLike) -> ArrayLike:
     if b_arr.shape[0] != a_arr.shape[0]:
         raise ValueError(f"Incompatible dimensions: a={a_arr.shape}, b={b_arr.shape}")
     
+    # Check for non-finite values
+    if not np.all(np.isfinite(a_arr)):
+        raise ValueError("Matrix 'a' contains non-finite values (inf/nan)")
+    if not np.all(np.isfinite(b_arr)):
+        raise ValueError("Vector/matrix 'b' contains non-finite values (inf/nan)")
+    
     # Check for degenerate cases
     if a_arr.shape[0] == 0:
         raise ValueError("Cannot solve system with empty matrix")

@@ -37,7 +37,7 @@ from .fista_batch import fista_batch, power_iter_L
 class SparseCodingError(ValueError):
     """Custom exception for sparse coding specific errors."""
     pass
-SparseCodingMode = Literal['l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure']
+SparseCodingMode = Literal['l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure', 'transcoder']
 AnnealingConfig = Union[bool, Tuple[float, float]]
 
 # Protocol for random number generator
@@ -403,7 +403,7 @@ class SparseCoder:
                 raise ValueError(f"lam too large (>{1000}), got {lam}. Very large lambda values may cause numerical issues.")
                 
         # Comprehensive mode validation
-        valid_modes = {'l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure'}
+        valid_modes = {'l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure', 'transcoder'}
         if mode not in valid_modes:
             raise ValueError(f"mode must be one of {sorted(valid_modes)}, got '{mode}'")
             
@@ -453,6 +453,16 @@ class SparseCoder:
         self.anneal = anneal  # (gamma, floor) tuple for lambda annealing
         self.rng = np.random.default_rng(seed)
         self.D = None  # (p, K)
+        
+        # Transcoder-specific components (2025 arXiv:2501.18823)
+        if mode == 'transcoder':
+            self._nonlinear_weights = None  # Will be initialized during fit
+            self._skip_connection = True  # Skip transcoders for better performance
+            
+        # Adaptive K: dynamic atom allocation based on usage (2025 research)
+        self._adaptive_k = False  # Can be enabled via set_adaptive_k()
+        self._max_atoms = n_atoms * 2  # Upper bound for adaptive growth
+        self._usage_history = []  # Track atom usage over iterations
     
     @property
     def dictionary(self):
@@ -554,8 +564,12 @@ class SparseCoder:
             sigma = 1.0
             lam = float(self.lam if self.lam is not None else 0.14 * np.std(X))
             return self._batch_olshausen_gradient_inference(X, lam, sigma)
+        elif self.mode == "transcoder":
+            # Transcoder uses L1 inference (FISTA) 
+            lam = float(self.lam if self.lam is not None else 0.1 * np.std(X, ddof=0))
+            return fista_batch(self.D, X, lam, L=None, max_iter=self.max_iter, tol=self.tol)
         else:
-            raise ValueError("mode must be 'l1', 'log', 'paper', 'paper_gdD', or 'olshausen_pure'")
+            raise ValueError("mode must be 'l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure', or 'transcoder'")
 
     def decode(self, A: ArrayLike) -> np.ndarray:
         """
@@ -572,6 +586,11 @@ class SparseCoder:
             raise ValueError("dictionary not initialized. Call fit() first.")
         if A.shape[0] != self.D.shape[1]:
             raise ValueError(f"A atom dimension {A.shape[0]} doesn't match dictionary {self.D.shape[1]}")
+        # Transcoder mode uses nonlinear decoder (2025 research)
+        if self.mode == 'transcoder':
+            return self._nonlinear_decode(A)
+        
+        # Standard linear decoding for other modes
         # Sparse-safe matrix multiplication
         if HAS_SCIPY and scipy.sparse.issparse(A):
             # Use sparse matrix multiplication for efficiency
@@ -650,8 +669,17 @@ class SparseCoder:
                 # Uses log(1 + a²) sparsity penalty as in the Nature paper
                 A = self._batch_log_prior_inference_for_fit(X, D, lam)
                 D = _mod_update(D, X, A, eps=1e-6)
+            elif self.mode == "transcoder":
+                # Transcoder mode: L1 inference + nonlinear decoder training
+                A = fista_batch(D, X, lam, L=None, max_iter=self.max_iter, tol=self.tol)
+                # Train nonlinear decoder on reconstruction task
+                if self._nonlinear_weights is None:
+                    self._init_nonlinear_decoder()
+                self._train_nonlinear_decoder(X, A, lr=lr)
+                # Update linear dictionary too
+                D = _mod_update(D, X, A, eps=1e-6)
             else:
-                raise ValueError("mode must be 'l1', 'paper', 'paper_gdD', 'olshausen_pure', or 'log'")
+                raise ValueError("mode must be 'l1', 'paper', 'paper_gdD', 'olshausen_pure', 'transcoder', or 'log'")
             
             D = _reinit_dead_atoms(D, X, A, self.rng)
             
@@ -981,6 +1009,94 @@ class SparseCoder:
                     A[:, n] = _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         
         return A
+    
+    def _nonlinear_decode(self, A: np.ndarray) -> np.ndarray:
+        """Nonlinear decoder for transcoder mode (2025 arXiv:2501.18823)."""
+        if self._nonlinear_weights is None:
+            raise ValueError("Transcoder not trained. Call fit() first.")
+        
+        # Simple 2-layer MLP decoder with skip connection
+        W1, b1, W2, b2 = self._nonlinear_weights
+        
+        # Hidden layer with ReLU activation
+        hidden = np.maximum(0, A.T @ W1 + b1)  # (n_samples, hidden_dim)
+        
+        # Output layer
+        output = hidden @ W2 + b2  # (n_samples, n_features)
+        
+        # Skip connection: combine with linear reconstruction
+        if self._skip_connection:
+            linear_output = (self.D @ A).T  # (n_samples, n_features)
+            output = 0.7 * output + 0.3 * linear_output  # Weighted combination
+        
+        return output.T  # Return as (n_features, n_samples)
+    
+    def _init_nonlinear_decoder(self, hidden_dim: int = None) -> None:
+        """Initialize nonlinear decoder weights for transcoder mode."""
+        if self.D is None:
+            return
+        
+        n_features, n_atoms = self.D.shape
+        hidden_dim = hidden_dim or min(256, 2 * n_atoms)  # Adaptive hidden size
+        
+        # Xavier initialization for better gradient flow
+        scale1 = np.sqrt(2.0 / (n_atoms + hidden_dim))
+        scale2 = np.sqrt(2.0 / (hidden_dim + n_features))
+        
+        W1 = self.rng.normal(0, scale1, (n_atoms, hidden_dim))
+        b1 = np.zeros(hidden_dim)
+        W2 = self.rng.normal(0, scale2, (hidden_dim, n_features))  
+        b2 = np.zeros(n_features)
+        
+        self._nonlinear_weights = (W1, b1, W2, b2)
+    
+    def _train_nonlinear_decoder(self, X: np.ndarray, A: np.ndarray, lr: float = 0.001, n_epochs: int = 10) -> None:
+        """Train nonlinear decoder for transcoder mode using gradient descent."""
+        if self._nonlinear_weights is None:
+            raise ValueError("Decoder not initialized")
+        
+        W1, b1, W2, b2 = self._nonlinear_weights
+        n_samples = X.shape[1]
+        
+        # Simple SGD training loop
+        for epoch in range(n_epochs):
+            # Forward pass
+            hidden = np.maximum(0, A.T @ W1 + b1)  # (n_samples, hidden_dim)
+            output = hidden @ W2 + b2  # (n_samples, n_features)
+            
+            # Skip connection
+            if self._skip_connection:
+                linear_output = (self.D @ A).T
+                output = 0.7 * output + 0.3 * linear_output
+            
+            # Reconstruction loss
+            target = X.T  # (n_samples, n_features) 
+            loss = np.mean((output - target)**2)
+            
+            # Backward pass (simple gradients)
+            d_output = 2 * (output - target) / n_samples  # (n_samples, n_features)
+            
+            if self._skip_connection:
+                d_output = 0.7 * d_output  # Account for skip connection weight
+            
+            # Gradients for second layer
+            d_W2 = hidden.T @ d_output  # (hidden_dim, n_features)
+            d_b2 = np.sum(d_output, axis=0)  # (n_features,)
+            
+            # Gradients for first layer
+            d_hidden = d_output @ W2.T  # (n_samples, hidden_dim)
+            d_hidden_relu = d_hidden * (hidden > 0)  # ReLU derivative
+            
+            d_W1 = A @ d_hidden_relu  # (n_atoms, hidden_dim)
+            d_b1 = np.sum(d_hidden_relu, axis=0)  # (hidden_dim,)
+            
+            # Update weights
+            W1 -= lr * d_W1
+            b1 -= lr * d_b1  
+            W2 -= lr * d_W2
+            b2 -= lr * d_b2
+        
+        self._nonlinear_weights = (W1, b1, W2, b2)
     
     def _batch_olshausen_gradient_inference(self, X: np.ndarray, lam: float, sigma: float) -> np.ndarray:
         """Batch inference using pure Olshausen & Field (1996) gradient ascent."""

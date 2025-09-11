@@ -154,8 +154,8 @@ class TestDataPreprocessingIntegration:
         
         X_whitened = np.array(whitened_patches).T
         
-        # Learn dictionary on whitened data
-        learner = DictionaryLearner(n_atoms=25, max_iter=8, tol=1e-4)
+        # Learn dictionary on whitened data with stronger sparsity for natural images
+        learner = DictionaryLearner(n_atoms=25, max_iter=8, tol=1e-4, sparsity_penalty=1.5)
         learner.fit(X_whitened)
         
         # Verify results

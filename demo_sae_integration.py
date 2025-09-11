@@ -10,10 +10,10 @@ methods and interpretability analysis.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import sys
 
-# Add package to path for development
-sys.path.insert(0, str(Path(__file__).parent))
+# To run this demo:
+# PYTHONPATH=src python demo_sae_integration.py
+# Or install the package: pip install -e .
 
 from sparse_coding.sparse_autoencoders import (
     fit_features, encode_features, decode_features, compare_features,

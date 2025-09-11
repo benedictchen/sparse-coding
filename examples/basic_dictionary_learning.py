@@ -9,10 +9,10 @@ This reproduces the classic Olshausen & Field (1996) experiment.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import sys
 
-# Add sparse_coding to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# To run this example:
+# PYTHONPATH=src python examples/basic_dictionary_learning.py
+# Or install the package: pip install -e .
 
 from sparse_coding.dictionary_learner import DictionaryLearner
 from sparse_coding.visualization import plot_dictionary_atoms, plot_training_progress

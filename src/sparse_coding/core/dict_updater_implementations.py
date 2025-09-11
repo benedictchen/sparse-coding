@@ -17,7 +17,8 @@ from .array import ArrayLike, ensure_array
 from .interfaces import DictUpdater
 
 
-# SOLUTION 2: Separate Concrete Updater Classes
+# Consolidated Dictionary Updater Implementations
+# Single architecture pattern with concrete classes and simple factory
 
 @dataclass  
 class ModUpdater:
@@ -319,9 +320,9 @@ class BlockCoordinateUpdater:
         return False  # Normalized within update
 
 
-# SOLUTION 3: Factory-Based Dictionary Learning
+# Simple Factory for Dictionary Updaters
 class DictUpdaterFactory:
-    """Factory for creating dictionary updater instances."""
+    """Clean, single-responsibility factory for creating dictionary updaters."""
     
     _updaters = {
         'mod': ModUpdater,
@@ -345,69 +346,39 @@ class DictUpdaterFactory:
     def list_available() -> list:
         """List available updater methods."""
         return list(DictUpdaterFactory._updaters.keys())
-    
-    @staticmethod  
-    def register_updater(name: str, updater_cls: type):
-        """Register new updater type."""
-        DictUpdaterFactory._updaters[name] = updater_cls
 
 
-# SOLUTION 4: Registry-Based System  
+# Legacy compatibility layer
 class DictUpdaterRegistry:
-    """Registry-based dictionary updater management."""
+    """Simplified registry for backward compatibility - delegates to factory."""
     
-    def __init__(self):
-        self._registry = {}
-        self._method_preferences = {}
-        self._register_defaults()
+    @staticmethod
+    def get_updater(method: str) -> DictUpdater:
+        """Get updater (delegates to factory)."""
+        return DictUpdaterFactory.create(method)
     
-    def _register_defaults(self):
-        """Register default updaters."""
-        self.register('mod', ModUpdater())
-        self.register('ksvd', KsvdUpdater())
-        self.register('gradient', GradientUpdater())
-        self.register('online', OnlineUpdater())
-        self.register('block_coordinate', BlockCoordinateUpdater())
-        
-        # Method preferences for different scenarios
-        self._method_preferences = {
-            'batch': 'ksvd',      # K-SVD for batch learning
-            'online': 'online',   # Online updater for streaming
-            'fast': 'mod',        # MOD for fastest updates  
-            'stable': 'block_coordinate'  # Block coordinate for stability
-        }
-    
-    def register(self, name: str, updater: DictUpdater):
-        """Register updater instance."""
-        self._registry[name] = updater
-    
-    def get_updater(self, method: str) -> DictUpdater:
-        """Get updater by name."""  
-        if method not in self._registry:
-            available = list(self._registry.keys())
-            raise KeyError(f"Updater '{method}' not found. Available: {available}")
-        return self._registry[method]
-    
-    def recommend_updater(self, scenario: str) -> DictUpdater:
+    @staticmethod
+    def recommend_updater(scenario: str) -> DictUpdater:
         """Recommend updater for scenario."""
-        method = self._method_preferences.get(scenario, 'ksvd')
-        return self.get_updater(method)
-    
-    def step(self, D: ArrayLike, X: ArrayLike, A: ArrayLike, 
-             method: str = 'ksvd', **kwargs) -> ArrayLike:
-        """Update dictionary using registry-managed updater."""
-        updater = self.get_updater(method)
-        return updater.step(D, X, A, **kwargs)
+        recommendations = {
+            'batch': 'ksvd',      
+            'online': 'online',   
+            'fast': 'mod',        
+            'stable': 'block_coordinate'
+        }
+        
+        method = recommendations.get(scenario, 'ksvd')
+        return DictUpdaterFactory.create(method)
 
 
-# Global registry instance
+# Legacy compatibility
 DICT_UPDATER_REGISTRY = DictUpdaterRegistry()
 
 
-# Configuration system for overlapping solutions
+# Simplified Configuration System
 @dataclass
 class DictUpdaterConfig:
-    """Configuration for dictionary updater creation."""
+    """Clean configuration for dictionary updater creation."""
     
     # Core updater parameters
     method: str = 'ksvd'  # 'mod', 'ksvd', 'gradient', 'online', 'block_coordinate'
@@ -427,17 +398,10 @@ class DictUpdaterConfig:
     
     # Block coordinate specific
     max_inner_iter: int = 5
-    
-    # Solution pattern selection
-    use_factory: bool = False     # Solution 3: Factory pattern
-    use_registry: bool = True     # Solution 4: Registry system (default)
-    scenario_based: str = None    # Use scenario-based recommendation
 
 
 def create_dict_updater(config: DictUpdaterConfig) -> DictUpdater:
-    """
-    Create dictionary updater with configurable solution patterns.
-    """
+    """Create dictionary updater from configuration."""
     # Extract method-specific parameters
     updater_kwargs = {}
     
@@ -459,21 +423,5 @@ def create_dict_updater(config: DictUpdaterConfig) -> DictUpdater:
     elif config.method == 'block_coordinate':
         updater_kwargs['max_inner_iter'] = config.max_inner_iter
     
-    # Create updater using selected pattern
-    if config.use_factory:
-        # Solution 3: Factory pattern
-        return DictUpdaterFactory.create(config.method, **updater_kwargs)
-    elif config.use_registry:
-        # Solution 4: Registry system
-        if config.scenario_based:
-            # Use scenario-based recommendation
-            updater = DICT_UPDATER_REGISTRY.recommend_updater(config.scenario_based)
-            return updater
-        else:
-            # Create configured instance
-            updater = DictUpdaterFactory.create(config.method, **updater_kwargs)
-            DICT_UPDATER_REGISTRY.register(f'{config.method}_configured', updater)
-            return updater
-    else:
-        # Direct instantiation (Solution 2)
-        return DictUpdaterFactory.create(config.method, **updater_kwargs)
+    # Single creation path - use factory
+    return DictUpdaterFactory.create(config.method, **updater_kwargs)

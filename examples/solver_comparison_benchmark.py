@@ -15,10 +15,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from pathlib import Path
-import sys
 
-# Add sparse_coding to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# To run this example:
+# PYTHONPATH=src python examples/solver_comparison_benchmark.py
+# Or install the package: pip install -e .
 
 from sparse_coding.proximal_gradient_optimization import (
     ProximalGradientOptimizer, L1Proximal, ElasticNetProximal,

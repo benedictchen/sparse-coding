@@ -8,8 +8,7 @@ import numpy as np
 import sys
 import os
 
-# Add current directory to path so imports work
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Note: sys.path manipulation removed - use proper package imports instead
 
 # Test imports
 try:

@@ -14,10 +14,10 @@ Based on features identified in implementation comparison analysis.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import sys
 
-# Add the package to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# To run this example:
+# PYTHONPATH=src python examples/sparse_coder_modes_demo.py
+# Or install the package: pip install -e .
 
 from sparse_coding import SparseCoder, visualization
 

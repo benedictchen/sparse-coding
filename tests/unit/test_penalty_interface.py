@@ -7,11 +7,8 @@ mathematical specifications and protocol requirements.
 """
 
 import numpy as np
-import sys
-import os
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Note: sys.path manipulation removed - tests should use PYTHONPATH=src
 
 from sparse_coding.core.penalties.implementations import (
     L1Penalty, L2Penalty, ElasticNetPenalty, TopKConstraint, CauchyPenalty,

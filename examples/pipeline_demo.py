@@ -16,10 +16,10 @@ This is a comprehensive example showing all restored functionality.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-import sys
 
-# Add sparse_coding to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# To run this example:
+# PYTHONPATH=src python examples/pipeline_demo.py
+# Or install the package: pip install -e .
 
 from sparse_coding.dictionary_learner import DictionaryLearner
 from sparse_coding.proximal_gradient_optimization import create_proximal_sparse_coder
