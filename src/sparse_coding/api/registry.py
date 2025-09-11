@@ -313,6 +313,7 @@ list_all = list_registered
 
 # Example implementations that work with the registry
 import numpy as np
+from ..fista_batch import power_iter_L
 
 class ExampleL1Penalty:
     """
@@ -500,7 +501,7 @@ class ExampleFISTASolver:
         n_atoms, n_samples = D.shape[1], X.shape[1]
         
         # Compute Lipschitz constant L = σ_max(D)^2
-        L = np.linalg.norm(D, ord=2) ** 2
+        L = power_iter_L(D)
         step_size = 1.0 / L
         
         # Initialize variables

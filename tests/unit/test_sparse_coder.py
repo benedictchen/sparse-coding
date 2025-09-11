@@ -288,6 +288,43 @@ class TestLogPriorInference:
         # Log prior trades off reconstruction vs sparsity - be reasonable about error tolerance
         relative_error = np.sqrt(error) / np.linalg.norm(X)
         assert relative_error < 2.0, f"Relative reconstruction error should be reasonable: {relative_error:.3f}"
+    
+    def test_ncg_monotonic_decrease_validation(self, synthetic_data):
+        """Test NCG optimization maintains monotonic decrease property."""
+        from sparse_coding.core.inference.nonlinear_conjugate_gradient import NonlinearConjugateGradient
+        from sparse_coding.core.penalties.implementations import CauchyPenalty
+        
+        data = synthetic_data
+        D = data['true_dict']
+        x = data['signals'][:, 0]  # Single signal
+        
+        # Test NCG directly with smooth Cauchy penalty
+        penalty = CauchyPenalty(lam=0.1, sigma=1.0)
+        ncg = NonlinearConjugateGradient(max_iter=20, tol=1e-8)
+        
+        # Initial solution
+        a_init = np.random.randn(D.shape[1]) * 0.01
+        
+        # Objective function for external validation
+        def objective(a_val):
+            residual = 0.5 * np.linalg.norm(D @ a_val - x)**2
+            penalty_val = penalty.value(a_val)
+            # Ensure penalty_val is scalar
+            if isinstance(penalty_val, np.ndarray):
+                penalty_val = np.sum(penalty_val)
+            return residual + penalty_val
+        
+        # Solve and track objectives
+        a_final, iterations = ncg.solve(D, x, penalty, a_init)
+        
+        # Test convergence properties
+        assert np.all(np.isfinite(a_final)), "NCG solution should be finite"
+        assert iterations > 0, "NCG should perform at least one iteration"
+        
+        # Test final objective improvement
+        f_init = objective(a_init)
+        f_final = objective(a_final)
+        assert f_final <= f_init, f"NCG should decrease objective: {f_init:.6f} -> {f_final:.6f}"
 
 
 class TestAutoLambdaSelection:

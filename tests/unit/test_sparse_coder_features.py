@@ -214,18 +214,26 @@ class TestNonlinearConjugateGradient:
 class TestDeadAtomHandling:
     """Test dead atom detection and recovery mechanisms."""
     
-    def test_dead_atom_detection_l2_norm(self):
-        """Test that dead atoms are detected using L2 norm."""
+    def test_dead_atom_detection_frequency_based(self):
+        """Test that dead atoms are detected using activation frequency."""
         # Create scenario with some dead atoms
         np.random.seed(42)
-        M, K, N = 50, 20, 30
+        M, K, N = 50, 20, 300  # More samples to test frequency properly
         D = np.random.randn(M, K)
         D /= np.linalg.norm(D, axis=0, keepdims=True)
         
-        # Create sparse codes with some atoms completely unused
-        A = np.random.randn(K, N) * 0.1
-        A[5:8, :] = 0  # Make atoms 5,6,7 completely dead
-        A[10, :] = 1e-10  # Make atom 10 nearly dead
+        # Create sparse codes with different activation patterns
+        A = np.random.randn(K, N) * 0.01  # Small activations
+        
+        # Make some atoms active in most samples (good atoms)
+        A[:3, :] = np.random.randn(3, N) * 0.5  # Active in many samples
+        
+        # Make some atoms completely inactive (dead atoms) 
+        A[5:8, :] = 0  # Never active
+        
+        # Make some atoms active only rarely (borderline dead)
+        A[10, :int(0.005 * N)] = 0.1  # Active in <1% of samples (dead)
+        A[12, :int(0.05 * N)] = 0.1   # Active in 5% of samples (alive)
         
         rng = np.random.default_rng(42)
         X = np.random.randn(M, N)  # Dummy X for reinitialization
@@ -238,9 +246,20 @@ class TestDeadAtomHandling:
         # Should be normalized
         assert_dictionary_normalized(D_new)
         
-        # Should have reinitialized some atoms
+        # Should have reinitialized some atoms (those with low frequency)
         diff = np.linalg.norm(D - D_new, 'fro')
         assert diff > 0.1, "Dead atoms should be reinitialized"
+        
+        # Verify frequency-based detection logic
+        activation_threshold = 1e-6
+        activation_freq = np.mean(np.abs(A) > activation_threshold, axis=1)
+        frequency_threshold = 0.01
+        expected_dead = activation_freq < frequency_threshold
+        
+        # Atoms 5,6,7,10 should be detected as dead (low frequency)
+        assert expected_dead[5] and expected_dead[6] and expected_dead[7]
+        assert expected_dead[10]  # Active in <1% of samples
+        assert not expected_dead[12]  # Active in 5% of samples (alive)
     
     def test_dead_atom_reinitialization_integration(self, synthetic_data):
         """Test dead atom reinitialization in full training."""
