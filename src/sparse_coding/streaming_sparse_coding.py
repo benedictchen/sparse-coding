@@ -210,13 +210,19 @@ def encode_stream(
     
     # Pre-compute FISTA parameters for efficiency
     # Lipschitz constant L for step size
+    # Compute Lipschitz constant for FISTA step size
     try:
         from .fista_batch import power_iter_L
         L = power_iter_L(D)  # More accurate than ||D||² approximation
-    except ImportError:
-        # Fallback: use safe power iteration for spectral norm
-        from .fista_batch import power_iter_L
-        L = float(power_iter_L(D))
+    except ImportError as e:
+        # Module missing - this is a critical dependency error
+        raise ImportError(f"Required module 'fista_batch' not found: {e}. "
+                         f"Cannot compute Lipschitz constant for FISTA algorithm.") from e
+    
+    # Ensure L is a proper scalar
+    if not np.isscalar(L) or not np.isfinite(L) or L <= 0:
+        # Fallback to spectral norm approximation
+        L = float(np.linalg.norm(D, ord=2)**2)
     
     if verbose:
         print(f"Initializing streaming sparse coding pipeline:")

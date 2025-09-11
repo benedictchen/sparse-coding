@@ -594,26 +594,51 @@ def soft_threshold(z, t):
     return np.sign(z) * np.maximum(np.abs(z) - t, 0.0)
 
 def sparse_encode(x, D, lam=0.1, max_iter=200, tol=1e-6):
-    # x: (n_features,) or (n_features, 1)
+    '''
+    FISTA algorithm following Beck and Teboulle (2009) Algorithm 2.
+    
+    Research Foundation:
+    Beck, A., and Teboulle, M. (2009). A fast iterative shrinkage-thresholding 
+    algorithm for linear inverse problems. SIAM Journal on Imaging Sciences, 2(1), 183-202.
+    
+    Mathematical Problem: min_a 0.5*||x - Da||^2 + lambda*||a||_1
+    '''
     x = x.reshape(-1, 1)
     n_features, n_atoms = D.shape
     DtD = D.T @ D
     Dt_x = D.T @ x
+    
     # Lipschitz constant of grad f(a) = D^T(D a - x)
     L = np.linalg.norm(DtD, 2)  # spectral norm
-    a = np.zeros((n_atoms, 1))
-    y = a.copy()
-    t = 1.0
-    for _ in range(max_iter):
+    step_size = 1.0 / L
+    
+    # Initialize: a₀ = 0, y₀ = a₀, t₀ = 1 (Beck & Teboulle Algorithm 2)
+    a_prev = np.zeros((n_atoms, 1))
+    y = a_prev.copy()
+    t_prev = 1.0
+    
+    for k in range(max_iter):
+        # Step 2a: Compute gradient ∇f(yₖ) = Dᵀ(Dyₖ - x)
         grad = DtD @ y - Dt_x
-        a_next = soft_threshold(y - grad / L, lam / L)
-        t_next = 0.5 * (1.0 + np.sqrt(1.0 + 4.0 * t * t))
-        y = a_next + ((t - 1.0) / t_next) * (a_next - a)
-        if np.linalg.norm(a_next - a) <= tol * max(1.0, np.linalg.norm(a)):
-            a = a_next
-            break
-        a, t = a_next, t_next
-    return a.squeeze()
+        
+        # Step 2b: Proximal step aₖ₊₁ = prox_{λ/L}||·||₁(yₖ - (1/L)∇f(yₖ))
+        a_new = soft_threshold(y - step_size * grad, lam * step_size)
+        
+        # Convergence check
+        if np.linalg.norm(a_new - a_prev) <= tol * max(1.0, np.linalg.norm(a_prev)):
+            return a_new.squeeze()
+        
+        # Step 2c: Update momentum tₖ₊₁ = (1 + √(1 + 4tₖ²))/2
+        t_new = (1 + np.sqrt(1 + 4 * t_prev**2)) / 2
+        
+        # Step 2d: Update iterate yₖ₊₁ = aₖ₊₁ + ((tₖ-1)/tₖ₊₁)(aₖ₊₁ - aₖ)
+        beta = (t_prev - 1) / t_new
+        y = a_new + beta * (a_new - a_prev)
+        
+        a_prev = a_new
+        t_prev = t_new
+    
+    return a_new.squeeze()
 
 # Usage
 codes = sparse_encode(test_signal, D)
@@ -667,7 +692,8 @@ sparse_codes = session.run([output_name], {input_name: test_input})[0]
 
 """
     
-    readme += """## Performance Considerations
+    readme += """
+## Performance Considerations
 
 - **Memory**: Dictionary size determines memory usage
 - **Computation**: Encoding complexity is O(n_features * n_atoms * n_iterations)

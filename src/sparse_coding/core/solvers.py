@@ -22,27 +22,14 @@ from dataclasses import dataclass, field
 from typing import Union, Optional, Literal, Any, Dict, Callable
 import numpy as np
 
-# Handle array type for broader compatibility
-try:
-    from .array import ArrayLike
-except ImportError:
-    ArrayLike = Union[np.ndarray, list, tuple]
+# Import ArrayLike from core array module
+from .array import ArrayLike
 
-# Import safe Lipschitz constant computation
-try:
-    from ..fista_batch import power_iter_L
-except ImportError:
-    from ...fista_batch import power_iter_L
+# Import Lipschitz constant computation - use correct module path
+from ..fista_batch import power_iter_L
 
-try:
-    from .penalties import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty
-except ImportError:
-    # Fallback using correct import path
-    try:
-        from .penalties.implementations import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty
-    except ImportError:
-        # Final fallback for testing
-        from typing import Any as PenaltyType
+# Import penalty types - use correct module path
+from .penalties.implementations import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty
 
 
 @dataclass

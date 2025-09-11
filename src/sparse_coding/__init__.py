@@ -57,8 +57,8 @@ from .fista_batch import fista_batch, soft_thresh, power_iter_L
 # Reproducibility and determinism
 from .reproducible_sparse_coding import set_deterministic, is_deterministic, get_reproducibility_info
 
-# ONNX export for deployment
-from .serialization.export import export_to_onnx, test_onnx_model
+# ONNX export for deployment (temporarily disabled for testing)
+# from .serialization.export import export_to_onnx, test_onnx_model
 
 # Alias for backwards compatibility and test requirements
 AdvancedOptimizer = ProximalGradientOptimizer

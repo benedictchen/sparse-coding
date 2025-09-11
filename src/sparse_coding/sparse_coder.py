@@ -344,9 +344,17 @@ def _check_gpu_availability() -> bool:
         test_array = cp.array([1.0, 2.0, 3.0])
         result = cp.sum(test_array)  # Simple GPU operation
         return True
-    except (ImportError, Exception):
-        # CuPy not available or GPU not accessible
+    except ImportError:
+        # CuPy not available - this is expected if CuPy not installed
         pass
+    except Exception as e:
+        # GPU operation failed - log the specific error for debugging
+        if hasattr(e, '__class__'):
+            error_type = e.__class__.__name__
+        else:
+            error_type = "Unknown"
+        raise RuntimeError(f"CuPy GPU test failed with {error_type}: {e}. "
+                         f"GPU may be unavailable or misconfigured.") from e
     
     try:
         # Check for PyTorch CUDA
@@ -356,9 +364,17 @@ def _check_gpu_availability() -> bool:
             test_tensor = torch.tensor([1.0, 2.0, 3.0]).cuda()
             result = torch.sum(test_tensor)  # Simple CUDA operation
             return True
-    except (ImportError, Exception):
-        # PyTorch not available or CUDA not accessible
+    except ImportError:
+        # PyTorch not available - this is expected if PyTorch not installed
         pass
+    except Exception as e:
+        # CUDA operation failed - log the specific error for debugging
+        if hasattr(e, '__class__'):
+            error_type = e.__class__.__name__
+        else:
+            error_type = "Unknown"
+        raise RuntimeError(f"PyTorch CUDA test failed with {error_type}: {e}. "
+                         f"CUDA may be unavailable or misconfigured.") from e
     
     return False
 
@@ -770,13 +786,101 @@ class SparseCoder:
 
     def decode(self, A: ArrayLike) -> np.ndarray:
         """
-        Simple linear decoding: X_reconstructed = D @ A (research standard).
+        Reconstruct signals from sparse codes using linear transformation.
+        
+        Performs the standard sparse coding reconstruction: X̂ = D @ A, where D is the 
+        learned dictionary and A are the sparse codes. This is the inverse operation 
+        of encode() and forms the basis of the sparse coding approximation.
+        
+        Mathematical Foundation:
+            The reconstruction approximates the original signal:
+            X ≈ X̂ = D @ A = Σᵢ Aᵢ × dᵢ
+            
+            Where:
+            - X̂: Reconstructed signal (n_features × n_samples)
+            - D: Dictionary matrix (n_features × n_atoms)  
+            - A: Sparse codes (n_atoms × n_samples)
+            - dᵢ: i-th dictionary atom (column of D)
+            - Aᵢ: i-th sparse coefficient (row of A)
+            
+        Research Foundation:
+            This implements the standard linear reconstruction model used across
+            sparse coding literature since Olshausen & Field (1996).
         
         Args:
-            A: Sparse codes (atoms x samples) - supports scipy.sparse matrices
-            
+            A (array_like): Sparse codes of shape (n_atoms, n_samples).
+                - Each column contains coefficients for one signal reconstruction
+                - Supports dense numpy arrays and scipy sparse matrices
+                - Sparse matrices automatically use efficient sparse multiplication
+                - For single signal, use A.reshape(-1, 1) or pass 1D array
+                
         Returns:
-            Reconstructed signals (features x samples)
+            np.ndarray: Reconstructed signals of shape (n_features, n_samples).
+                - Each column is a reconstructed signal: X̂[:, i] = D @ A[:, i]
+                - Reconstruction quality depends on dictionary quality and sparsity level
+                - Perfect reconstruction achieved when A contains exact sparse representation
+                
+        Raises:
+            ValueError: If dictionary not initialized (call fit() first)
+            ValueError: If A atom dimension doesn't match dictionary size
+            TypeError: If A contains non-numeric data
+            
+        Examples:
+            Basic reconstruction:
+            >>> # Train dictionary and encode signals
+            >>> coder = SparseCoder(n_atoms=64, mode='l1', lam=0.1)
+            >>> coder.fit(training_data)
+            >>> codes = coder.encode(test_signals)
+            >>> 
+            >>> # Reconstruct signals
+            >>> reconstructed = coder.decode(codes)
+            >>> mse = np.mean((test_signals - reconstructed)**2)
+            >>> print(f"Reconstruction MSE: {mse:.6f}")
+            
+            Single signal reconstruction:
+            >>> signal = np.random.randn(256, 1)
+            >>> codes = coder.encode(signal)  # Shape: (64, 1)
+            >>> reconstructed = coder.decode(codes)  # Shape: (256, 1)
+            >>> print(f"Signal shape: {signal.shape}, Reconstructed: {reconstructed.shape}")
+            
+            Sparse matrix support:
+            >>> import scipy.sparse
+            >>> codes_sparse = scipy.sparse.csr_matrix(codes)
+            >>> reconstructed = coder.decode(codes_sparse)  # Efficient sparse multiplication
+            
+            Reconstruction quality analysis:
+            >>> # Analyze reconstruction vs sparsity tradeoff
+            >>> for lam in [0.01, 0.1, 0.5]:
+            ...     coder.lam = lam
+            ...     codes = coder.encode(signals)
+            ...     reconstructed = coder.decode(codes)
+            ...     mse = np.mean((signals - reconstructed)**2)
+            ...     sparsity = np.mean(codes == 0)
+            ...     print(f"λ={lam}: MSE={mse:.4f}, Sparsity={sparsity:.1%}")
+            
+        Performance Notes:
+            - Linear operation: O(n_features × n_atoms × n_samples)
+            - Memory efficient for sparse codes (uses scipy.sparse when detected)
+            - Vectorized across all samples simultaneously
+            - GPU acceleration available if CuPy/PyTorch detected
+            
+        Algorithm Variants:
+            - Standard Mode: Linear reconstruction X̂ = D @ A
+            - Transcoder Mode: Nonlinear reconstruction with learned decoder
+            - All modes use same interface for consistency
+            
+        Quality Metrics:
+            Common reconstruction quality measures:
+            - MSE: np.mean((X - X̂)**2)
+            - PSNR: 20 * log10(max_val / sqrt(MSE))
+            - SSIM: Structural similarity (for images)
+            - Relative error: ||X - X̂||_F / ||X||_F
+            
+        Notes:
+            - Reconstruction quality inversely related to sparsity level
+            - Perfect reconstruction possible with sufficient dictionary atoms
+            - Zero-mean preprocessing affects reconstruction interpretation
+            - Dictionary normalization ensures stable reconstruction scaling
         """
         A = _validate_input(A, "A", allow_sparse=True)
         if self.D is None:
@@ -798,18 +902,128 @@ class SparseCoder:
 
     def fit(self, X: ArrayLike, n_steps: int = 30, lr: float = 0.1) -> 'SparseCoder':
         """
-        Learn dictionary from training data using specified sparse coding mode.
+        Learn dictionary from training data using alternating optimization.
+        
+        Implements the classical sparse coding dictionary learning framework:
+        iteratively optimize sparse codes A and dictionary D to minimize:
+        
+        L1 Mode:
+            min_{D,A} (1/2)||X - D @ A||²_F + λ||A||_1  s.t. ||d_i||_2 = 1
+            
+        Log Prior Mode (Olshausen & Field 1996):
+            min_{D,A} (1/2)||X - D @ A||²_F + λ Σ log(1 + (A_i/σ)²)  s.t. ||d_i||_2 = 1
+            
+        The optimization alternates between:
+        1. A-step: Fix D, optimize A (sparse coding inference)
+        2. D-step: Fix A, optimize D (dictionary update)
+        
+        Research Foundation:
+            Engan, K., Aase, S. O., & Husøy, J. H. (1999). Method of optimal directions 
+            for frame design. ICASSP, Vol. 5, pp. 2443-2446. [MOD algorithm]
+            
+            Olshausen, B. A., & Field, D. J. (1996). Emergence of simple-cell receptive 
+            field properties by learning a sparse code for natural images. Nature, 381(6583), 607-609.
+            
+            Aharon, M., Elad, M., & Bruckstein, A. (2006). K-SVD: An algorithm for 
+            designing overcomplete dictionaries for sparse representation. TSP, 54(11), 4311-4322.
         
         Args:
-            X: Training signals (features x samples)
-            n_steps: Number of alternating optimization steps (must be positive)
-            lr: Learning rate for gradient-based updates (must be positive)
-            
+            X (array_like): Training signals of shape (n_features, n_samples).
+                - Each column is a training signal
+                - Recommended: n_samples >> n_atoms for good dictionary learning
+                - Data should be zero-mean for best results  
+                - Supports dense numpy arrays, scipy sparse matrices
+                
+            n_steps (int, default=30): Number of alternating optimization iterations.
+                - More steps → better convergence but longer training
+                - Typical range: 20-100 depending on data complexity
+                - Research shows 20-50 steps sufficient for most applications
+                
+            lr (float, default=0.1): Learning rate for gradient-based dictionary updates.
+                - Used only in 'paper_gdD' mode for gradient descent on dictionary
+                - Typical range: 0.01-0.5 depending on data scale
+                - Too large → instability, too small → slow convergence
+                
         Returns:
-            Self for method chaining
-            
+            SparseCoder: Self for method chaining.
+                - Dictionary accessible via .dictionary property or .D attribute
+                - Regularization parameter stored in .lam attribute
+                
         Raises:
-            ValueError: If inputs are invalid or incompatible
+            ValueError: If X has invalid shape or values
+            ValueError: If n_steps <= 0 or lr <= 0
+            RuntimeError: If optimization fails or produces invalid dictionary
+            
+        Examples:
+            Basic dictionary learning:
+            >>> import numpy as np
+            >>> from sparse_coding import SparseCoder
+            >>> 
+            >>> # Generate synthetic sparse data
+            >>> n_features, n_samples, n_atoms = 64, 1000, 32
+            >>> X = np.random.randn(n_features, n_samples) * 0.1
+            >>> 
+            >>> # Learn dictionary
+            >>> coder = SparseCoder(n_atoms=n_atoms, mode='l1', lam=0.1)
+            >>> coder.fit(X, n_steps=50)
+            >>> print(f"Dictionary shape: {coder.dictionary.shape}")
+            >>> print(f"Dictionary normalized: {np.allclose(np.linalg.norm(coder.dictionary, axis=0), 1.0)}")
+            
+            Natural image patches:
+            >>> # Typical workflow for image patches
+            >>> patches = extract_patches_2d(image, patch_size=(8, 8))  # Shape: (n_patches, 64)
+            >>> patches = patches.reshape(patches.shape[0], -1).T  # Shape: (64, n_patches)
+            >>> patches = patches - patches.mean(axis=0)  # Zero-mean preprocessing
+            >>> 
+            >>> coder = SparseCoder(n_atoms=256, mode='l1', lam=0.15)
+            >>> coder.fit(patches, n_steps=100)  # More steps for natural images
+            
+            Method chaining:
+            >>> codes = (SparseCoder(n_atoms=64, mode='l1', lam=0.1)
+            ...          .fit(training_data)
+            ...          .encode(test_data))
+            
+        Algorithm Details:
+            L1 Mode (FISTA + MOD):
+                - A-step: FISTA algorithm with O(1/k²) convergence
+                - D-step: Method of Optimal Directions (MOD) with QR decomposition
+                
+            Log Prior Mode (Gradient Descent + MOD):
+                - A-step: Nonlinear conjugate gradient on log prior
+                - D-step: MOD update with proper normalization
+                
+            Paper Modes:
+                - paper: NCG inference + MOD update
+                - paper_gdD: NCG inference + gradient descent on dictionary
+                
+        Performance Notes:
+            - Memory: O(n_features × n_samples + n_features × n_atoms)
+            - Time: O(n_steps × max_iter × n_features × n_atoms × n_samples)
+            - GPU acceleration available if CuPy/PyTorch detected
+            - Convergence typically achieved in 20-100 steps
+            
+        Hyperparameter Guidelines:
+            - λ (lam): Controls sparsity-reconstruction tradeoff
+              * Natural images: 0.1-0.3
+              * Synthetic data: 0.05-0.2
+              * Higher λ → sparser codes, may underfit
+              * Lower λ → denser codes, may overfit
+              
+            - n_atoms: Dictionary size (overcomplete)
+              * Rule of thumb: 2-8× n_features
+              * More atoms → more expressive, slower training
+              * Too many → overfitting, numerical issues
+              
+            - n_steps: Alternating optimization iterations
+              * Start with 30-50, increase if not converged
+              * Monitor reconstruction error for convergence
+              * Diminishing returns after good convergence
+              
+        Notes:
+            - Dictionary atoms are automatically normalized to unit norm
+            - Automatic regularization parameter selection if lam=None
+            - Dead atom reinitialization prevents local minima
+            - Zero-mean data preprocessing recommended for stability
         """
         X = _validate_input(X, "X", allow_sparse=True)
         if X.ndim == 1:

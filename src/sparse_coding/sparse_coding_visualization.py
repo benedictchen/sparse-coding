@@ -128,10 +128,23 @@ def plot_sparse_codes(codes: np.ndarray,
     
     n_patches = min(n_show, codes.shape[1])
     
-    fig, axes = plt.subplots(2, n_patches//2, figsize=figsize)
+    # Calculate optimal grid layout
+    if n_patches == 1:
+        nrows, ncols = 1, 1
+    elif n_patches <= 4:
+        nrows, ncols = 2, (n_patches + 1) // 2
+    else:
+        ncols = min(4, int(np.ceil(np.sqrt(n_patches))))
+        nrows = int(np.ceil(n_patches / ncols))
+    
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     fig.suptitle('Sparse Code Vectors', fontsize=16)
     
-    axes = axes.flatten()
+    # Handle single subplot case
+    if n_patches == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
     
     for i in range(n_patches):
         code = codes[:, i]
@@ -142,6 +155,11 @@ def plot_sparse_codes(codes: np.ndarray,
         axes[i].set_xlabel('Dictionary Index')
         axes[i].set_ylabel('Coefficient')
         axes[i].grid(True, alpha=0.3)
+    
+    # Hide unused subplots
+    total_subplots = nrows * ncols
+    for i in range(n_patches, total_subplots):
+        axes[i].set_visible(False)
     
     plt.tight_layout()
     return fig

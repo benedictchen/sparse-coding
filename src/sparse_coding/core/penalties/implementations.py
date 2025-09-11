@@ -21,11 +21,13 @@ from dataclasses import dataclass, field
 from typing import Union, Optional, Literal, Any, Dict, List
 import numpy as np
 
-# Handle array type for broader compatibility
+# Import ArrayLike from core array module
+# Note: Import path fixed to use proper module hierarchy
 try:
-    from .array import ArrayLike
-except ImportError:
-    ArrayLike = Union[np.ndarray, list, tuple]
+    from ..array import ArrayLike
+except ImportError as e:
+    raise ImportError(f"Required ArrayLike type not found in core.array module: {e}. "
+                     f"Check that core/array.py exists and is properly structured.") from e
 
 
 # L1 penalty implementation

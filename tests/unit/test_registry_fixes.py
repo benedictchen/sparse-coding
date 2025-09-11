@@ -177,4 +177,4 @@ def test_registry_comprehensive_validation():
     print("• Parameter validation improved")
     print("• Error handling enhanced")
     
-    return True
+    assert True  # All validations passed

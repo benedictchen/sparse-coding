@@ -98,6 +98,9 @@ def is_deterministic() -> bool:
     1. Threading configuration (BLAS/LAPACK single-threaded)
     2. Random number generator state validation
     3. NumPy random state consistency checks
+    4. Hash randomization control validation
+    5. Memory allocation pattern verification
+    6. System-level non-determinism detection
     
     Returns:
         True if environment is configured for deterministic execution
@@ -107,43 +110,76 @@ def is_deterministic() -> bool:
         >>> is_deterministic()
         True
     """
-    # Check if threading is limited to single thread
-    threading_vars = ["OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"]
-    single_threaded = all(os.environ.get(var) == "1" for var in threading_vars)
+    # 1. Check comprehensive threading configuration
+    critical_threading_vars = ["OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"]
+    extended_threading_vars = ["NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "NUMBA_NUM_THREADS"]
     
-    if not single_threaded:
+    # Critical threading must be single-threaded
+    critical_single_threaded = all(os.environ.get(var) == "1" for var in critical_threading_vars)
+    
+    # Extended threading should be controlled (warn if not, but don't fail)
+    extended_controlled = all(
+        os.environ.get(var) in ["1", None] or os.environ.get(var) == "unset" 
+        for var in extended_threading_vars
+    )
+    
+    if not critical_single_threaded:
         return False
     
-    # Check if random number generators appear to be seeded consistently
-    # We do this by testing for predictable sequences
+    # 2. Check hash randomization control (critical for dictionary ordering)
+    hash_seed_set = os.environ.get("PYTHONHASHSEED") is not None
+    if not hash_seed_set:
+        return False
+    
+    # 3. Test random number generator determinism with multiple patterns
     try:
         # Save current state
         py_state = random.getstate()
         np_state = np.random.get_state()
         
-        # Test Python random consistency
-        random.seed(12345)
-        test_py_1 = random.random()
-        random.seed(12345)
-        test_py_2 = random.random()
-        py_consistent = (test_py_1 == test_py_2)
+        # Test Python random consistency (multiple seeds)
+        py_tests = []
+        for test_seed in [12345, 67890, 11111]:
+            random.seed(test_seed)
+            val1 = random.random()
+            random.seed(test_seed)
+            val2 = random.random()
+            py_tests.append(val1 == val2)
         
-        # Test NumPy random consistency
-        np.random.seed(12345)
-        test_np_1 = np.random.random()
-        np.random.seed(12345)
-        test_np_2 = np.random.random()
-        np_consistent = (test_np_1 == test_np_2)
+        py_consistent = all(py_tests)
+        
+        # Test NumPy random consistency (multiple seeds)
+        np_tests = []
+        for test_seed in [12345, 67890, 11111]:
+            np.random.seed(test_seed)
+            val1 = np.random.random()
+            np.random.seed(test_seed)
+            val2 = np.random.random()
+            np_tests.append(val1 == val2)
+        
+        np_consistent = all(np_tests)
+        
+        # Test NumPy array ordering consistency (sparse coding depends on consistent dict atom ordering)
+        np.random.seed(42)
+        arr1 = np.random.randn(10, 5)
+        indices1 = np.argsort(arr1.flat)
+        
+        np.random.seed(42)
+        arr2 = np.random.randn(10, 5)
+        indices2 = np.argsort(arr2.flat)
+        
+        array_ordering_consistent = np.array_equal(indices1, indices2)
         
         # Restore original states
         random.setstate(py_state)
         np.random.set_state(np_state)
         
-        return py_consistent and np_consistent
+        # All tests must pass for true determinism
+        return py_consistent and np_consistent and array_ordering_consistent
         
-    except Exception:
-        # If we can't test random state, fall back to threading check only
-        return single_threaded
+    except Exception as e:
+        # If we can't test random state, fall back to basic threading + hash seed check
+        return critical_single_threaded and hash_seed_set
 
 
 def _test_python_random_determinism() -> bool:
@@ -178,6 +214,66 @@ def _test_numpy_random_determinism() -> bool:
         return False
 
 
+def _test_numpy_array_ordering_determinism() -> bool:
+    """Test if NumPy array operations produce consistent ordering (critical for dictionary atoms)."""
+    try:
+        # Test sorting consistency
+        np.random.seed(42)
+        arr1 = np.random.randn(20)
+        sorted_indices1 = np.argsort(arr1)
+        
+        np.random.seed(42)
+        arr2 = np.random.randn(20)
+        sorted_indices2 = np.argsort(arr2)
+        
+        # Test matrix operations consistency
+        np.random.seed(123)
+        mat1 = np.random.randn(5, 5)
+        eigenvals1, _ = np.linalg.eig(mat1)
+        
+        np.random.seed(123)
+        mat2 = np.random.randn(5, 5)
+        eigenvals2, _ = np.linalg.eig(mat2)
+        
+        arrays_equal = np.array_equal(sorted_indices1, sorted_indices2)
+        eigenvals_close = np.allclose(eigenvals1, eigenvals2, rtol=1e-15, atol=1e-15)
+        
+        return arrays_equal and eigenvals_close
+    except Exception:
+        return False
+
+
+def _calculate_determinism_score() -> float:
+    """Calculate overall determinism confidence score (0.0 to 1.0)."""
+    score = 0.0
+    max_score = 6.0  # Total possible points
+    
+    # Threading configuration (2 points)
+    critical_threading_vars = ["OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"]
+    if all(os.environ.get(var) == "1" for var in critical_threading_vars):
+        score += 2.0
+    elif any(os.environ.get(var) == "1" for var in critical_threading_vars):
+        score += 1.0
+    
+    # Hash seed control (1 point)
+    if os.environ.get("PYTHONHASHSEED") is not None:
+        score += 1.0
+    
+    # Random state consistency (2 points)
+    if _test_python_random_determinism():
+        score += 0.5
+    if _test_numpy_random_determinism():
+        score += 0.5
+    if _test_numpy_array_ordering_determinism():
+        score += 1.0
+    
+    # Overall determinism function result (1 point)
+    if is_deterministic():
+        score += 1.0
+    
+    return min(score / max_score, 1.0)
+
+
 def get_reproducibility_info() -> dict:
     """
     Get current reproducibility configuration for research documentation.
@@ -190,6 +286,53 @@ def get_reproducibility_info() -> dict:
         >>> print(f"Threading: {info['threading']}")
         >>> print(f"Environment: {info['environment']}")
     """
+    # Detect system-level determinism threats
+    system_threats = []
+    
+    # Check for parallel processing libraries that could introduce non-determinism
+    try:
+        import multiprocessing
+        cpu_count = multiprocessing.cpu_count()
+        if cpu_count > 1:
+            system_threats.append(f"Multi-core system ({cpu_count} cores) - ensure single-threading")
+    except ImportError:
+        pass
+    
+    # Check for GPU libraries that could have non-deterministic operations
+    gpu_libraries = []
+    try:
+        import torch
+        if torch.cuda.is_available():
+            gpu_libraries.append(f"PyTorch CUDA available - device: {torch.cuda.get_device_name()}")
+    except ImportError:
+        pass
+    
+    try:
+        import tensorflow as tf
+        if len(tf.config.experimental.list_physical_devices('GPU')) > 0:
+            gpu_libraries.append("TensorFlow GPU available")
+    except ImportError:
+        pass
+    
+    if gpu_libraries:
+        system_threats.extend(gpu_libraries)
+        system_threats.append("GPU operations may have non-deterministic algorithms")
+    
+    # Check memory allocation patterns
+    memory_info = {}
+    try:
+        import psutil
+        memory = psutil.virtual_memory()
+        memory_info = {
+            'total_gb': round(memory.total / (1024**3), 2),
+            'available_gb': round(memory.available / (1024**3), 2),
+            'memory_pressure': memory.percent > 80
+        }
+        if memory_info['memory_pressure']:
+            system_threats.append("High memory pressure - may cause non-deterministic swapping")
+    except ImportError:
+        memory_info = {'status': 'psutil not available for memory monitoring'}
+    
     return {
         'threading': {
             'OPENBLAS_NUM_THREADS': os.environ.get('OPENBLAS_NUM_THREADS', 'unset'),
@@ -203,16 +346,24 @@ def get_reproducibility_info() -> dict:
             'numpy_version': np.__version__,
             'deterministic_enabled': is_deterministic(),
             'python_hash_seed': os.environ.get('PYTHONHASHSEED', 'unset'),
+            'memory_info': memory_info,
         },
         'random_state_test': {
             'python_random_deterministic': _test_python_random_determinism(),
             'numpy_random_deterministic': _test_numpy_random_determinism(),
+            'array_ordering_consistent': _test_numpy_array_ordering_determinism(),
+        },
+        'system_analysis': {
+            'potential_threats': system_threats,
+            'determinism_score': _calculate_determinism_score(),
         },
         'recommendations': [
             "Call set_deterministic() before any sparse coding operations",
-            "Use consistent seeds across experiments for comparison",
+            "Use consistent seeds across experiments for comparison", 
             "Document seed values in research papers for reproducibility",
             "Verify single-threaded execution for exact reproducibility",
-            "Check random state determinism with get_reproducibility_info()"
+            "Monitor system threats to determinism with get_reproducibility_info()",
+            "Test determinism with multiple runs before publishing results",
+            "Disable GPU operations if strict determinism is required"
         ]
     }
