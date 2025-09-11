@@ -7,6 +7,7 @@ learning and modern sparse autoencoders. Shows interoperability between
 methods and interpretability analysis.
 """
 
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path

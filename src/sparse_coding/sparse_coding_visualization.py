@@ -46,11 +46,12 @@ def plot_dictionary_atoms(dictionary: np.ndarray,
         axes = axes.flatten()
     
     atoms = dictionary.T.reshape(-1, *patch_size)
+    n_actual_atoms = atoms.shape[0]  # Actual number of atoms available
     
     for i in range(grid_size * grid_size):
         ax = axes[i]
         
-        if i < n_atoms:
+        if i < min(n_atoms, n_actual_atoms):
             atom = atoms[i]
             # Normalize for visualization
             atom_norm = (atom - atom.min()) / (atom.max() - atom.min() + 1e-8)

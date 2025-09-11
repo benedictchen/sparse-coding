@@ -19,7 +19,7 @@ keywords = [
     "medical-imaging", "anomaly-detection", "dimensionality-reduction"
 ]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research", 
     "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",

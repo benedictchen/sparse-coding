@@ -172,13 +172,34 @@ class TestGradientValidation:
             step_size = 0.01
             a = a - step_size * grad
         
-        # Energy should generally decrease
-        if len(energies) > 5:
-            # Allow some initial fluctuation but should decrease overall
+        # Energy should monotonically decrease with proper step size
+        if len(energies) > 3:
+            # CRITICAL: Energy must be strictly monotonic for gradient descent
+            # If not, the step size is too large or there's a gradient computation error
+            
+            # Check for strict monotonicity (allowing tiny numerical fluctuations)
+            energy_increases = 0
+            max_increase = 0.0
+            for i in range(1, len(energies)):
+                if energies[i] > energies[i-1] + 1e-12:  # Numerical tolerance
+                    energy_increases += 1
+                    max_increase = max(max_increase, energies[i] - energies[i-1])
+            
+            # For gradient descent, energy MUST decrease monotonically 
+            violation_ratio = energy_increases / (len(energies) - 1)
+            assert violation_ratio <= 0.1, (
+                f"Too many energy increases in gradient descent: {energy_increases}/{len(energies)-1} "
+                f"({violation_ratio:.1%}). Max increase: {max_increase:.8f}. "
+                f"This indicates step size too large or gradient error."
+            )
+            
+            # Overall convergence must be achieved
             final_energy = energies[-1]
-            initial_energy = energies[2]  # Skip first few iterations
-            assert final_energy < initial_energy, (
-                f"Energy should decrease: initial={initial_energy:.6f}, final={final_energy:.6f}"
+            initial_energy = energies[0]
+            convergence_ratio = (initial_energy - final_energy) / abs(initial_energy)
+            assert convergence_ratio > 0.01, (
+                f"Insufficient energy reduction: {convergence_ratio:.4f}. "
+                f"Initial: {initial_energy:.8f}, Final: {final_energy:.8f}"
             )
     
     def test_gradient_components_individually(self):

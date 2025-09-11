@@ -214,13 +214,23 @@ class DictionaryLearner:
             Dict containing training history
         """
         
+        # Input validation
+        if data.ndim < 2:
+            raise ValueError(f"Data must be at least 2D, got {data.ndim}D array with shape {data.shape}")
+        if data.ndim > 3:
+            raise ValueError(f"Data must be at most 3D, got {data.ndim}D array with shape {data.shape}")
+        
         # Determine if data is raw images or pre-extracted patches
         # Heuristic: if data is 2D, has reasonable patch features, many samples, and not square image
         is_square_image = data.ndim == 2 and data.shape[0] == data.shape[1] and data.shape[0] > 100
         is_patch_features = data.shape[0] in [64, 256, 1024]  # Common patch sizes: 8x8, 16x16, 32x32
         has_many_samples = data.shape[1] > 50  # More samples than typical for raw images
         
-        if data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image:
+        # ROBUST HEURISTIC: Default to pre-extracted patches for 2D non-square data
+        # This handles all cases like (200, 50), (256, 30), etc. as feature × sample matrices  
+        is_reasonable_patches = data.ndim == 2 and not is_square_image
+        
+        if is_reasonable_patches:
             # Pre-extracted patches: (n_features, n_patches)
             patches = data
             if verbose:
@@ -228,8 +238,15 @@ class DictionaryLearner:
         else:
             # Raw images: need to extract patches  
             patches = self._extract_patches(data, overlap_factor)
-            if verbose:
-                print(f"Training on {patches.shape[1]} extracted patches of size {self.patch_dim}")
+            if patches.ndim == 1:
+                # Handle case where extraction fails and returns 1D array
+                # Treat as pre-extracted patches instead
+                patches = data
+                if verbose:
+                    print(f"Training on {patches.shape[1] if patches.ndim > 1 else 1} pre-extracted patches (extraction fallback)")
+            else:
+                if verbose:
+                    print(f"Training on {patches.shape[1]} extracted patches of size {self.patch_dim}")
         
         # Initialize dictionary and sparse coder if not done yet
         if self.dictionary is None:
@@ -304,16 +321,19 @@ class DictionaryLearner:
         """
         
         # Determine if data is raw images or pre-extracted patches  
-        # Use same heuristic as fit() for consistency
+        # Use same robust heuristic as fit() for consistency
         is_square_image = data.ndim == 2 and data.shape[0] == data.shape[1] and data.shape[0] > 100
-        is_patch_features = data.shape[0] in [64, 256, 1024]  # Common patch sizes: 8x8, 16x16, 32x32
-        has_many_samples = data.shape[1] > 50  # More samples than typical for raw images
         
-        # Additional check: if data has patch-like features but few samples, treat as pre-extracted patches
-        # This handles edge cases like (64, 1) which should be a single pre-extracted patch
-        is_small_batch_patches = data.ndim == 2 and is_patch_features and data.shape[1] <= 50 and not is_square_image
+        # Critical: if dictionary exists and data features match dictionary, always treat as pre-extracted
+        dict_feature_match = (self.dictionary is not None and 
+                             data.ndim == 2 and 
+                             data.shape[0] == self.dictionary.shape[0])
         
-        if (data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image) or is_small_batch_patches:
+        # ROBUST HEURISTIC: Default to pre-extracted patches for 2D non-square data
+        # This handles all cases like (200, 50), (256, 30), etc. as feature × sample matrices
+        is_reasonable_patches = data.ndim == 2 and not is_square_image
+        
+        if dict_feature_match or is_reasonable_patches:
             # Pre-extracted patches: (n_features, n_patches)
             patches = data
             

@@ -25,6 +25,7 @@ import warnings
 
 from ..core.array import ArrayLike, xp, as_same, ensure_array
 from .feature_interface import Features, encode_features
+from .analysis import FeatureAnalyzer
 def create_feature_atlas(
     features: Features,
     X_samples: ArrayLike,

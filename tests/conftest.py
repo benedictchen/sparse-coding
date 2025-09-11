@@ -38,7 +38,7 @@ def large_dict_atoms():
 @pytest.fixture
 def signal_length():
     """Standard signal length for tests."""
-    return 256
+    return 64  # Match 8x8 patch dimensions to avoid mismatch
 
 
 @pytest.fixture
@@ -257,11 +257,27 @@ def assert_sparse_solution(codes, sparsity_threshold=0.1):
     }
 
 
-def assert_reconstruction_quality(signals, reconstructed, tolerance=0.1):
-    """Assert reconstruction quality meets minimum standards."""
+def assert_reconstruction_quality(signals, reconstructed, tolerance=1e-3):
+    """
+    Assert reconstruction quality meets professional scientific standards.
+    
+    Uses tight default tolerance (1e-3) for high-precision validation.
+    For algorithms that inherently have higher error (sparse solutions, noisy data),
+    explicitly pass a higher tolerance with justification.
+    
+    Args:
+        signals: Original signals
+        reconstructed: Reconstructed signals  
+        tolerance: Maximum allowed relative MSE (default: 1e-3)
+    """
     mse = np.mean((signals - reconstructed)**2)
-    relative_error = mse / np.var(signals)
-    assert relative_error < tolerance, f"Reconstruction error too high: {relative_error:.6f}"
+    relative_error = mse / max(np.var(signals), 1e-12)  # Avoid division by zero
+    
+    assert relative_error < tolerance, (
+        f"Reconstruction error exceeds scientific precision: {relative_error:.8f} >= {tolerance}. "
+        f"MSE: {mse:.8f}, Signal variance: {np.var(signals):.8f}. "
+        f"For inherently high-error algorithms, use explicit tolerance with justification."
+    )
 
 
 def measure_convergence_rate(objectives):

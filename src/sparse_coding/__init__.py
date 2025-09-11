@@ -48,6 +48,18 @@ from .proximal_gradient_optimization import (
     L1Proximal, ElasticNetProximal, ProximalGradientOptimizer
 )
 
+# Core array operations for backend compatibility  
+from .core.array import solve, svd, norm, matmul, ensure_array, as_same
+
+# Fast batch algorithms
+from .fista_batch import fista_batch, soft_thresh, power_iter_L
+
+# Reproducibility and determinism
+from .reproducible_sparse_coding import set_deterministic, is_deterministic, get_reproducibility_info
+
+# ONNX export for deployment
+from .serialization.export import export_to_onnx, test_onnx_model
+
 # Alias for backwards compatibility and test requirements
 AdvancedOptimizer = ProximalGradientOptimizer
 
@@ -82,86 +94,8 @@ def create_advanced_sparse_coder(dictionary: np.ndarray,
 # Alias for API consistency  
 create_sparse_coder = create_advanced_sparse_coder
 
-# Visualization and logging
-class DashboardLogger:
-    """
-    Dashboard logger for sparse coding training metrics.
-    
-    Provides comprehensive logging for training monitoring including:
-    - CSV metrics logging for analysis
-    - TensorBoard visualization support
-    - Dictionary atom evolution tracking
-    
-    Research Foundation: Supports reproducible research by comprehensive metric tracking
-    as recommended in modern machine learning best practices.
-    """
-    def __init__(self, tensorboard_dir=None, csv_path=None):
-        """
-        Initialize dashboard logger with output paths.
-        
-        Args:
-            tensorboard_dir: Directory for TensorBoard logs
-            csv_path: Path for CSV metrics file
-        """
-        self.tensorboard_dir = tensorboard_dir
-        self.csv_path = csv_path
-        self._csv_initialized = False
-        
-        # Create directories if they don't exist
-        if self.tensorboard_dir:
-            from pathlib import Path
-            Path(self.tensorboard_dir).mkdir(parents=True, exist_ok=True)
-        
-        if self.csv_path:
-            from pathlib import Path
-            csv_path = Path(self.csv_path)
-            if csv_path.parent != Path('.'):  # Only create directory if path has a directory component
-                csv_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    def log_training_metrics(self, metrics):
-        """
-        Log training metrics to CSV file.
-        
-        Args:
-            metrics: Dictionary of metric name -> value pairs
-        """
-        if not self.csv_path:
-            return
-            
-        import csv
-        import os
-        
-        # Initialize CSV file with headers if first time
-        from pathlib import Path
-        csv_path = Path(self.csv_path)
-        if not self._csv_initialized and not csv_path.exists():
-            with open(self.csv_path, 'w', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=metrics.keys())
-                writer.writeheader()
-            self._csv_initialized = True
-        
-        # Append metrics
-        with open(self.csv_path, 'a', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=metrics.keys())
-            writer.writerow(metrics)
-    
-    def log_dictionary_atoms(self, dictionary, patch_size):
-        """
-        Log dictionary atoms for visualization.
-        
-        Args:
-            dictionary: Dictionary matrix (features x atoms)
-            patch_size: Tuple of (height, width) for patch dimensions
-        """
-        if not self.tensorboard_dir:
-            return
-            
-        # Create simple visualization marker file for test verification
-        from pathlib import Path
-        marker_path = Path(self.tensorboard_dir) / 'dictionary_logged.txt'
-        with open(marker_path, 'w') as f:
-            f.write(f"Dictionary shape: {dictionary.shape}\n")
-            f.write(f"Patch size: {patch_size}\n")
+# Monitoring and logging - import the real implementations
+from .sparse_coding_monitoring import TB, CSVDump, DashboardLogger
 
 # Visualization module stub
 class _VisualizationModule:
@@ -220,6 +154,21 @@ __all__ = [
     # Proximal operators
     "L1Proximal", "ElasticNetProximal", "ProximalGradientOptimizer", "AdvancedOptimizer",
     
-    # Test compatibility
-    "create_advanced_sparse_coder", "DashboardLogger", "visualization",
+    # Array operations
+    "solve", "svd", "norm", "matmul", "ensure_array", "as_same",
+    
+    # Fast algorithms
+    "fista_batch", "soft_thresh", "power_iter_L",
+    
+    # Reproducibility
+    "set_deterministic", "is_deterministic", "get_reproducibility_info",
+    
+    # ONNX export
+    "export_to_onnx", "test_onnx_model",
+    
+    # Factory functions  
+    "create_advanced_sparse_coder", "create_sparse_coder",
+    
+    # Monitoring and logging
+    "TB", "CSVDump", "DashboardLogger", "visualization",
 ]

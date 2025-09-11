@@ -7,7 +7,6 @@ authors:
   - family-names: Chen
     given-names: Benedict
     email: benedict@benedictchen.com
-    orcid: https://orcid.org/0000-0000-0000-0000
 repository-code: "https://github.com/benedictchen/sparse-coding"
 url: "https://sparse-coding.readthedocs.io"
 keywords:
@@ -25,8 +24,8 @@ keywords:
   - machine learning
   - unsupervised learning
   - representation learning
-license: "Custom Non-Commercial License with Donation Requirements"
-version: "2.1.0"
+license: "AGPL-3.0-or-later"
+version: "2.5.0"
 date-released: "2025-01-11"
 references:
   - type: article

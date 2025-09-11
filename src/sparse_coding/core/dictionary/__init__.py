@@ -1,18 +1,34 @@
 """
 Dictionary learning algorithms for sparse coding.
 
-This module implements dictionary update methods following Olshausen & Field (1996)
-and subsequent advances in dictionary learning.
+DEPRECATED: This directory contains legacy individual implementations.
+Use the consolidated dict_updater_implementations module instead.
+
+The consolidated implementation provides:
+- Single source of truth with factory pattern
+- Better maintainability and consistency
+- Unified configuration system
 """
 
-from .method_optimal_directions import MethodOptimalDirections
-from .ksvd_dictionary_learning import KSVDDictionaryLearning  
-from .gradient_descent_update import GradientDescentUpdate
-from .online_dictionary_learning import OnlineDictionaryLearning
+import warnings
+warnings.warn(
+    "sparse_coding.core.dictionary is deprecated. "
+    "Use sparse_coding.core.dict_updater_implementations instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Import from consolidated implementation for backward compatibility
+from ..dict_updater_implementations import (
+    ModUpdater as MethodOptimalDirections,
+    KsvdUpdater as KSVDDictionaryLearning,
+    GradientUpdater as GradientDescentUpdate,
+    OnlineUpdater as OnlineDictionaryLearning
+)
 
 __all__ = [
     'MethodOptimalDirections',
-    'KSVDDictionaryLearning',
-    'GradientDescentUpdate', 
+    'KSVDDictionaryLearning', 
+    'GradientDescentUpdate',
     'OnlineDictionaryLearning'
 ]

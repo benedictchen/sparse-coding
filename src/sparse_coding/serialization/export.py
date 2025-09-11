@@ -589,12 +589,31 @@ import numpy as np
 # Load dictionary
 D = np.load('dictionary.npy')
 
-# Sparse encoding (simplified FISTA)
-def sparse_encode(x, D, lam=0.1, max_iter=100):
-    # Implement FISTA algorithm
-    # This is a simplified version
-    codes = np.linalg.lstsq(D, x, rcond=None)[0]
-    return np.sign(codes) * np.maximum(np.abs(codes) - lam, 0)
+# Solve: 0.5*||x - D a||_2^2 + lam*||a||_1  via FISTA
+def soft_threshold(z, t):
+    return np.sign(z) * np.maximum(np.abs(z) - t, 0.0)
+
+def sparse_encode(x, D, lam=0.1, max_iter=200, tol=1e-6):
+    # x: (n_features,) or (n_features, 1)
+    x = x.reshape(-1, 1)
+    n_features, n_atoms = D.shape
+    DtD = D.T @ D
+    Dt_x = D.T @ x
+    # Lipschitz constant of grad f(a) = D^T(D a - x)
+    L = np.linalg.norm(DtD, 2)  # spectral norm
+    a = np.zeros((n_atoms, 1))
+    y = a.copy()
+    t = 1.0
+    for _ in range(max_iter):
+        grad = DtD @ y - Dt_x
+        a_next = soft_threshold(y - grad / L, lam / L)
+        t_next = 0.5 * (1.0 + np.sqrt(1.0 + 4.0 * t * t))
+        y = a_next + ((t - 1.0) / t_next) * (a_next - a)
+        if np.linalg.norm(a_next - a) <= tol * max(1.0, np.linalg.norm(a)):
+            a = a_next
+            break
+        a, t = a_next, t_next
+    return a.squeeze()
 
 # Usage
 codes = sparse_encode(test_signal, D)

@@ -6,6 +6,7 @@ This module validates penalty function implementations against their
 mathematical specifications and protocol requirements.
 """
 
+import sys
 import numpy as np
 
 # Note: sys.path manipulation removed - tests should use PYTHONPATH=src

@@ -303,61 +303,37 @@ def norm(x: ArrayLike, axis: Optional[Union[int, tuple]] = None, keepdims: bool 
 
 
 def solve(a: ArrayLike, b: ArrayLike) -> ArrayLike:
-    """
-    Backend-agnostic linear system solve with safety checks.
-    
-    Solves the linear system ax = b for x.
-    
-    Args:
-        a: Coefficient matrix (n, n)
-        b: Right-hand side vector/matrix (n,) or (n, k)
-        
-    Returns:
-        Solution x with same backend as input 'a'
-        
-    Raises:
-        LinAlgError: If matrix is singular or poorly conditioned
-        ValueError: If dimensions are incompatible
-    """
-    import numpy as np
+    """Backend-agnostic linear solve a x = b."""
     backend = xp(a)
-    
-    # Input validation
-    a_arr, b_arr = np.asarray(a), np.asarray(b)
-    if a_arr.ndim != 2 or a_arr.shape[0] != a_arr.shape[1]:
-        raise ValueError(f"Matrix 'a' must be square, got shape {a_arr.shape}")
-    if b_arr.shape[0] != a_arr.shape[0]:
-        raise ValueError(f"Incompatible dimensions: a={a_arr.shape}, b={b_arr.shape}")
-    
-    # Check for non-finite values
-    if not np.all(np.isfinite(a_arr)):
-        raise ValueError("Matrix 'a' contains non-finite values (inf/nan)")
-    if not np.all(np.isfinite(b_arr)):
-        raise ValueError("Vector/matrix 'b' contains non-finite values (inf/nan)")
-    
-    # Check for degenerate cases
-    if a_arr.shape[0] == 0:
-        raise ValueError("Cannot solve system with empty matrix")
-    
-    if hasattr(backend, 'linalg') and hasattr(backend.linalg, 'solve'):
-        try:
+    try:
+        if hasattr(backend, 'linalg') and hasattr(backend.linalg, 'solve'):
             return backend.linalg.solve(a, b)
-        except Exception as e:
-            # Fallback to NumPy if backend solve fails
-            result = np.linalg.solve(a_arr, b_arr)
-            # Try to convert back to original backend
-            try:
-                return as_same(result, a)
-            except Exception:
-                return result
-    else:
-        # Direct NumPy fallback with proper error handling
-        result = np.linalg.solve(a_arr, b_arr)
-        # Try to convert back to original backend 
-        try:
-            return as_same(result, a)
-        except Exception:
-            return result
+        else:
+            # Safe NumPy fallback with round-trip back to the input backend.
+            import numpy as np
+            a_np = np.asarray(a)
+            b_np = np.asarray(b)
+            x_np = np.linalg.solve(a_np, b_np)
+            # Convert result back to the same backend/type as 'a'
+            return as_same(x_np, a)
+    except Exception as e:
+        # Enhanced error handling for debugging
+        import numpy as np
+        a_arr, b_arr = np.asarray(a), np.asarray(b)
+        
+        # Input validation
+        if a_arr.ndim != 2 or a_arr.shape[0] != a_arr.shape[1]:
+            raise ValueError(f"Matrix 'a' must be square, got shape {a_arr.shape}")
+        if b_arr.shape[0] != a_arr.shape[0]:
+            raise ValueError(f"Incompatible dimensions: a={a_arr.shape}, b={b_arr.shape}")
+        
+        # Check for non-finite values
+        if not np.all(np.isfinite(a_arr)):
+            raise ValueError("Matrix 'a' contains non-finite values (inf/nan)")
+        if not np.all(np.isfinite(b_arr)):
+            raise ValueError("Vector/matrix 'b' contains non-finite values (inf/nan)")
+        
+        raise e
 
 
 def svd(x: ArrayLike, full_matrices: bool = True) -> tuple:
@@ -367,12 +343,7 @@ def svd(x: ArrayLike, full_matrices: bool = True) -> tuple:
         return backend.linalg.svd(x, full_matrices=full_matrices)
     else:
         import numpy as np
-        # Safe conversion: use np.asarray instead of empty array reference
+        # Force NumPy path explicitly; then round-trip to x's backend
         x_np = np.asarray(x)
         u, s, vh = np.linalg.svd(x_np, full_matrices=full_matrices)
-        # Convert back to original backend if possible
-        try:
-            return as_same(u, x), as_same(s, x), as_same(vh, x)
-        except Exception:
-            # Fallback: return as NumPy arrays if conversion fails
-            return u, s, vh
+        return as_same(u, x), as_same(s, x), as_same(vh, x)

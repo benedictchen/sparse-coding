@@ -285,9 +285,9 @@ Dictionary learning workflow with optimization and visualization.
 
 ## Mathematical Foundation
 
-**Core Optimization Problem:**
+**Core Optimization Problem (with standard constraint):**
 ```
-min_{D,α} Σᵢ [½||xᵢ - Dαᵢ||₂² + λ||αᵢ||₁]
+min_{D,α} Σᵢ [½||xᵢ - Dαᵢ||₂² + λ||αᵢ||₁]  subject to  ||d_j||₂ ≤ 1  ∀ j
 ```
 
 Where:
@@ -307,7 +307,7 @@ Where:
 |--------|------------------|--------------|----------|
 | FISTA | O(1/k²) | Low | General purpose |
 | ISTA | O(1/k) | Low | Simple problems |
-| Coordinate Descent | Linear | Very Low | High-dimensional |
+| Coordinate Descent | Often fast (sublinear worst-case) | Very Low | High-dimensional |
 
 ## Contributing
 
@@ -319,7 +319,8 @@ Areas of interest:
 
 ## License
 
-Custom Non-Commercial License with Donation Requirements
+AGPL-3.0-or-later (with optional commercial licensing available).
+Donations and sponsorships are welcome and help sustain the project.
 
 ## 🙏 Support This Research
 
