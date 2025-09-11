@@ -107,7 +107,9 @@ class DashboardLogger:
         
         if self.csv_path:
             import os
-            os.makedirs(os.path.dirname(self.csv_path), exist_ok=True)
+            csv_dir = os.path.dirname(self.csv_path)
+            if csv_dir:  # Only create directory if path has a directory component
+                os.makedirs(csv_dir, exist_ok=True)
     
     def log_training_metrics(self, metrics):
         """

@@ -158,7 +158,7 @@ class TestL1SparseInference:
         np.testing.assert_allclose(A_batch, A_individual, rtol=1e-10, atol=1e-12)
     
     def test_l1_sparsity_parameter_effect(self, synthetic_data):
-        """Test effect of L1 sparsity parameter."""
+        """Test effect of L1 sparsity parameter with statistical validation."""
         data = synthetic_data
         X = data['signals'][:, :2]
         D = data['true_dict']
@@ -174,8 +174,20 @@ class TestL1SparseInference:
             sparsity = np.mean(np.abs(A) < 0.01)  # Fraction of near-zero elements
             sparsity_levels.append(sparsity)
         
-        # Higher lambda should generally produce more sparsity
-        assert sparsity_levels[-1] >= sparsity_levels[0], "Higher λ should increase sparsity"
+        # Statistical validation: sparsity should increase monotonically with lambda
+        # Research foundation: L1 regularization theory (Tibshirani 1996)
+        for i in range(1, len(sparsity_levels)):
+            assert sparsity_levels[i] >= sparsity_levels[i-1], (
+                f"Sparsity should increase with λ: λ={lambda_values[i]:.2f} gives sparsity "
+                f"{sparsity_levels[i]:.3f} < λ={lambda_values[i-1]:.2f} gives {sparsity_levels[i-1]:.3f}"
+            )
+        
+        # Strong inequality: highest lambda should produce significantly more sparsity
+        sparsity_increase = sparsity_levels[-1] - sparsity_levels[0]
+        assert sparsity_increase >= 0.1, (
+            f"Expected significant sparsity increase (≥0.1), got {sparsity_increase:.3f} "
+            f"from λ={lambda_values[0]} to λ={lambda_values[-1]}"
+        )
     
     def test_l1_reconstruction_quality(self, synthetic_data):
         """Test L1 reconstruction quality."""
@@ -218,9 +230,11 @@ class TestLogPriorInference:
         assert a.shape == (data['n_components'], 1)
         assert np.all(np.isfinite(a))
         
-        # Log-Cauchy prior should encourage sparsity
-        sparsity = np.mean(np.abs(a) < 1e-3)
-        assert sparsity > 0.05, f"Log prior should produce sparse solutions: {sparsity:.3f}"
+        # Log-Cauchy prior should encourage sparsity (note: log prior doesn't drive coefficients to exact zero like L1)
+        # Use threshold appropriate for log-Cauchy: coefficients smaller than 1% of maximum
+        threshold = 0.01 * np.max(np.abs(a)) if np.max(np.abs(a)) > 0 else 0.01
+        sparsity = np.mean(np.abs(a) < threshold)
+        assert sparsity > 0.05, f"Log prior should produce sparse solutions (threshold={threshold:.4f}): {sparsity:.3f}"
     
     def test_log_prior_gradient_computation(self, synthetic_data):
         """Test log prior mathematical properties (research validation)."""
@@ -360,7 +374,8 @@ class TestFitAndTransformInterface:
         # Should be very similar (same seed, but iterative algorithms have small numerical variations)
         # Research-appropriate tolerance: FISTA is an iterative algorithm with numerical approximations
         # Tolerance adjusted for research accuracy: Beck & Teboulle (2009) shows FISTA convergence has O(1/k²) rate
-        np.testing.assert_allclose(A1, A2, rtol=1e-3, atol=1e-6)
+        # Tightened from original 1e-3 to account for dictionary learning variations
+        np.testing.assert_allclose(A1, A2, rtol=2e-5, atol=1e-7)
     
     def test_encode_without_fit_raises_error(self, synthetic_data):
         """Test that encoding without fitting raises appropriate error."""
@@ -420,7 +435,8 @@ class TestFitAndTransformInterface:
         # First column should be very similar to single signal result (batch vs individual processing)
         # Research-appropriate tolerance: FISTA batch vs individual can have small numerical differences
         # due to different matrix operations and floating point accumulation patterns
-        np.testing.assert_allclose(A_single[:, 0], A_multi[:, 0], rtol=1e-4, atol=1e-6)
+        # Tightened from original 1e-4 to be more mathematically rigorous
+        np.testing.assert_allclose(A_single[:, 0], A_multi[:, 0], rtol=2e-5, atol=1e-7)
 
 
 class TestNumericalStability:

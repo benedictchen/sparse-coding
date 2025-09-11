@@ -12,6 +12,7 @@ Implements multiple optimization algorithms beyond basic FISTA:
 import numpy as np
 from typing import Optional, Dict, Any, Callable
 from abc import ABC, abstractmethod
+from .fista_batch import power_iter_L
 
 
 class ProximalOperator(ABC):
@@ -105,7 +106,7 @@ class ProximalGradientOptimizer:
         
         # Precompute for efficiency
         self.DtD = dictionary.T @ dictionary
-        self.lipschitz_constant = np.linalg.norm(self.DtD, ord=2)
+        self.lipschitz_constant = power_iter_L(dictionary)
     
     def ista(self, signal: np.ndarray, x0: Optional[np.ndarray] = None) -> Dict[str, Any]:
         """

@@ -28,11 +28,21 @@ try:
 except ImportError:
     ArrayLike = Union[np.ndarray, list, tuple]
 
+# Import safe Lipschitz constant computation
+try:
+    from ..fista_batch import power_iter_L
+except ImportError:
+    from ...fista_batch import power_iter_L
+
 try:
     from .penalties import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty
 except ImportError:
-    # Fallback for testing
-    from typing import Any as PenaltyType
+    # Fallback using correct import path
+    try:
+        from .penalties.implementations import L1Penalty, L2Penalty, ElasticNetPenalty, CauchyPenalty
+    except ImportError:
+        # Final fallback for testing
+        from typing import Any as PenaltyType
 
 
 @dataclass
@@ -98,7 +108,7 @@ class FISTASolver:
         if hasattr(self, '_lipschitz_constant'):
             L = self._lipschitz_constant
         else:
-            L = np.linalg.norm(D.T @ D, ord=2)
+            L = power_iter_L(D)
             self._lipschitz_constant = L
         
         step_size = self.step_size if self.step_size_rule == 'fixed' else 1.0 / L
@@ -261,7 +271,7 @@ class ISTASolver:
         if hasattr(self, '_lipschitz_constant'):
             L = self._lipschitz_constant
         else:
-            L = np.linalg.norm(D.T @ D, ord=2)
+            L = power_iter_L(D)
             self._lipschitz_constant = L
         
         step_size = self.step_size if self.step_size_rule == 'fixed' else 1.0 / L

@@ -76,6 +76,13 @@ class NonlinearConjugateGradient:
             return residual_grad + lam * penalty_grad
         
         grad = objective_grad(a)
+        
+        # Add gradient clipping to prevent exploding gradients
+        # Critical for stability with Olshausen log priors that can explode for large a
+        grad_norm = np.linalg.norm(grad)
+        if grad_norm > 1e3:  # Threshold from deep learning stability practices
+            grad = grad * (1e3 / grad_norm)  # Normalize to max magnitude
+        
         search_dir = -grad.copy()
         
         for k in range(self.max_iter):
@@ -95,6 +102,11 @@ class NonlinearConjugateGradient:
             a = a + alpha * search_dir
             grad_prev = grad
             grad = objective_grad(a)
+            
+            # Clip gradients during iteration to maintain stability
+            grad_norm = np.linalg.norm(grad)
+            if grad_norm > 1e3:
+                grad = grad * (1e3 / grad_norm)
             
             y = grad - grad_prev
             

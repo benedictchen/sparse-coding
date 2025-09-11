@@ -16,6 +16,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Optional, Tuple, Literal
 from ..penalties.penalty_protocol import PenaltyProtocol
+from ...fista_batch import power_iter_L
 
 
 class ISTASolver:
@@ -56,7 +57,7 @@ class ISTASolver:
             Sparse codes and iteration count
         """
         if L is None:
-            L = float(np.linalg.norm(D.T @ D, ord=2))
+            L = float(power_iter_L(D))
         
         step_size = 1.0 / L
         n_atoms = D.shape[1]

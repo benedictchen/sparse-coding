@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 from ..core.array import ArrayLike, xp
 from ..core.interfaces import InferenceSolver, Penalty
+from ..fista_batch import power_iter_L
 
 
 class SolverType(Enum):
@@ -100,7 +101,9 @@ class FISTASolver:
         n_atoms = D.shape[1]
         
         # Estimate Lipschitz constant (spectral norm squared)
-        L = float(backend.linalg.norm(D, ord=2) ** 2)
+        # Use safe power iteration that works across all backends
+        D_numpy = np.asarray(D)
+        L = float(power_iter_L(D_numpy))
         
         # Initialize FISTA variables
         a = backend.zeros(n_atoms)  # Current iterate
@@ -214,7 +217,9 @@ class ISTASolver:
         n_atoms = D.shape[1]
         
         # Estimate Lipschitz constant
-        L = float(backend.linalg.norm(D, ord=2) ** 2)
+        # Use safe power iteration that works across all backends
+        D_numpy = np.asarray(D)
+        L = float(power_iter_L(D_numpy))
         
         # Initialize
         a = backend.zeros(n_atoms)

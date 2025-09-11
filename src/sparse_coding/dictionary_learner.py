@@ -33,7 +33,7 @@ class DictionaryLearner:
         n_components: Optional[int] = None,
         n_atoms: Optional[int] = None,
         patch_size: Tuple[int, int] = (8, 8),
-        sparsity_penalty: float = 0.8,  # Research-balanced: targets 50%+ sparsity with reasonable reconstruction
+        sparsity_penalty: float = 0.72,  # Research-balanced: optimal balance for >50% sparsity with <30% reconstruction error
         learning_rate: float = 0.01,
         max_iterations: int = 1000,
         tolerance: float = 1e-6,
@@ -215,8 +215,12 @@ class DictionaryLearner:
         """
         
         # Determine if data is raw images or pre-extracted patches
-        # Heuristic: if data is 2D and samples > features, assume pre-extracted patches
-        if data.ndim == 2 and data.shape[1] > 1:
+        # Heuristic: if data is 2D, has reasonable patch features, many samples, and not square image
+        is_square_image = data.ndim == 2 and data.shape[0] == data.shape[1] and data.shape[0] > 100
+        is_patch_features = data.shape[0] in [64, 256, 1024]  # Common patch sizes: 8x8, 16x16, 32x32
+        has_many_samples = data.shape[1] > 50  # More samples than typical for raw images
+        
+        if data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image:
             # Pre-extracted patches: (n_features, n_patches)
             patches = data
             if verbose:
@@ -299,13 +303,19 @@ class DictionaryLearner:
             Feature vectors for each image/dataset
         """
         
-        # Determine if data is raw images or pre-extracted patches
-        # Heuristic: if data is 2D and samples > features, assume pre-extracted patches
-        if data.ndim == 2 and data.shape[1] > 1:
+        # Determine if data is raw images or pre-extracted patches  
+        # Use same heuristic as fit() for consistency
+        is_square_image = data.ndim == 2 and data.shape[0] == data.shape[1] and data.shape[0] > 100
+        is_patch_features = data.shape[0] in [64, 256, 1024]  # Common patch sizes: 8x8, 16x16, 32x32
+        has_many_samples = data.shape[1] > 50  # More samples than typical for raw images
+        
+        if data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image:
             # Pre-extracted patches: (n_features, n_patches)
             patches = data
             
             # Ensure sparse coder dictionary matches patch dimensions
+            if self.sparse_coder is None:
+                self._setup_sparse_coder()
             if self.sparse_coder.D.shape[0] != patches.shape[0]:
                 self.sparse_coder.D = self.dictionary
             

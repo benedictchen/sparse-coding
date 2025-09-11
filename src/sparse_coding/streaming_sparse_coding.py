@@ -214,8 +214,9 @@ def encode_stream(
         from .fista_batch import power_iter_L
         L = power_iter_L(D)  # More accurate than ||D||² approximation
     except ImportError:
-        # Fallback: use spectral norm squared
-        L = float(np.linalg.norm(D, ord=2) ** 2)
+        # Fallback: use safe power iteration for spectral norm
+        from .fista_batch import power_iter_L
+        L = float(power_iter_L(D))
     
     if verbose:
         print(f"Initializing streaming sparse coding pipeline:")

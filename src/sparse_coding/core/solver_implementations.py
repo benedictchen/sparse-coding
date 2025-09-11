@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Union, Dict, Any, Optional, Callable, Tuple
 from .array import ArrayLike, ensure_array
+from ..fista_batch import power_iter_L
 from .interfaces import Penalty, InferenceSolver
 
 
@@ -49,7 +50,7 @@ class FistaSolver:
         n_atoms, n_samples = D.shape[1], X.shape[1]
         
         # Compute Lipschitz constant L = σ_max(D)^2
-        L = np.linalg.norm(D, ord=2) ** 2
+        L = power_iter_L(D)
         step_size = 1.0 / L
         
         # Initialize FISTA variables
@@ -147,7 +148,7 @@ class IstaSolver:
         n_atoms, n_samples = D.shape[1], X.shape[1]
         
         # Compute Lipschitz constant
-        L = np.linalg.norm(D, ord=2) ** 2
+        L = power_iter_L(D)
         step_size = 1.0 / L
         
         A = np.zeros((n_atoms, n_samples))
@@ -497,11 +498,16 @@ def create_solver(config: SolverConfig) -> InferenceSolver:
         if config.algorithm == 'auto' and not config.enable_auto_selection:
             config.algorithm = 'fista'  # fallback
         
-        # Create new solver instance with parameters
+        # Register factory function instead of instance for reproducibility
         if config.algorithm != 'auto':
-            solver = SolverFactory.create_solver(config.algorithm, **solver_kwargs)
-            SOLVER_REGISTRY.register(f'{config.algorithm}_configured', solver)
-            return solver
+            # Register a lambda that creates solver with these specific kwargs
+            factory = lambda **extra_kwargs: SolverFactory.create_solver(
+                config.algorithm, **{**solver_kwargs, **extra_kwargs}
+            )
+            SOLVER_REGISTRY.register(f'{config.algorithm}_factory', factory)
+            
+            # Return the actual solver instance for immediate use
+            return SolverFactory.create_solver(config.algorithm, **solver_kwargs)
         else:
             # Auto-selection will happen at solve time
             return SOLVER_REGISTRY

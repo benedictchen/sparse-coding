@@ -40,13 +40,23 @@ class MethodOptimalDirections:
         AAT = A @ A.T
         np.fill_diagonal(AAT, AAT.diagonal() + self.regularization)
         
+        # Check matrix conditioning to prevent silent numerical failures
+        # Critical for correlated data common in natural images
+        cond_num = np.linalg.cond(AAT)
+        use_pinv = cond_num > 1e12  # Threshold from numerical analysis best practices
+        
         # Solve linear system: D = XA^T(AA^T + εI)^(-1)
-        try:
-            XAT = X @ A.T
-            D_new = np.linalg.solve(AAT, XAT.T).T
-        except np.linalg.LinAlgError:
-            # Fallback to pseudoinverse
+        XAT = X @ A.T
+        if use_pinv:
+            # Use pseudoinverse for ill-conditioned matrices
+            # Prevents silent errors that undermine research reproducibility
             D_new = X @ A.T @ np.linalg.pinv(AAT)
+        else:
+            try:
+                D_new = np.linalg.solve(AAT, XAT.T).T
+            except np.linalg.LinAlgError:
+                # Final fallback if solve fails despite good conditioning
+                D_new = X @ A.T @ np.linalg.pinv(AAT)
         
         # Normalize dictionary atoms
         atom_norms = np.linalg.norm(D_new, axis=0, keepdims=True)

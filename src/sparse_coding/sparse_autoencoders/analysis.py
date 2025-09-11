@@ -588,12 +588,21 @@ class FeatureAnalyzer:
         x_discrete = backend.clip(x_discrete, 0, n_bins - 1)
         y_discrete = backend.clip(y_discrete, 0, n_bins - 1)
         
-        # Compute joint histogram using more stable approach
-        joint_hist = backend.zeros((n_bins, n_bins))
-        for i in range(n_samples):
-            joint_hist[x_discrete[i], y_discrete[i]] += 1
+        # Use vectorized 2D histogram for better performance
+        import numpy as np
+        if hasattr(np, 'histogram2d'):
+            # Convert to numpy for histogram2d, then back to backend
+            x_np = np.asarray(x_norm)
+            y_np = np.asarray(y_norm)
+            joint_hist_np, _, _ = np.histogram2d(x_np, y_np, bins=n_bins, range=[[0, 1], [0, 1]])
+            joint_hist = as_same(joint_hist_np, x)
+        else:
+            # Fallback to manual computation if needed
+            joint_hist = backend.zeros((n_bins, n_bins))
+            for i in range(n_samples):
+                joint_hist[x_discrete[i], y_discrete[i]] += 1
         
-        # Add small epsilon to avoid log(0)
+        # Add small epsilon only where needed to avoid log(0)
         joint_hist = joint_hist + 1e-12
         
         # Marginal histograms
@@ -613,6 +622,12 @@ class FeatureAnalyzer:
         ratio = backend.maximum(joint_prob / backend.maximum(outer_prod, 1e-12), 1e-12)
         mi = backend.sum(joint_prob * backend.log(ratio))
         
-        return float(backend.maximum(mi, 0.0))  # Ensure non-negative
+        # Return unclamped MI for diagnostic purposes
+        # Small negative values indicate numerical precision issues, not mathematical errors
+        mi_value = float(mi)
+        if mi_value < -1e-10:  # Warn if significantly negative
+            warnings.warn(f"Negative MI detected: {mi_value:.2e}. This may indicate numerical instability.")
+        
+        return mi_value
 
 

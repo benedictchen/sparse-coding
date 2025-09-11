@@ -43,8 +43,9 @@ class MODUpdater:
         AtA_reg = AtA + self.regularization * np.eye(AtA.shape[0])
         
         try:
-            # Solve: D = X A^T (A A^T + εI)^{-1}
-            D_new = X @ A.T @ np.linalg.inv(AtA_reg)
+            # Numerically stable solve: D = X A^T (A A^T + εI)^{-1}
+            # Equivalent to solving (A A^T + εI) Y^T = (A^T)^T for Y, then D = X Y
+            D_new = X @ np.linalg.solve(AtA_reg, A.T).T
         except np.linalg.LinAlgError:
             # Fallback to pseudoinverse if singular
             D_new = X @ np.linalg.pinv(A)

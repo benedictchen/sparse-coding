@@ -13,6 +13,7 @@ import numpy as np
 from typing import Optional, Any, Dict
 from .core.interfaces import InferenceSolver, Penalty
 from .core.array import ArrayLike
+from .fista_batch import power_iter_L
 
 
 class FISTASolver:
@@ -57,9 +58,9 @@ class FISTASolver:
         
         # Compute Lipschitz constant for backtracking
         if self.backtrack:
-            L = 1.1 * np.linalg.norm(D.T @ D, ord=2)
+            L = 1.1 * power_iter_L(D)
         else:
-            L = kwargs.get('lipschitz', 1.1 * np.linalg.norm(D.T @ D, ord=2))
+            L = kwargs.get('lipschitz', 1.1 * power_iter_L(D))
         
         DtD = D.T @ D
         DtX = D.T @ X
@@ -140,7 +141,7 @@ class ISTASolver:
         
         # Step size (inverse of Lipschitz constant)
         if self.step_size is None:
-            L = 1.1 * np.linalg.norm(D.T @ D, ord=2)
+            L = 1.1 * power_iter_L(D)
             step_size = 1.0 / L
         else:
             step_size = self.step_size

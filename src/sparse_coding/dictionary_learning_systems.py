@@ -356,9 +356,14 @@ class OnlineDictionaryLearner:
         self._B_avg = momentum * self._B_avg + (1 - momentum) * (X @ A.T) / batch_size
         
         # Dictionary update using running averages
+        # Use solve instead of inv for numerical stability (Golub & Van Loan, 2013)
+        eps = 1e-7
+        regularized_A = self._A_avg + eps * np.eye(self.n_atoms)
         try:
-            self._dictionary = self._B_avg @ np.linalg.inv(self._A_avg + 1e-7 * np.eye(self.n_atoms))
+            # D = B @ A^-1 = (A^-T @ B^T)^T solved via A^T @ X = B^T
+            self._dictionary = np.linalg.solve(regularized_A, self._B_avg.T).T
         except np.linalg.LinAlgError:
+            # Fallback to pseudoinverse for severely ill-conditioned cases
             self._dictionary = self._B_avg @ np.linalg.pinv(self._A_avg)
         
         self._normalize_dictionary()

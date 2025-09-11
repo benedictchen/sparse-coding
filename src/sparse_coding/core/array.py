@@ -178,19 +178,54 @@ def to_device(arr: ArrayLike, device: Optional[str] = None) -> ArrayLike:
     try:
         if "torch" in arr_type:
             return arr.to(device)
-        elif "cupy" in arr_type and device.startswith("cuda"):
-            # CuPy arrays are already on GPU
-            return arr
-        elif "cupy" in arr_type and device == "cpu":
-            return arr.get()  # CuPy -> NumPy
-        # JAX device placement would require more complex handling
+        elif "cupy" in arr_type:
+            if device.startswith("cuda"):
+                # CuPy arrays are already on GPU - check if we need to move between devices
+                return arr
+            elif device == "cpu":
+                return arr.get()  # CuPy -> NumPy
+            else:
+                raise ValueError(f"CuPy arrays can only be moved to 'cpu' or 'cuda' devices, got '{device}'")
+        elif "jax" in arr_type:
+            # JAX device placement
+            try:
+                import jax
+                if device == "cpu":
+                    return jax.device_put(arr, jax.devices("cpu")[0])
+                elif device.startswith("cuda") or device.startswith("gpu"):
+                    gpu_devices = jax.devices("gpu")
+                    if gpu_devices:
+                        device_idx = 0
+                        if ":" in device:
+                            device_idx = int(device.split(":")[-1])
+                        if device_idx < len(gpu_devices):
+                            return jax.device_put(arr, gpu_devices[device_idx])
+                        else:
+                            raise ValueError(f"JAX GPU device {device_idx} not available. Available: {len(gpu_devices)}")
+                    else:
+                        raise ValueError("No JAX GPU devices available")
+                else:
+                    raise ValueError(f"JAX device '{device}' not supported. Use 'cpu', 'cuda', or 'gpu'")
+            except ImportError:
+                raise ImportError("JAX not available for device operations")
+        elif "numpy" in arr_type or arr_type == "builtins":
+            # NumPy arrays - CPU to GPU conversion
+            if device == "cpu":
+                return arr  # Already on CPU
+            elif device.startswith("cuda") or device.startswith("gpu"):
+                # Try to move to GPU using available backend
+                try:
+                    import cupy as cp
+                    return cp.asarray(arr)
+                except ImportError:
+                    raise ImportError("CuPy not available for GPU operations")
+            else:
+                raise ValueError(f"Device '{device}' not supported for NumPy arrays")
         else:
-            if device != "cpu":
-                warnings.warn(f"Device '{device}' not supported for {type(arr)}. Using CPU.")
-            return arr
+            raise ValueError(f"Device operations not supported for {type(arr)} (module: {arr_type})")
     except Exception as e:
-        warnings.warn(f"Device transfer failed: {e}. Using original array.")
-        return arr
+        # Fail fast instead of silent fallback for better debugging
+        raise RuntimeError(f"Device transfer failed: {e}. Cannot move {type(arr)} to '{device}'")
 
 
 def get_array_info(arr: ArrayLike) -> dict:
@@ -248,9 +283,9 @@ def solve(a: ArrayLike, b: ArrayLike) -> ArrayLike:
     if hasattr(backend, 'linalg') and hasattr(backend.linalg, 'solve'):
         return backend.linalg.solve(a, b)
     else:
-        # Should not happen with major backends, but safety fallback
+        # Safety fallback: convert explicitly to NumPy without empty array dance
         import numpy as np
-        return np.linalg.solve(as_same(a, np.array([])), as_same(b, np.array([])))
+        return np.linalg.solve(np.asarray(a), np.asarray(b))
 
 
 def svd(x: ArrayLike, full_matrices: bool = True) -> tuple:

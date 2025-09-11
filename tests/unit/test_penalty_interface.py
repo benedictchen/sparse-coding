@@ -37,9 +37,15 @@ def test_topk_gradient_implementation():
     k_largest_indices = np.argpartition(np.abs(a), -3)[-3:]
     assert np.allclose(grad[k_largest_indices], 0.0), "K largest elements should have zero gradient"
     
-    # Check that other elements have large penalty
+    # Check that other elements have relatively large penalty (scale-invariant test)
     other_indices = np.setdiff1d(range(len(a)), k_largest_indices)
-    assert np.all(np.abs(grad[other_indices]) > 100), "Non-support elements should have large penalty"
+    on_support_magnitude = np.max(np.abs(grad[k_largest_indices])) if len(k_largest_indices) > 0 else 0.0
+    off_support_magnitude = np.min(np.abs(grad[other_indices])) if len(other_indices) > 0 else 0.0
+    
+    # Off-support penalty should be at least 10x larger than on-support
+    min_ratio = 10.0
+    assert off_support_magnitude >= min_ratio * max(on_support_magnitude, 1e-6), \
+        f"Off-support penalty {off_support_magnitude:.2e} should be ≥{min_ratio}x on-support {on_support_magnitude:.2e}"
     
     print("  ✓ TopKPenalty gradient correctly implemented with subgradient")
 

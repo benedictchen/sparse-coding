@@ -13,6 +13,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax import jit, vmap, grad
+from ..fista_batch import power_iter_L
 
 
 def _l1_prox(z: jnp.ndarray, threshold: float) -> jnp.ndarray:
@@ -26,8 +27,9 @@ def _fista_step(params: Dict[str, jnp.ndarray],
                 L: Optional[float] = None) -> Dict[str, jnp.ndarray]:
     """Single FISTA iteration step."""
     if L is None:
-        # Estimate Lipschitz constant
-        L = jnp.linalg.norm(D, ord=2) ** 2
+        # Estimate Lipschitz constant using safe cross-backend method
+        D_numpy = np.asarray(D)
+        L = float(power_iter_L(D_numpy))
     
     t_old = params['t']
     a_old = params['a']

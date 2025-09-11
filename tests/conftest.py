@@ -74,8 +74,9 @@ def synthetic_data(signal_length, small_dict_atoms, random_seed):
     n_samples = 50
     
     # Generate ground truth sparse codes and dictionary
-    true_codes = np.random.laplace(scale=0.1, size=(n_components, n_samples))
-    true_codes[np.abs(true_codes) < 0.3] = 0  # Enforce sparsity
+    # Use better parameters for meaningful sparse coding
+    true_codes = np.random.laplace(scale=0.3, size=(n_components, n_samples))
+    true_codes[np.abs(true_codes) < 0.15] = 0  # More reasonable sparsity threshold
     
     true_dict = np.random.randn(n_features, n_components)
     # Normalize dictionary atoms

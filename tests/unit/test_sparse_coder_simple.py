@@ -154,5 +154,6 @@ class TestSparseCoderBasic:
         A_multi = coder.encode(X_multi)
         assert A_multi.shape == (data['n_components'], 5)
         
-        # First signal should match
-        np.testing.assert_allclose(A_single[:, 0], A_multi[:, 0], rtol=5e-3)
+        # First signal should match (deterministic algorithm with same seed)
+        # Allowing for numerical differences in matrix operations: batch vs individual processing
+        np.testing.assert_allclose(A_single[:, 0], A_multi[:, 0], rtol=5e-5, atol=1e-7)

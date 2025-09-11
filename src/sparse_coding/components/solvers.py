@@ -6,6 +6,7 @@ import numpy as np
 from typing import Optional
 from ..core.array import ArrayLike, xp
 from ..core.interfaces import Penalty
+from ..fista_batch import power_iter_L
 
 
 class FISTASolver:
@@ -39,8 +40,9 @@ class FISTASolver:
         """Solve single sparse coding problem."""
         n_atoms = D.shape[1]
         
-        # Estimate Lipschitz constant
-        L = float(backend.linalg.norm(D, ord=2) ** 2)
+        # Estimate Lipschitz constant using safe cross-backend method
+        D_numpy = np.asarray(D)
+        L = float(power_iter_L(D_numpy))
         
         # Initialize
         a = backend.zeros(n_atoms)
@@ -109,8 +111,9 @@ class ISTASolver:
         """Solve single sparse coding problem."""
         n_atoms = D.shape[1]
         
-        # Estimate Lipschitz constant
-        L = float(backend.linalg.norm(D, ord=2) ** 2)
+        # Estimate Lipschitz constant using safe cross-backend method
+        D_numpy = np.asarray(D)
+        L = float(power_iter_L(D_numpy))
         
         # Initialize
         a = backend.zeros(n_atoms)
