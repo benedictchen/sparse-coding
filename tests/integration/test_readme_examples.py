@@ -12,12 +12,7 @@ import os
 import shutil
 from pathlib import Path
 
-from sparse_coding import (
-    DictionaryLearner, 
-    visualization,
-    create_advanced_sparse_coder,
-    DashboardLogger
-)
+from sparse_coding import DictionaryLearner
 
 
 class TestREADMEExamples:
@@ -75,8 +70,8 @@ class TestREADMEExamples:
         assert learner.learning_rate == 0.01
         assert learner.max_iterations == 3
 
-    def test_advanced_optimization_example(self):
-        """Test Advanced Optimization README example."""
+    def test_optimization_algorithm_example(self):
+        """Test optimization algorithm README example."""
         # Create test dictionary and signal
         dictionary = np.random.randn(64, 32)
         dictionary /= np.linalg.norm(dictionary, axis=0, keepdims=True)
@@ -111,7 +106,7 @@ class TestREADMEExamples:
 
         try:
             # Create complete analysis report
-            figures = visualization.create_comprehensive_report(
+            figures = visualization.create_visualization_report(
                 dictionary=dictionary,
                 codes=sparse_codes,
                 history=training_history,

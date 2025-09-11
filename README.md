@@ -1,25 +1,20 @@
 # Sparse Coding v2.5.0
 
-**Research-grade sparse coding implementation with dictionary learning, advanced optimization, and comprehensive visualization tools.**
+Sparse coding implementation with dictionary learning and optimization algorithms.
 
-## 🌟 What's New in v2.5.0
+## Implementation
 
-**MAJOR FUNCTIONALITY RESTORATION** - From minimal v2 (549 lines) to full-featured research library (2,468 lines):
+Dictionary learning based on Olshausen & Field (1996) with:
+- ISTA, FISTA optimization solvers
+- Multiple sparse coding algorithms
+- Visualization and analysis tools
 
-### ✨ New Features
+## Research Applications
 
-- **🧠 Complete Dictionary Learning** - Full Olshausen & Field (1996) implementation
-- **⚡ Advanced Optimization** - ISTA, FISTA, Coordinate Descent, Adaptive methods  
-- **📊 Professional Visualization** - Dictionary atoms, training progress, sparsity analysis
-- **📈 TensorBoard Integration** - Real-time monitoring with professional dashboards
-- **🎯 Comprehensive Examples** - Production-ready demonstrations and tutorials
-
-### 🔬 Research Applications
-
-- **Computer Vision**: Feature learning, image denoising, object detection
-- **Medical Imaging**: MRI reconstruction, CT denoising, pattern analysis  
-- **Audio Processing**: Source separation, compression, recognition
-- **Data Science**: Anomaly detection, dimensionality reduction, interpretable features
+- Computer Vision: Feature learning, image denoising, object detection
+- Medical Imaging: MRI reconstruction, CT denoising, pattern analysis  
+- Audio Processing: Source separation, compression, recognition
+- Data Science: Anomaly detection, dimensionality reduction
 
 ## 🚀 Quick Start
 
@@ -84,32 +79,32 @@ learner = DictionaryLearner(
 )
 ```
 
-### Advanced Optimization
-Multiple state-of-the-art solvers:
+### Optimization Methods
+Multiple solver implementations:
 ```python
-from sparse_coding import create_advanced_sparse_coder
+from sparse_coding import create_sparse_coder
 
 # Create optimizer with different methods
-optimizer = create_advanced_sparse_coder(
+optimizer = create_sparse_coder(
     dictionary, 
     penalty_type='l1',  # 'l1', 'elastic_net', 'non_negative_l1'
     penalty_params={'lam': 0.1}
 )
 
 # Compare optimization methods
-methods = ['ista', 'fista', 'coordinate_descent', 'adaptive_fista']
+methods = ['ista', 'fista', 'coordinate_descent']
 for method in methods:
     result = getattr(optimizer, method)(signal)
     print(f"{method}: {result['iterations']} iterations")
 ```
 
-### Professional Visualization
-Comprehensive analysis tools:
+### Visualization
+Analysis tools:
 ```python
 from sparse_coding import visualization
 
-# Create complete analysis report
-figures = visualization.create_comprehensive_report(
+# Create analysis report
+figures = visualization.create_analysis_report(
     dictionary=learner.dictionary,
     codes=sparse_codes,
     history=training_history,
@@ -118,8 +113,8 @@ figures = visualization.create_comprehensive_report(
 )
 ```
 
-### TensorBoard Integration
-Real-time monitoring:
+### Logging
+Training monitoring:
 ```python
 from sparse_coding import DashboardLogger
 
@@ -135,31 +130,31 @@ logger.log_training_metrics({
     'sparsity_level': 0.05
 })
 
-# Visualize dictionary evolution
+# Log dictionary atoms
 logger.log_dictionary_atoms(dictionary, patch_size)
 ```
 
-## 📚 Examples
+## Examples
 
 ### Basic Dictionary Learning
 ```bash
 python examples/basic_dictionary_learning.py
 ```
-Reproduces the classic Olshausen & Field natural image experiment.
+Reproduces the Olshausen & Field natural image experiment.
 
-### Advanced Optimization Comparison  
+### Optimization Comparison  
 ```bash
-python examples/advanced_optimization_comparison.py
+python examples/optimization_comparison.py
 ```
-Compares ISTA, FISTA, Coordinate Descent, and Adaptive FISTA methods.
+Compares ISTA, FISTA, and Coordinate Descent methods.
 
-### Complete Pipeline Demo
+### Pipeline Demo
 ```bash
-python examples/complete_pipeline_demo.py
+python examples/pipeline_demo.py
 ```
-Full workflow with dictionary learning, optimization, visualization, and TensorBoard logging.
+Dictionary learning workflow with optimization and visualization.
 
-## 🔬 Mathematical Foundation
+## Mathematical Foundation
 
 **Core Optimization Problem:**
 ```
@@ -174,29 +169,26 @@ Where:
 
 **Key Algorithms:**
 - **Dictionary Learning**: Alternates between sparse coding and dictionary updates
-- **FISTA**: Fast Iterative Soft Thresholding with optimal convergence rate
+- **FISTA**: Fast Iterative Soft Thresholding with O(1/k²) convergence rate
 - **Coordinate Descent**: Efficient for high-dimensional problems
-- **Adaptive Methods**: Automatic step size selection with backtracking
 
-## 📊 Performance Benchmarks
+## Performance Characteristics
 
 | Method | Convergence Rate | Memory Usage | Best For |
 |--------|------------------|--------------|----------|
-| **FISTA** | O(1/k²) | Low | General purpose |
-| **ISTA** | O(1/k) | Low | Simple problems |
-| **Coordinate Descent** | Linear | Very Low | High-dimensional |
-| **Adaptive FISTA** | O(1/k²) | Medium | Unknown Lipschitz |
+| FISTA | O(1/k²) | Low | General purpose |
+| ISTA | O(1/k) | Low | Simple problems |
+| Coordinate Descent | Linear | Very Low | High-dimensional |
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Areas of particular interest:
+Areas of interest:
+- GPU acceleration
+- New penalty functions (group sparsity, structured sparsity)
+- Domain-specific applications
+- Modern sparse coding variants
 
-- **GPU Acceleration**: CUDA/CuPy optimization
-- **New Penalties**: Group sparsity, structured sparsity
-- **Applications**: Domain-specific examples and tutorials
-- **Algorithms**: Modern sparse coding variants
-
-## 📄 License
+## License
 
 Custom Non-Commercial License with Donation Requirements
 
@@ -207,6 +199,8 @@ If this library helps your research or project, please consider donating:
 - **GitHub Sponsors**: https://github.com/sponsors/benedictchen
 
 Your support makes advanced AI research accessible to everyone! 🚀
+
+**We need funding to continue this work.** Every contribution helps maintain and improve these research implementations.
 
 ## 📖 Citation
 

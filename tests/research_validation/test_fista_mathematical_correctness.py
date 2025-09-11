@@ -15,7 +15,7 @@ Key validation points:
 
 import numpy as np
 import pytest
-from sparse_coding import SparseCoder, AdvancedOptimizer, L1Proximal
+from sparse_coding import SparseCoder, L1Proximal
 from sparse_coding.fista_batch import fista_batch, soft_thresh, power_iter_L
 from tests.conftest import (create_test_dictionary, measure_convergence_rate)
 
@@ -221,24 +221,20 @@ class TestConvergenceRateComparison:
         D = create_test_dictionary(data['n_features'], data['n_components'], 
                                  condition_number=2.0, seed=42)
         
-        # Run FISTA with many iterations
-        result = fista_batch(D, X, lam=0.1, max_iter=200, tol=1e-12)
+        # Run FISTA with objective tracking
+        result, objectives = fista_batch(D, X, lam=0.1, max_iter=50, tol=1e-12, return_objectives=True)
         
-        # Compute objective history manually
-        objectives = []
-        A = result
-        
-        for k in range(1, min(50, A.shape[0])):
-            # Approximate intermediate solutions
-            A_k = result * (k / 50.0)  # Crude approximation
-            obj_k = 0.5 * np.linalg.norm(X - D @ A_k)**2 + 0.1 * np.sum(np.abs(A_k))
-            objectives.append(obj_k)
-        
+        # Test that objectives decrease over iterations (research requirement)
         if len(objectives) > 10:
-            # Test that later iterations have smaller objectives
+            # Compare early vs late objectives
             early_obj = np.mean(objectives[:5])
             late_obj = np.mean(objectives[-5:])
-            assert late_obj < early_obj, "Objective should decrease over iterations"
+            assert late_obj < early_obj, f"Objective should decrease over iterations: early={early_obj:.6f}, late={late_obj:.6f}"
+            
+            # Test monotonic decrease (weaker requirement due to numerical precision)
+            decreasing_pairs = sum(1 for i in range(1, len(objectives)) if objectives[i] <= objectives[i-1] + 1e-10)
+            decreasing_ratio = decreasing_pairs / (len(objectives) - 1)
+            assert decreasing_ratio > 0.8, f"Objective should decrease monotonically in ≥80% of steps: {decreasing_ratio:.2f}"
 
 
 class TestProximalOperatorProperties:

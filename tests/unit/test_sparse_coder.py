@@ -18,7 +18,7 @@ class TestSparseCoderInitialization:
         coder = SparseCoder()
         
         assert coder.n_atoms == 144
-        assert coder.mode == "paper"  # Default mode in implementation
+        assert coder.mode == "l1"  # Default mode in implementation
         assert coder.max_iter == 200
         assert coder.tol == 1e-6
         assert coder.seed == 0

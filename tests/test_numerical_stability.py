@@ -8,10 +8,7 @@ and edge case handling as identified in the audit report.
 import numpy as np
 import pytest
 from sparse_coding import SparseCoder
-from sparse_coding.penalties import L1, ElasticNet
-from sparse_coding.advanced_optimization import (
-    AdvancedOptimizer, L1Proximal, create_advanced_sparse_coder
-)
+from sparse_coding import L1Penalty, ElasticNetPenalty, L1Proximal
 
 
 class TestNumericalStability:

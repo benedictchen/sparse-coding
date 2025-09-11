@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 from hypothesis import given, strategies as st, settings, assume
 from hypothesis.extra.numpy import arrays, array_shapes
-from sparse_coding import SparseCoder, DictionaryLearner, AdvancedOptimizer, L1Proximal
+from sparse_coding import SparseCoder, DictionaryLearner, L1Proximal
 from sparse_coding.fista_batch import soft_thresh, fista_batch
 from tests.conftest import assert_dictionary_normalized, create_test_dictionary
 

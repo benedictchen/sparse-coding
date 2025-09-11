@@ -287,8 +287,8 @@ class TestMathematicalConsistency:
             norms = np.linalg.norm(D_updated, axis=0)
             np.testing.assert_allclose(norms, 1.0, rtol=1e-10, atol=1e-12)
     
-    def test_comprehensive_integration(self):
-        """Comprehensive test of all fixes working together."""
+    def test_gradient_implementation_integration(self):
+        """Test all gradient implementations working together."""
         np.random.seed(42)
         
         # Test all modes with same data
