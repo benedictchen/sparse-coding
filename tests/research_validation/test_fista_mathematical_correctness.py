@@ -15,7 +15,7 @@ Key validation points:
 
 import numpy as np
 import pytest
-from sparse_coding import SparseCoder, L1Proximal, AdvancedOptimizer
+from sparse_coding import SparseCoder, L1Proximal, ProximalGradientOptimizer
 from sparse_coding.fista_batch import fista_batch, soft_thresh, power_iter_L
 from tests.conftest import (create_test_dictionary, measure_convergence_rate)
 
@@ -355,7 +355,7 @@ class TestConvergenceRateComparison:
         
         # Create optimizer with both methods
         proximal_op = L1Proximal(lam=0.1)
-        optimizer = AdvancedOptimizer(D, proximal_op, max_iter=100, tolerance=1e-8)
+        optimizer = ProximalGradientOptimizer(D, proximal_op, max_iter=100, tolerance=1e-8)
         
         # Compare on single signal
         x = X[:, 0]

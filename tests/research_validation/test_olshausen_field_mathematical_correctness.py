@@ -25,7 +25,7 @@ Author: Benedict Chen
 
 import numpy as np
 import pytest
-from sparse_coding.core.penalties.implementations import L1Penalty, CauchyPenalty, create_penalty
+from sparse_coding.core.penalties.implementations import L1Penalty, CauchyPenalty, StudentTPenalty, create_penalty
 from sparse_coding.core.learner_implementations import KsvdLearner
 from sparse_coding import SparseCoder, DictionaryLearner
 import sys

@@ -43,7 +43,7 @@ from .core.unified_config_system import (
     create_sparse_coding_system
 )
 
-# Advanced optimization and proximal operators
+# Proximal operators and optimization
 from .proximal_gradient_optimization import (
     L1Proximal, ElasticNetProximal, ProximalGradientOptimizer
 )
@@ -61,15 +61,14 @@ from .reproducible_sparse_coding import set_deterministic, is_deterministic, get
 # from .serialization.export import export_to_onnx, test_onnx_model
 
 # Alias for backwards compatibility and test requirements
-AdvancedOptimizer = ProximalGradientOptimizer
 
 # Factory functions for sparse coding algorithms
-def create_advanced_sparse_coder(dictionary: np.ndarray, 
+def create_proximal_sparse_coder(dictionary: np.ndarray, 
                                 penalty_type: str = 'l1',
                                 penalty_params: Dict[str, float] = None,
                                 **kwargs) -> 'ProximalGradientOptimizer':
     """
-    Factory function for creating advanced sparse coder with configurable penalties.
+    Factory function for creating proximal sparse coder with configurable penalties.
     
     Research Foundation: Parikh & Boyd (2014) "Proximal algorithms" with multiple penalty options.
     
@@ -85,14 +84,13 @@ def create_advanced_sparse_coder(dictionary: np.ndarray,
     Examples:
         >>> D = np.random.randn(64, 32)
         >>> D /= np.linalg.norm(D, axis=0)
-        >>> optimizer = create_advanced_sparse_coder(D, penalty_type='l1', penalty_params={'lam': 0.1})
+        >>> optimizer = create_proximal_sparse_coder(D, penalty_type='l1', penalty_params={'lam': 0.1})
         >>> result = optimizer.fista(signal)
     """
     from .proximal_gradient_optimization import create_proximal_sparse_coder
     return create_proximal_sparse_coder(dictionary, penalty_type, penalty_params, **kwargs)
 
 # Alias for API consistency  
-create_sparse_coder = create_advanced_sparse_coder
 
 # Monitoring and logging - import the real implementations
 from .sparse_coding_monitoring import TB, CSVDump, DashboardLogger
@@ -152,7 +150,7 @@ __all__ = [
     "create_sparse_coding_system",
     
     # Proximal operators
-    "L1Proximal", "ElasticNetProximal", "ProximalGradientOptimizer", "AdvancedOptimizer",
+    "L1Proximal", "ElasticNetProximal", "ProximalGradientOptimizer",
     
     # Array operations
     "solve", "svd", "norm", "matmul", "ensure_array", "as_same",
@@ -167,7 +165,7 @@ __all__ = [
     "export_to_onnx", "test_onnx_model",
     
     # Factory functions  
-    "create_advanced_sparse_coder", "create_sparse_coder",
+    "create_proximal_sparse_coder",
     
     # Monitoring and logging
     "TB", "CSVDump", "DashboardLogger", "visualization",

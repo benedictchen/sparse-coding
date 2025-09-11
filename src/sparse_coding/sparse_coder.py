@@ -553,7 +553,7 @@ class SparseCoder:
             if lam > 1000:  # Practical upper bound
                 raise ValueError(f"lam too large (>{1000}), got {lam}. Very large lambda values may cause numerical issues.")
                 
-        # Comprehensive mode validation
+        # Mode validation
         valid_modes = {'l1', 'log', 'paper', 'paper_gdD', 'olshausen_pure', 'transcoder'}
         if mode not in valid_modes:
             raise ValueError(f"mode must be one of {sorted(valid_modes)}, got '{mode}'")
@@ -575,7 +575,7 @@ class SparseCoder:
         if seed > 2**32:  # Practical upper bound for random seeds
             raise ValueError(f"seed too large (>{2**32}), got {seed}. Use smaller values for compatibility.")
             
-        # Enhanced anneal validation
+        # Anneal validation
         if anneal is not None:
             if not isinstance(anneal, (tuple, list)):
                 raise TypeError(f"anneal must be a tuple or list, got {type(anneal).__name__}")
@@ -1157,7 +1157,7 @@ class SparseCoder:
                     break
                 t *= 0.5
             
-            # Check convergence (comprehensive criteria following optimization literature)
+            # Check convergence following optimization literature
             delta_a = np.linalg.norm(a_new - a)
             rel_change = delta_a / max(1.0, np.linalg.norm(a))
             grad_norm = np.linalg.norm(g_new)

@@ -818,6 +818,95 @@ class SCADPenalty:
 
 
 @dataclass
+class StudentTPenalty:
+    """
+    Student-t (Exponential Gaussian) penalty from Olshausen & Field (1996).
+    
+    Research Foundation:
+    Olshausen, B. A., & Field, D. J. (1996). "Emergence of simple-cell receptive field 
+    properties by learning a sparse code for natural images." Nature, 381(6583), 607-609.
+    
+    Mathematical Form: ψ(a) = λ Σᵢ (1 - exp(-aᵢ²/σ²))
+    
+    This is the third sparsity function used by Olshausen & Field alongside L1 and Cauchy.
+    Creates sparse solutions by penalizing coefficients with exponentially decaying weights.
+    
+    Args:
+        lam: Regularization strength (λ > 0)
+        sigma: Scale parameter (σ > 0)
+    """
+    lam: float = 0.1
+    sigma: float = 1.0
+    is_prox_friendly: bool = True
+    is_differentiable: bool = True
+    max_iter: int = 20
+    tol: float = 1e-6
+    
+    def __post_init__(self):
+        if self.lam <= 0:
+            raise ValueError(f"Regularization strength must be positive, got {self.lam}")
+        if self.sigma <= 0:
+            raise ValueError(f"Sigma parameter must be positive, got {self.sigma}")
+    
+    def value(self, a: ArrayLike) -> float:
+        """Student-t penalty: λ Σᵢ (1 - exp(-aᵢ²/σ²))"""
+        a = np.asarray(a)
+        scaled_a_sq = (a / self.sigma) ** 2
+        return float(self.lam * np.sum(1.0 - np.exp(-scaled_a_sq)))
+    
+    def grad(self, a: ArrayLike) -> ArrayLike:
+        """Gradient: ∂ψ/∂aᵢ = (2λ/σ²) * aᵢ * exp(-aᵢ²/σ²)"""
+        a = np.asarray(a)
+        scaled_a_sq = (a / self.sigma) ** 2
+        exp_term = np.exp(-scaled_a_sq)
+        return (2 * self.lam / (self.sigma ** 2)) * a * exp_term
+    
+    def prox(self, z: ArrayLike, t: float) -> ArrayLike:
+        """
+        Proximal operator via iterative solution.
+        
+        Solves: argmin_a [0.5||a - z||² + t*ψ(a)]
+        where ψ(a) = λ Σᵢ (1 - exp(-aᵢ²/σ²))
+        
+        Uses Newton-Raphson method for each component.
+        """
+        z = np.asarray(z, dtype=float)
+        a = z.copy()  # Initialize at input
+        
+        for _ in range(self.max_iter):
+            # Newton step for each component
+            grad_penalty = self.grad(a)
+            hess_penalty = self._hessian_diag(a)
+            
+            # f(a) = a - z + t * grad_penalty(a)
+            f_val = a - z + t * grad_penalty
+            
+            # f'(a) = 1 + t * hess_penalty(a)
+            f_prime = 1.0 + t * hess_penalty
+            
+            # Newton update: a_new = a - f(a) / f'(a)
+            delta = f_val / (f_prime + 1e-15)  # Avoid division by zero
+            a_new = a - delta
+            
+            # Convergence check
+            if np.max(np.abs(delta)) < self.tol:
+                break
+            
+            a = a_new
+        
+        return a
+    
+    def _hessian_diag(self, a: ArrayLike) -> ArrayLike:
+        """Diagonal of Hessian matrix."""
+        a = np.asarray(a)
+        scaled_a_sq = (a / self.sigma) ** 2
+        exp_term = np.exp(-scaled_a_sq)
+        
+        # ∂²ψ/∂aᵢ² = (2λ/σ²) * exp(-aᵢ²/σ²) * (1 - 2*aᵢ²/σ²)
+        return (2 * self.lam / (self.sigma ** 2)) * exp_term * (1.0 - 2 * scaled_a_sq)
+
+
+@dataclass
 class HuberPenalty:
     """
     Huber penalty for robust sparse coding.
@@ -905,7 +994,7 @@ class HuberPenalty:
 
 def create_penalty(penalty_type: str, **kwargs) -> Union[
     L1Penalty, L2Penalty, ElasticNetPenalty, TopKConstraint, CauchyPenalty,
-    LogSumPenalty, GroupLassoPenalty, SCADPenalty, HuberPenalty
+    LogSumPenalty, GroupLassoPenalty, SCADPenalty, StudentTPenalty, HuberPenalty
 ]:
     """
     Factory function for creating penalties with configuration options.
@@ -944,6 +1033,7 @@ def create_penalty(penalty_type: str, **kwargs) -> Union[
         'log_sum': LogSumPenalty,
         'group_lasso': GroupLassoPenalty,
         'scad': SCADPenalty,
+        'student_t': StudentTPenalty,
         'huber': HuberPenalty,
     }
     
