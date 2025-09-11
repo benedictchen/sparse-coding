@@ -309,7 +309,11 @@ class DictionaryLearner:
         is_patch_features = data.shape[0] in [64, 256, 1024]  # Common patch sizes: 8x8, 16x16, 32x32
         has_many_samples = data.shape[1] > 50  # More samples than typical for raw images
         
-        if data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image:
+        # Additional check: if data has patch-like features but few samples, treat as pre-extracted patches
+        # This handles edge cases like (64, 1) which should be a single pre-extracted patch
+        is_small_batch_patches = data.ndim == 2 and is_patch_features and data.shape[1] <= 50 and not is_square_image
+        
+        if (data.ndim == 2 and is_patch_features and has_many_samples and not is_square_image) or is_small_batch_patches:
             # Pre-extracted patches: (n_features, n_patches)
             patches = data
             

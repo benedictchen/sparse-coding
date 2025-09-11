@@ -109,14 +109,14 @@ class DashboardLogger:
         
         # Create directories if they don't exist
         if self.tensorboard_dir:
-            import os
-            os.makedirs(self.tensorboard_dir, exist_ok=True)
+            from pathlib import Path
+            Path(self.tensorboard_dir).mkdir(parents=True, exist_ok=True)
         
         if self.csv_path:
-            import os
-            csv_dir = os.path.dirname(self.csv_path)
-            if csv_dir:  # Only create directory if path has a directory component
-                os.makedirs(csv_dir, exist_ok=True)
+            from pathlib import Path
+            csv_path = Path(self.csv_path)
+            if csv_path.parent != Path('.'):  # Only create directory if path has a directory component
+                csv_path.parent.mkdir(parents=True, exist_ok=True)
     
     def log_training_metrics(self, metrics):
         """
@@ -132,7 +132,9 @@ class DashboardLogger:
         import os
         
         # Initialize CSV file with headers if first time
-        if not self._csv_initialized and not os.path.exists(self.csv_path):
+        from pathlib import Path
+        csv_path = Path(self.csv_path)
+        if not self._csv_initialized and not csv_path.exists():
             with open(self.csv_path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=metrics.keys())
                 writer.writeheader()
@@ -155,8 +157,8 @@ class DashboardLogger:
             return
             
         # Create simple visualization marker file for test verification
-        import os
-        marker_path = os.path.join(self.tensorboard_dir, 'dictionary_logged.txt')
+        from pathlib import Path
+        marker_path = Path(self.tensorboard_dir) / 'dictionary_logged.txt'
         with open(marker_path, 'w') as f:
             f.write(f"Dictionary shape: {dictionary.shape}\n")
             f.write(f"Patch size: {patch_size}\n")

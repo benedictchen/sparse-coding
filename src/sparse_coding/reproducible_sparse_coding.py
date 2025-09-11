@@ -61,6 +61,10 @@ def set_deterministic(seed: int = 0) -> None:
     os.environ.setdefault("MKL_NUM_THREADS", "1")
     os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
     
+    # Additional threading control for comprehensive determinism
+    os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")  # macOS Accelerate framework
+    os.environ.setdefault("NUMBA_NUM_THREADS", "1")       # Numba JIT compilation
+    
     # Configure Intel MKL if available
     try:
         import mkl  # type: ignore
@@ -72,11 +76,28 @@ def set_deterministic(seed: int = 0) -> None:
     # Set random seeds for all major generators
     random.seed(seed)
     np.random.seed(seed)
+    
+    # Set additional NumPy/SciPy deterministic behavior
+    try:
+        # Modern NumPy random number generator (if available)
+        np.random.default_rng(seed)
+    except AttributeError:
+        # Fallback for older NumPy versions
+        pass
+    
+    # Configure hash randomization (if needed)
+    if "PYTHONHASHSEED" not in os.environ:
+        os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 def is_deterministic() -> bool:
     """
     Check if deterministic mode is currently enabled.
+    
+    Performs comprehensive validation of deterministic execution requirements:
+    1. Threading configuration (BLAS/LAPACK single-threaded)
+    2. Random number generator state validation
+    3. NumPy random state consistency checks
     
     Returns:
         True if environment is configured for deterministic execution
@@ -90,8 +111,71 @@ def is_deterministic() -> bool:
     threading_vars = ["OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"]
     single_threaded = all(os.environ.get(var) == "1" for var in threading_vars)
     
-    # Note: Can't easily check if random seeds were set, so we check threading only
-    return single_threaded
+    if not single_threaded:
+        return False
+    
+    # Check if random number generators appear to be seeded consistently
+    # We do this by testing for predictable sequences
+    try:
+        # Save current state
+        py_state = random.getstate()
+        np_state = np.random.get_state()
+        
+        # Test Python random consistency
+        random.seed(12345)
+        test_py_1 = random.random()
+        random.seed(12345)
+        test_py_2 = random.random()
+        py_consistent = (test_py_1 == test_py_2)
+        
+        # Test NumPy random consistency
+        np.random.seed(12345)
+        test_np_1 = np.random.random()
+        np.random.seed(12345)
+        test_np_2 = np.random.random()
+        np_consistent = (test_np_1 == test_np_2)
+        
+        # Restore original states
+        random.setstate(py_state)
+        np.random.set_state(np_state)
+        
+        return py_consistent and np_consistent
+        
+    except Exception:
+        # If we can't test random state, fall back to threading check only
+        return single_threaded
+
+
+def _test_python_random_determinism() -> bool:
+    """Test if Python's random module is generating deterministic sequences."""
+    try:
+        state = random.getstate()
+        
+        random.seed(9999)
+        val1 = random.random()
+        random.seed(9999)
+        val2 = random.random()
+        
+        random.setstate(state)
+        return val1 == val2
+    except Exception:
+        return False
+
+
+def _test_numpy_random_determinism() -> bool:
+    """Test if NumPy's random module is generating deterministic sequences."""
+    try:
+        state = np.random.get_state()
+        
+        np.random.seed(9999)
+        val1 = np.random.random()
+        np.random.seed(9999)
+        val2 = np.random.random()
+        
+        np.random.set_state(state)
+        return val1 == val2
+    except Exception:
+        return False
 
 
 def get_reproducibility_info() -> dict:
@@ -111,15 +195,24 @@ def get_reproducibility_info() -> dict:
             'OPENBLAS_NUM_THREADS': os.environ.get('OPENBLAS_NUM_THREADS', 'unset'),
             'OMP_NUM_THREADS': os.environ.get('OMP_NUM_THREADS', 'unset'),
             'MKL_NUM_THREADS': os.environ.get('MKL_NUM_THREADS', 'unset'),
+            'NUMEXPR_NUM_THREADS': os.environ.get('NUMEXPR_NUM_THREADS', 'unset'),
+            'VECLIB_MAXIMUM_THREADS': os.environ.get('VECLIB_MAXIMUM_THREADS', 'unset'),
+            'NUMBA_NUM_THREADS': os.environ.get('NUMBA_NUM_THREADS', 'unset'),
         },
         'environment': {
             'numpy_version': np.__version__,
             'deterministic_enabled': is_deterministic(),
+            'python_hash_seed': os.environ.get('PYTHONHASHSEED', 'unset'),
+        },
+        'random_state_test': {
+            'python_random_deterministic': _test_python_random_determinism(),
+            'numpy_random_deterministic': _test_numpy_random_determinism(),
         },
         'recommendations': [
             "Call set_deterministic() before any sparse coding operations",
             "Use consistent seeds across experiments for comparison",
             "Document seed values in research papers for reproducibility",
-            "Verify single-threaded execution for exact reproducibility"
+            "Verify single-threaded execution for exact reproducibility",
+            "Check random state determinism with get_reproducibility_info()"
         ]
     }

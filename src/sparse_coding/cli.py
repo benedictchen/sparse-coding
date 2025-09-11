@@ -1,4 +1,5 @@
 import os, json, argparse, numpy as np, yaml
+from pathlib import Path
 from PIL import Image
 from .sparse_coder import SparseCoder
 from .data_preprocessing_whitening import zero_phase_whiten
@@ -17,7 +18,7 @@ def _load_images(img_dir, f0=200.0):
     for root, _, files in os.walk(img_dir):
         for f in files:
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")):
-                im = Image.open(os.path.join(root, f)).convert("L")
+                im = Image.open(Path(root) / f).convert("L")
                 arr = np.asarray(im, dtype=float)
                 arr = zero_phase_whiten(arr, f0=f0)
                 imgs.append(arr)
@@ -49,11 +50,12 @@ def cmd_train(args):
     coder = SparseCoder(n_atoms=cfg.n_atoms, mode=args.mode, seed=args.seed, lam=lam, max_iter=200, tol=1e-6)
     log("train_start", images=args.images, mode=args.mode, seed=args.seed)
     coder.fit(X, n_steps=cfg.steps, lr=cfg.lr)
-    os.makedirs(args.out, exist_ok=True)
-    np.save(os.path.join(args.out, "D.npy"), coder.D)
-    A = coder.encode(X); np.save(os.path.join(args.out, "A.npy"), A)
+    output_dir = Path(args.out)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    np.save(output_dir / "D.npy", coder.D)
+    A = coder.encode(X); np.save(output_dir / "A.npy", A)
     meta = make_metadata(cfg, coder.D.shape, A.shape, {"mode": args.mode})
-    with open(os.path.join(args.out, "METADATA.json"), "w", encoding="utf-8") as fh:
+    with open(output_dir / "METADATA.json", "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
     log("train_done", out=args.out)
 
@@ -69,11 +71,12 @@ def cmd_train_patches(args):
     coder = SparseCoder(n_atoms=cfg.n_atoms, mode=args.mode, seed=args.seed, lam=lam, max_iter=200, tol=1e-6)
     log("train_patches_start", patches=args.patches, mode=args.mode, seed=args.seed)
     coder.fit(X, n_steps=cfg.steps, lr=cfg.lr)
-    os.makedirs(args.out, exist_ok=True)
-    np.save(os.path.join(args.out, "D.npy"), coder.D)
-    A = coder.encode(X); np.save(os.path.join(args.out, "A.npy"), A)
+    output_dir = Path(args.out)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    np.save(output_dir / "D.npy", coder.D)
+    A = coder.encode(X); np.save(output_dir / "A.npy", A)
     meta = make_metadata(cfg, coder.D.shape, A.shape, {"mode": args.mode})
-    with open(os.path.join(args.out, "METADATA.json"), "w", encoding="utf-8") as fh:
+    with open(output_dir / "METADATA.json", "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
     log("train_patches_done", out=args.out)
 

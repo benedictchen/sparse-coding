@@ -553,110 +553,43 @@ class FeatureAnalyzer:
     
     def _estimate_mutual_info(self, x: ArrayLike, y: ArrayLike) -> float:
         """
-        Improved mutual information estimate using adaptive binning.
-        
-        Uses Scott's rule for optimal bin selection and normalizes inputs
-        for better numerical stability.
+        Mutual information estimate via vectorized 2D histogram (Scott's rule).
+        CPU/NumPy implementation for numerical stability and performance.
+        NOTE: We intentionally do NOT clamp MI to ≥0; small negatives may occur
+        from floating-point error and are diagnostic rather than silently hidden.
         """
-        backend = xp(x)
-        
-        # Normalize inputs to [0, 1] for better bin uniformity
-        x_min, x_max = backend.min(x), backend.max(x)
-        y_min, y_max = backend.min(y), backend.max(y)
-        
-        # Handle constant variables (zero variance)
-        if x_max == x_min or y_max == y_min:
-            return 0.0
-            
-        x_norm = (x - x_min) / (x_max - x_min)
-        y_norm = (y - y_min) / (y_max - y_min)
-        
-        # Adaptive binning using Scott's rule: n_bins = ceil(2 * n^(1/3))
-        n_samples = len(x)
-        n_bins = max(5, min(50, int(backend.ceil(2 * n_samples**(1/3)))))
-        
-        # Create bins with small epsilon to handle edge cases
-        eps = 1e-10
-        x_bins = backend.linspace(-eps, 1 + eps, n_bins + 1)
-        y_bins = backend.linspace(-eps, 1 + eps, n_bins + 1)
-        
-        # Discretize using normalized values
-        x_discrete = backend.digitize(x_norm, x_bins) - 1  # 0-indexed
-        y_discrete = backend.digitize(y_norm, y_bins) - 1  # 0-indexed
-        
-        # Clamp to valid range (handle edge cases)
-        x_discrete = backend.clip(x_discrete, 0, n_bins - 1)
-        y_discrete = backend.clip(y_discrete, 0, n_bins - 1)
-        
-        # Use efficient vectorized 2D histogram computation
         import numpy as np
-        
-        # Always use vectorized computation - convert to NumPy only once
-        x_np = np.asarray(x_norm)
-        y_np = np.asarray(y_norm)
-        joint_hist_np, _, _ = np.histogram2d(x_np, y_np, bins=n_bins, range=[[0, 1], [0, 1]])
-        
-        # Convert back to original backend if needed
-        if backend.__name__ != 'numpy':
-            try:
-                joint_hist = as_same(joint_hist_np, x)
-            except Exception:
-                # If conversion fails, keep as NumPy (will work with subsequent operations)
-                joint_hist = joint_hist_np
-        else:
-            joint_hist = joint_hist_np
-        
-        # Add small epsilon only where needed to avoid log(0)
-        joint_hist = joint_hist + 1e-12
-        
-        # Marginal histograms
-        x_hist = backend.sum(joint_hist, axis=1)
-        y_hist = backend.sum(joint_hist, axis=0)
-        
-        # Normalize to probabilities
-        total = backend.sum(joint_hist)
-        joint_prob = joint_hist / total
-        x_prob = x_hist / total
-        y_prob = y_hist / total
-        
-        # Vectorized mutual information computation with bias correction
-        # MI = sum(P(x,y) * log(P(x,y) / (P(x) * P(y))))
-        outer_prod = backend.outer(x_prob, y_prob)
-        
-        # Use numerically stable computation with proper epsilon handling
-        # Only compute MI for non-zero joint probabilities to avoid bias
-        nonzero_mask = joint_prob > 1e-12
-        
-        if backend.__name__ == 'numpy':
-            # Use NumPy's advanced indexing for efficiency
-            nonzero_joint = joint_prob[nonzero_mask]
-            nonzero_outer = outer_prod[nonzero_mask]
-            
-            # Compute MI only on non-zero entries (unbiased estimator)
-            if len(nonzero_joint) > 0:
-                ratio = nonzero_joint / nonzero_outer
-                mi_contributions = nonzero_joint * np.log(ratio)
-                mi = np.sum(mi_contributions)
-            else:
-                mi = 0.0
-        else:
-            # Fallback for other backends
-            ratio = backend.where(nonzero_mask, 
-                                joint_prob / backend.maximum(outer_prod, 1e-12), 
-                                0.0)
-            log_ratio = backend.where(nonzero_mask, 
-                                    backend.log(backend.maximum(ratio, 1e-12)), 
-                                    0.0)
-            mi = backend.sum(joint_prob * log_ratio)
-        
-        mi_value = float(mi)
-        
-        # Apply bias correction for small samples (Miller-Madow correction)
-        n_nonzero_bins = float(backend.sum(nonzero_mask))
-        if n_samples > 0 and n_nonzero_bins > 0:
-            bias_correction = (n_nonzero_bins - 1) / (2.0 * n_samples)
-            mi_value = max(0.0, mi_value - bias_correction)  # Ensures non-negative MI
-        
-        return mi_value
+        x = np.asarray(x).ravel()
+        y = np.asarray(y).ravel()
+        if x.size == 0 or y.size == 0:
+            return 0.0
+        # Handle constant variables (zero variance)
+        if np.allclose(x.max(), x.min()) or np.allclose(y.max(), y.min()):
+            return 0.0
+        # Scott's rule for bins (clamped to [10, 128] for robustness)
+        def _scott_bins(z: np.ndarray) -> int:
+            n = z.size
+            sigma = np.std(z, ddof=1)
+            if sigma == 0 or n < 2:
+                return 10
+            h = 3.5 * sigma * n ** (-1/3)
+            # bins ≈ range / h
+            bins = int(np.clip((z.max() - z.min()) / max(h, 1e-12), 10, 128))
+            return max(bins, 10)
+        bx = _scott_bins(x)
+        by = _scott_bins(y)
+        # Vectorized 2D histogram
+        H, _, _ = np.histogram2d(x, y, bins=[bx, by])
+        # Probabilities with eps to avoid log(0)
+        eps = 1e-12
+        Pxy = (H + eps) / (H.sum() + eps * H.size)
+        Px = Pxy.sum(axis=1, keepdims=True)
+        Py = Pxy.sum(axis=0, keepdims=True)
+        # Compute MI = sum Pxy * log(Pxy / (Px Py))
+        denom = Px @ Py
+        # Mask out numerically empty bins to reduce bias
+        mask = Pxy > eps
+        mi = float((Pxy[mask] * np.log(Pxy[mask] / (denom[mask] + eps))).sum())
+        return mi
 
 

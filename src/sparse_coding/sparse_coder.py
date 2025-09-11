@@ -18,18 +18,9 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing import Optional, Union, Tuple, Any, Literal, Protocol, Callable
 
-try:
-    from joblib import Parallel, delayed
-    HAS_JOBLIB = True
-except ImportError:
-    HAS_JOBLIB = False
-
-try:
-    import scipy.sparse
-    from scipy.sparse.linalg import svds
-    HAS_SCIPY = True
-except ImportError:
-    HAS_SCIPY = False
+from joblib import Parallel, delayed
+import scipy.sparse
+from scipy.sparse.linalg import svds
 
 from .fista_batch import fista_batch, power_iter_L
 
@@ -49,39 +40,38 @@ class RandomGenerator(Protocol):
 def _validate_input(X: ArrayLike, name: str = "X", allow_sparse: bool = False) -> Union[NDArray[np.floating], 'scipy.sparse.spmatrix']:
     """Robust input validation with sparse matrix support following scikit-learn patterns."""
     
-    # Handle different input types
+    # Handle different input types and convert to validated form
     if isinstance(X, np.ndarray):
-        if not np.all(np.isfinite(X)):
+        X_validated = X.astype(float)
+        if not np.all(np.isfinite(X_validated)):
             raise SparseCodingError(f"{name} contains non-finite values (inf/nan)")
-        return X.astype(float)
     
-    elif allow_sparse and HAS_SCIPY and scipy.sparse.issparse(X):
+    elif allow_sparse and scipy.sparse.issparse(X):
         # Keep sparse format if requested and scipy available
         if not scipy.sparse.isspmatrix_csr(X):
             X = scipy.sparse.csr_matrix(X)  # Convert to efficient format
         # Check for non-finite values in sparse matrix data
         if not np.all(np.isfinite(X.data)):
             raise SparseCodingError(f"{name} sparse matrix contains non-finite values")
-        return X
+        X_validated = X
     
     else:
         # Convert other array-like inputs to numpy
         try:
-            X_array = np.asarray(X, dtype=float)
-            if not np.all(np.isfinite(X_array)):
+            X_validated = np.asarray(X, dtype=float)
+            if not np.all(np.isfinite(X_validated)):
                 raise SparseCodingError(f"{name} contains non-finite values (inf/nan)")
-            return X_array
         except (ValueError, TypeError) as e:
             raise SparseCodingError(f"Cannot convert {name} to array: {e}")
     
-    # Additional validations
-    if hasattr(X, 'shape'):
-        if len(X.shape) not in [1, 2]:
-            raise SparseCodingError(f"{name} must be 1D or 2D array, got {len(X.shape)}D")
-        if X.size == 0:
+    # Additional shape and size validations for all paths
+    if hasattr(X_validated, 'shape'):
+        if len(X_validated.shape) not in [1, 2]:
+            raise SparseCodingError(f"{name} must be 1D or 2D array, got {len(X_validated.shape)}D")
+        if X_validated.size == 0:
             raise SparseCodingError(f"{name} cannot be empty")
     
-    return X
+    return X_validated
 
 def _normalize_columns(D: ArrayLike) -> np.ndarray:
     """Normalize dictionary columns to unit norm with numerical stability."""
@@ -144,8 +134,22 @@ def _mod_update(D: np.ndarray, X: np.ndarray, A: np.ndarray, eps: float = 1e-6) 
     return _normalize_columns(D_new)
 
 def _homeostatic_equalize(D: np.ndarray, A: np.ndarray, alpha: float = 0.1) -> np.ndarray:
-    """Equalize atom norms of codes to balance usage (simple homeostasis).
-    Scale dictionary columns inversely to recent code energy.
+    """Homeostatic equalization (heuristic implementation).
+    
+    We equalize dictionary atom usage by rescaling dictionary columns
+    inversely to recent code energy. This is *inspired by* Olshausen & Field's
+    homeostatic mechanisms but is not an identical implementation of their 
+    gain control on activations.
+    
+    Args:
+        D: Dictionary matrix to scale
+        A: Recent sparse codes used to measure usage
+        alpha: Adaptation strength (0=no change, 1=full equalization)
+        
+    Note:
+        O&F applied gain control to neuron activities/thresholds, whereas
+        this implementation modifies dictionary atom magnitudes for 
+        computational convenience.
     """
     usage = np.sqrt(np.mean(A*A, axis=1) + 1e-12)  # (K,)
     target = np.mean(usage)
@@ -331,6 +335,34 @@ def _olshausen_gradient_infer_single(x, D, lam, sigma, max_iter=200, tol=1e-6):
     return a
 
 
+def _check_gpu_availability() -> bool:
+    """Check GPU availability for potential acceleration (2025 performance)."""
+    try:
+        # Check for CuPy (CUDA acceleration)
+        import cupy as cp
+        # Test basic GPU operation
+        test_array = cp.array([1.0, 2.0, 3.0])
+        result = cp.sum(test_array)  # Simple GPU operation
+        return True
+    except (ImportError, Exception):
+        # CuPy not available or GPU not accessible
+        pass
+    
+    try:
+        # Check for PyTorch CUDA
+        import torch
+        if torch.cuda.is_available():
+            # Test basic CUDA operation
+            test_tensor = torch.tensor([1.0, 2.0, 3.0]).cuda()
+            result = torch.sum(test_tensor)  # Simple CUDA operation
+            return True
+    except (ImportError, Exception):
+        # PyTorch not available or CUDA not accessible
+        pass
+    
+    return False
+
+
 class SparseCoder:
     """
     Dictionary learning with sparse inference using hybrid research methods.
@@ -463,6 +495,9 @@ class SparseCoder:
         self._adaptive_k = False  # Can be enabled via set_adaptive_k()
         self._max_atoms = n_atoms * 2  # Upper bound for adaptive growth
         self._usage_history = []  # Track atom usage over iterations
+        
+        # GPU availability check for performance optimization
+        self._gpu_available = _check_gpu_availability()
     
     @property
     def dictionary(self):
@@ -592,7 +627,7 @@ class SparseCoder:
         
         # Standard linear decoding for other modes
         # Sparse-safe matrix multiplication
-        if HAS_SCIPY and scipy.sparse.issparse(A):
+        if scipy.sparse.issparse(A):
             # Use sparse matrix multiplication for efficiency
             D_sparse = scipy.sparse.csr_matrix(self.D)
             return D_sparse @ A
@@ -682,6 +717,10 @@ class SparseCoder:
                 raise ValueError("mode must be 'l1', 'paper', 'paper_gdD', 'olshausen_pure', 'transcoder', or 'log'")
             
             D = _reinit_dead_atoms(D, X, A, self.rng)
+            
+            # Adaptive atom management (2025 feature)
+            self._adaptive_atom_management(A)
+            D = self.D  # Update D in case atoms were added/removed
             
             # Optional annealing of lambda
             if self.anneal:
@@ -955,8 +994,8 @@ class SparseCoder:
         K, N = D.shape[1], X.shape[1]
         A = np.zeros((K, N))
         
-        # Use parallel processing for large batches if joblib available
-        if HAS_JOBLIB and N > 50:
+        # Use parallel processing for large batches
+        if N > 50:
             # Parallel processing with chunking for memory efficiency
             chunk_size = max(1, min(100, N // 4))  # Adaptive chunk size
             n_jobs = min(4, N // chunk_size + 1)  # Limit parallel jobs
@@ -995,18 +1034,26 @@ class SparseCoder:
         K, N = D.shape[1], X.shape[1]
         A = np.zeros((K, N))
         
-        # Process efficiently based on batch size
-        if N <= 100:
+        # Process efficiently with parallelization
+        if N <= 50:
             # Small batches: sequential processing
             for n in range(N):
                 A[:, n] = _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
-            # Large batches: chunked processing for memory efficiency  
-            chunk_size = 100
-            for start in range(0, N, chunk_size):
-                end = min(start + chunk_size, N)
-                for n in range(start, end):
-                    A[:, n] = _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            # Large batches: parallel processing with threading backend
+            from joblib import Parallel, delayed
+            
+            def process_signal(n):
+                return n, _ncg_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            
+            # Threading backend for numerical computations
+            results = Parallel(n_jobs=-1, backend='threading')(
+                delayed(process_signal)(n) for n in range(N)
+            )
+            
+            # Assign results back to A matrix
+            for n, result in results:
+                A[:, n] = result
         
         return A
     
@@ -1098,23 +1145,87 @@ class SparseCoder:
         
         self._nonlinear_weights = (W1, b1, W2, b2)
     
+    def set_adaptive_k(self, enabled: bool = True, max_atoms: Optional[int] = None) -> None:
+        """Enable/disable adaptive atom allocation (2025 research feature)."""
+        self._adaptive_k = enabled
+        if max_atoms is not None:
+            self._max_atoms = max_atoms
+    
+    def _adaptive_atom_management(self, A: np.ndarray) -> None:
+        """Manage dictionary size based on atom usage patterns."""
+        if not self._adaptive_k:
+            return
+            
+        # Track usage: atoms with significant activations
+        current_usage = np.mean(np.abs(A) > 1e-4, axis=1)  # Fraction of samples using each atom
+        self._usage_history.append(current_usage)
+        
+        if len(self._usage_history) < 5:  # Need history for decisions
+            return
+            
+        # Average usage over recent history
+        avg_usage = np.mean(self._usage_history[-5:], axis=0)
+        
+        # Identify underused atoms (less than 1% usage)
+        underused = avg_usage < 0.01
+        n_underused = np.sum(underused)
+        
+        # If many atoms are underused and we're above minimum, remove some
+        min_atoms = self.n_atoms // 2
+        current_atoms = self.D.shape[1]
+        
+        if n_underused > current_atoms * 0.3 and current_atoms > min_atoms:
+            # Remove up to half of underused atoms
+            to_remove = min(n_underused // 2, current_atoms - min_atoms)
+            if to_remove > 0:
+                keep_indices = np.where(~underused)[0]
+                if len(keep_indices) < current_atoms - to_remove:
+                    # Keep best underused atoms
+                    underused_indices = np.where(underused)[0]
+                    keep_underused = underused_indices[np.argsort(-avg_usage[underused_indices])][:to_remove]
+                    keep_indices = np.concatenate([keep_indices, keep_underused])
+                
+                # Update dictionary
+                self.D = self.D[:, keep_indices]
+                print(f"Adaptive K: Removed {to_remove} atoms, now have {self.D.shape[1]} atoms")
+        
+        # If all atoms are well-used and we haven't hit max, add more
+        elif np.all(avg_usage > 0.05) and current_atoms < self._max_atoms:
+            n_features = self.D.shape[0] 
+            n_new = min(5, self._max_atoms - current_atoms)  # Add up to 5 atoms
+            
+            # Initialize new atoms from data statistics
+            new_atoms = self.rng.normal(0, np.std(self.D), (n_features, n_new))
+            new_atoms = new_atoms / np.linalg.norm(new_atoms, axis=0, keepdims=True)
+            
+            self.D = np.concatenate([self.D, new_atoms], axis=1)
+            print(f"Adaptive K: Added {n_new} atoms, now have {self.D.shape[1]} atoms")
+    
     def _batch_olshausen_gradient_inference(self, X: np.ndarray, lam: float, sigma: float) -> np.ndarray:
         """Batch inference using pure Olshausen & Field (1996) gradient ascent."""
         K, N = self.D.shape[1], X.shape[1]
         A = np.zeros((K, N))
         
-        # Process efficiently based on batch size
-        if N <= 100:
+        # Process efficiently with parallelization
+        if N <= 50:
             # Small batches: sequential processing
             for n in range(N):
                 A[:, n] = _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
-            # Large batches: chunked processing for memory efficiency
-            chunk_size = 100
-            for start in range(0, N, chunk_size):
-                end = min(start + chunk_size, N)
-                for n in range(start, end):
-                    A[:, n] = _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            # Large batches: parallel processing with threading backend
+            from joblib import Parallel, delayed
+            
+            def process_signal(n):
+                return n, _olshausen_gradient_infer_single(X[:, n], self.D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            
+            # Threading backend for numerical computations
+            results = Parallel(n_jobs=-1, backend='threading')(
+                delayed(process_signal)(n) for n in range(N)
+            )
+            
+            # Assign results back to A matrix
+            for n, result in results:
+                A[:, n] = result
         
         return A
     
@@ -1123,17 +1234,25 @@ class SparseCoder:
         K, N = D.shape[1], X.shape[1]
         A = np.zeros((K, N))
         
-        # Process efficiently based on batch size
-        if N <= 100:
+        # Process efficiently with parallelization
+        if N <= 50:
             # Small batches: sequential processing
             for n in range(N):
                 A[:, n] = _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
         else:
-            # Large batches: chunked processing for memory efficiency
-            chunk_size = 100
-            for start in range(0, N, chunk_size):
-                end = min(start + chunk_size, N)
-                for n in range(start, end):
-                    A[:, n] = _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            # Large batches: parallel processing with threading backend
+            from joblib import Parallel, delayed
+            
+            def process_signal(n):
+                return n, _olshausen_gradient_infer_single(X[:, n], D, lam, sigma, max_iter=self.max_iter, tol=self.tol)
+            
+            # Threading backend for numerical computations
+            results = Parallel(n_jobs=-1, backend='threading')(
+                delayed(process_signal)(n) for n in range(N)
+            )
+            
+            # Assign results back to A matrix
+            for n, result in results:
+                A[:, n] = result
         
         return A

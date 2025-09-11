@@ -1,0 +1,187 @@
+name: Build and Publish to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (v1.0.0, v1.1.0, etc.)
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test,dev]"
+    
+    - name: Run tests with pytest
+      run: |
+        PYTHONPATH=src pytest tests/ --cov=src/sparse_coding --cov-report=xml --cov-fail-under=80
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for version detection
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Verify version consistency
+      run: |
+        # Extract version from tag
+        TAG_VERSION=${GITHUB_REF#refs/tags/v}
+        echo "Tag version: $TAG_VERSION"
+        
+        # Check VERSION file
+        VERSION_FILE=$(cat VERSION)
+        echo "VERSION file: $VERSION_FILE"
+        
+        # Check pyproject.toml
+        PYPROJECT_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        echo "pyproject.toml version: $PYPROJECT_VERSION"
+        
+        # Verify all versions match
+        if [ "$TAG_VERSION" != "$VERSION_FILE" ] || [ "$TAG_VERSION" != "$PYPROJECT_VERSION" ]; then
+          echo "Version mismatch detected!"
+          echo "Tag: $TAG_VERSION, VERSION file: $VERSION_FILE, pyproject.toml: $PYPROJECT_VERSION"
+          exit 1
+        fi
+        echo "All versions match: $TAG_VERSION"
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Check package
+      run: |
+        python -m twine check dist/*
+    
+    - name: Test installation
+      run: |
+        pip install dist/*.whl
+        python -c "import sparse_coding; print(f'Package version: {sparse_coding.__version__}')"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    environment: pypi
+    permissions:
+      id-token: write  # For trusted publishing
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist/
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        verify-metadata: true
+        verbose: true
+
+  create-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Extract release notes
+      id: extract-notes
+      run: |
+        # Extract version from tag
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Extract release notes from CHANGELOG.md if it exists
+        if [ -f "CHANGELOG.md" ]; then
+          # Extract section for this version
+          sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | head -n -1 > release_notes.txt
+          echo "Found release notes in CHANGELOG.md"
+        else
+          # Create basic release notes
+          echo "Release $VERSION" > release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Automated release from tag $VERSION" >> release_notes.txt
+        fi
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ steps.extract-notes.outputs.version }}
+        body_path: release_notes.txt
+        draft: false
+        prerelease: false
+
+  docs:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install documentation dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[docs]"
+    
+    - name: Build documentation
+      run: |
+        mkdocs build --strict
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./site
+        cname: sparse-coding.benedictchen.com  # Optional: custom domain
