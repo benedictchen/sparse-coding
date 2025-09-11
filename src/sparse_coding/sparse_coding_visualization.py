@@ -251,9 +251,12 @@ def plot_sparsity_statistics(codes: np.ndarray,
 
 
 def create_visualization_report(dictionary: np.ndarray,
-                              codes: np.ndarray,
-                              history: Dict[str, List[float]],
-                              patch_size: Tuple[int, int],
+                              sparse_codes: Optional[np.ndarray] = None,
+                              signals: Optional[np.ndarray] = None,
+                              training_history: Optional[Dict[str, List[float]]] = None,
+                              patch_size: Optional[Tuple[int, int]] = None,
+                              codes: Optional[np.ndarray] = None,
+                              history: Optional[Dict[str, List[float]]] = None,
                               original_patches: Optional[np.ndarray] = None,
                               save_path: Optional[str] = None) -> List[plt.Figure]:
     """
@@ -261,15 +264,33 @@ def create_visualization_report(dictionary: np.ndarray,
     
     Args:
         dictionary: Learned dictionary
-        codes: Sparse codes
-        history: Training history
+        sparse_codes: Sparse codes (new parameter name)
+        signals: Original signals/patches (alias for original_patches)
+        training_history: Training history (alias for history)
         patch_size: Patch dimensions
+        codes: Sparse codes (legacy parameter name)
+        history: Training history (legacy parameter name)
         original_patches: Original patches for reconstruction comparison
         save_path: Optional path to save figures
         
     Returns:
-        List of matplotlib Figure objects
+        List of matplotlib Figure objects if save_path is None,
+        otherwise returns the save_path string
     """
+    
+    # Handle parameter aliases for backwards compatibility
+    if sparse_codes is not None:
+        codes = sparse_codes
+    if training_history is not None:
+        history = training_history
+    if signals is not None:
+        original_patches = signals
+    
+    # Validate required parameters
+    if codes is None:
+        raise ValueError("Either 'codes' or 'sparse_codes' parameter is required")
+    if patch_size is None:
+        raise ValueError("patch_size parameter is required")
     
     figures = []
     
@@ -306,4 +327,8 @@ def create_visualization_report(dictionary: np.ndarray,
         if save_path:
             fig5.savefig(f"{save_path}_reconstruction.png", dpi=150, bbox_inches='tight')
     
-    return figures
+    # Return save_path if files were saved, otherwise return figures
+    if save_path:
+        return save_path
+    else:
+        return figures

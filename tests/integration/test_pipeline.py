@@ -17,6 +17,7 @@ from sparse_coding import (
 )
 from sparse_coding.data_preprocessing_whitening import zero_phase_whiten
 from sparse_coding.sparse_coding_monitoring import TB, CSVDump, DashboardLogger
+from sparse_coding import sparse_coding_visualization as visualization
 from tests.conftest import (
     assert_dictionary_normalized, assert_sparse_solution, 
     assert_reconstruction_quality, create_test_dictionary

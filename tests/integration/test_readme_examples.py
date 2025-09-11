@@ -12,7 +12,7 @@ import os
 import shutil
 from pathlib import Path
 
-from sparse_coding import DictionaryLearner
+from sparse_coding import DictionaryLearner, create_advanced_sparse_coder, DashboardLogger, visualization
 
 
 class TestREADMEExamples:
@@ -245,8 +245,8 @@ class TestREADMEAPIConsistency:
         sig = inspect.signature(DictionaryLearner.fit)
         params = list(sig.parameters.keys())[1:]  # Skip 'self'
         
-        # Should accept images and verbose parameters as shown in README
-        assert 'images' in params
+        # Should accept data and verbose parameters as shown in README
+        assert 'data' in params
         assert 'verbose' in params
         
         # Should NOT accept max_iterations (common mistake)

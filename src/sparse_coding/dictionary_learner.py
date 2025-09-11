@@ -227,8 +227,19 @@ class DictionaryLearner:
             if verbose:
                 print(f"Training on {patches.shape[1]} extracted patches of size {self.patch_dim}")
         
-        # Adjust dictionary size to match patch dimensions
-        if self.dictionary.shape[0] != patches.shape[0]:
+        # Initialize dictionary and sparse coder if not done yet
+        if self.dictionary is None:
+            if verbose:
+                print(f"Initializing dictionary size to ({patches.shape[0]}, {self.n_components})")
+            # Initialize with proper data dimensionality
+            self.dictionary = np.random.randn(patches.shape[0], self.n_components)
+            self._normalize_dictionary()
+            self._setup_sparse_coder()
+            # Set the dictionary in the sparse coder
+            self.sparse_coder.D = self.dictionary
+            
+        # Adjust dictionary size to match patch dimensions if needed
+        elif self.dictionary.shape[0] != patches.shape[0]:
             if verbose:
                 print(f"Adjusting dictionary size from {self.dictionary.shape} to ({patches.shape[0]}, {self.n_components})")
             self.dictionary = np.random.randn(patches.shape[0], self.n_components)
@@ -298,13 +309,8 @@ class DictionaryLearner:
             if self.sparse_coder.D.shape[0] != patches.shape[0]:
                 self.sparse_coder.D = self.dictionary
             
-            # Encode all patches directly - return codes for all patches
-            codes = []
-            for i in range(patches.shape[1]):
-                patch = patches[:, i:i+1]  # Keep as 2D for compatibility
-                code = self.sparse_coder.encode(patch)
-                codes.append(code[:, 0])  # Extract 1D result
-            codes = np.array(codes).T  # Transpose to (n_atoms, n_patches)
+            # Encode all patches at once using batch processing
+            codes = self.sparse_coder.encode(patches)
             
             return codes
             
