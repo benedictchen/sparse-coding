@@ -131,12 +131,16 @@ class TestVisualizationCorrectness:
         """Test sparse codes plotting calculates sparsity correctly."""
         fig = plot_sparse_codes(self.sparse_codes, n_show=8)
         
-        # Verify correct number of subplots
-        assert len(fig.axes) == 8, "Should create 8 subplots for 8 codes"
+        # Verify correct number of visible subplots for codes
+        visible_subplots = len([ax for ax in fig.axes if ax.get_visible()])
+        assert visible_subplots == 8, f"Should create 8 visible subplots for 8 codes, got {visible_subplots}"
         
         # Test sparsity calculation accuracy for each subplot
         threshold = 1e-6
         for i, ax in enumerate(fig.axes):
+            if not ax.get_visible():  # Skip hidden subplots
+                continue
+                
             # Extract title to get sparsity value
             title = ax.get_title()
             sparsity_str = title.split('sparsity: ')[1].rstrip(')')
@@ -144,10 +148,14 @@ class TestVisualizationCorrectness:
             
             # Calculate expected sparsity
             code_vector = self.sparse_codes[:, i]
-            expected_sparsity = np.mean(np.abs(code_vector) > threshold)
+            calculated_sparsity = np.mean(np.abs(code_vector) > threshold)
             
-            np.testing.assert_allclose(plotted_sparsity, expected_sparsity, rtol=1e-10,
-                                     err_msg=f"Sparsity calculation incorrect for code {i}")
+            # The displayed sparsity is rounded to 2 decimal places, so we need to check
+            # that the displayed value matches the rounded calculation
+            expected_displayed = round(calculated_sparsity, 2)
+            
+            np.testing.assert_allclose(plotted_sparsity, expected_displayed, rtol=1e-10,
+                                     err_msg=f"Displayed sparsity incorrect for code {i}: got {plotted_sparsity}, expected {expected_displayed}")
             
             # Verify bar heights match coefficient values
             bars = ax.patches

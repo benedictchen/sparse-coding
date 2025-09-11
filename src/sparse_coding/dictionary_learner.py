@@ -269,6 +269,11 @@ class DictionaryLearner:
             # Update sparse coder with new dictionary
             self.sparse_coder.D = self.dictionary
         
+        # Ensure sparse coder is initialized even if dictionary was set manually
+        if self.sparse_coder is None:
+            self._setup_sparse_coder()
+            self.sparse_coder.D = self.dictionary
+        
         # Training loop
         for iteration in range(self.max_iterations):
             
